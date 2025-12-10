@@ -1,0 +1,19 @@
+{
+  "name": "inspiredhomeworkpoc",
+  "version": "1.0.0",
+  "description": "Canvas LTI 1.3-compatible homework assignment proof of concept",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "lti",
+    "canvas",
+    "railway",
+    "homework"
+  ],
+  "author": "",
+  "license": "MIT"
+}

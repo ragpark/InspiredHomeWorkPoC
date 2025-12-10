@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Student | Inspired Homework</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Student workspace</h1>
+      <p>Launch homework from Canvas or use a shared link from your teacher.</p>
+      <div class="pill-list">
+        <a class="pill" href="/">Back to overview</a>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="form-grid">
+        <div>
+          <label for="assignmentId">Assignment ID</label>
+          <input id="assignmentId" placeholder="Paste the link or ID" />
+        </div>
+        <div style="display: flex; align-items: flex-end;">
+          <button id="load">Load homework</button>
+        </div>
+      </div>
+      <p class="note">Links from Canvas include the assignmentId query automatically.</p>
+      <div id="content" style="margin-top: 16px;"></div>
+    </section>
+
+    <script>
+      const content = document.getElementById('content');
+      const input = document.getElementById('assignmentId');
+
+      function renderAssignment(assignment, launchUrl) {
+        if (!assignment) {
+          content.innerHTML = '<p class="small">Assignment not found.</p>';
+          return;
+        }
+
+        const taskItems = assignment.tasks.length
+          ? `<ul>${assignment.tasks.map((task) => `<li>${task}</li>`).join('')}</ul>`
+          : '<p class="small">No tasks yet.</p>';
+
+        content.innerHTML = `
+          <div class="assignment-card">
+            <div class="badge">${assignment.students.length ? 'Individual or group' : 'Shared link'}</div>
+            <h3>${assignment.title}</h3>
+            <p class="small">${assignment.description || 'No description provided.'}</p>
+            <div>
+              <strong>Tasks</strong>
+              ${taskItems}
+            </div>
+            <p class="small">Launch URL: <code>${launchUrl}</code></p>
+          </div>
+        `;
+      }
+
+      async function loadAssignment(id) {
+        const response = await fetch(`/api/assignments/${id}`);
+        if (!response.ok) {
+          renderAssignment(null);
+          return;
+        }
+        const data = await response.json();
+        renderAssignment(data.assignment, data.launchUrl);
+      }
+
+      document.getElementById('load').addEventListener('click', () => {
+        const raw = input.value.trim();
+        const id = raw.includes('assignmentId=')
+          ? new URL(raw).searchParams.get('assignmentId')
+          : raw;
+        if (id) loadAssignment(id);
+      });
+
+      const urlId = new URLSearchParams(window.location.search).get('assignmentId');
+      if (urlId) {
+        input.value = urlId;
+        loadAssignment(urlId);
+      }
+    </script>
+  </body>
+</html>
