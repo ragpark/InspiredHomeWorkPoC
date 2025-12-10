@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Teacher | Inspired Homework</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Teacher workspace</h1>
+      <p>Create and publish homework as an individual or group deep link into Canvas.</p>
+      <div class="pill-list">
+        <a class="pill" href="/">Back to overview</a>
+        <a class="pill secondary" href="/student.html">Preview student page</a>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="form-grid">
+        <div>
+          <label for="title">Assignment title</label>
+          <input id="title" placeholder="Fractions practice" />
+        </div>
+        <div>
+          <label for="description">Notes for students</label>
+          <input id="description" placeholder="What should students know?" />
+        </div>
+      </div>
+
+      <label for="tasks">Tasks (one per line)</label>
+      <textarea id="tasks" placeholder="Read chapter 5\nSolve problems 1-10\nSubmit screenshots"></textarea>
+
+      <div class="form-grid">
+        <div>
+          <label for="students">Student emails or IDs (comma separated)</label>
+          <input id="students" placeholder="ada@example.com, brian@example.com" />
+        </div>
+        <div>
+          <label for="groups">Group names (comma separated)</label>
+          <input id="groups" placeholder="Period 2, Algebra Club" />
+        </div>
+      </div>
+
+      <label for="returnUrl">Canvas deep-link return URL (optional)</label>
+      <input id="returnUrl" placeholder="https://canvas.example.com/courses/123/assignments" />
+
+      <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <button id="create">Create assignment</button>
+        <span class="small">Assignments are stored in memory for this demo.</span>
+      </div>
+
+      <div id="result" style="margin-top: 16px;"></div>
+    </section>
+
+    <section class="card">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <h2 style="margin: 0;">Recent assignments</h2>
+        <span class="badge" id="count">0 created</span>
+      </div>
+      <div class="assignments" id="assignments"></div>
+    </section>
+
+    <script>
+      const createButton = document.getElementById('create');
+      const assignmentsList = document.getElementById('assignments');
+      const result = document.getElementById('result');
+      const count = document.getElementById('count');
+
+      async function refreshAssignments() {
+        const response = await fetch('/api/assignments');
+        const data = await response.json();
+        assignmentsList.innerHTML = '';
+        count.textContent = `${data.assignments.length} created`;
+
+        data.assignments.forEach((assignment) => {
+          const card = document.createElement('div');
+          card.className = 'assignment-card';
+          card.innerHTML = `
+            <h3>${assignment.title}</h3>
+            <p class="small">${assignment.description || 'No description yet'}</p>
+            <div class="small">Tasks: ${assignment.tasks.length}</div>
+            <div class="small">Individuals: ${assignment.students.join(', ') || '—'}</div>
+            <div class="small">Groups: ${assignment.groups.join(', ') || '—'}</div>
+            <div class="small">Created ${new Date(assignment.createdAt).toLocaleString()}</div>
+            <pre>Launch: ${window.location.origin}/student.html?assignmentId=${assignment.id}</pre>
+          `;
+          assignmentsList.appendChild(card);
+        });
+      }
+
+      async function createAssignment() {
+        const tasks = document.getElementById('tasks').value
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean);
+
+        const payload = {
+          title: document.getElementById('title').value,
+          description: document.getElementById('description').value,
+          tasks,
+          students: document.getElementById('students').value
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
+          groups: document.getElementById('groups').value
+            .split(',')
+            .map((g) => g.trim())
+            .filter(Boolean),
+          ltiReturnUrl: document.getElementById('returnUrl').value.trim() || undefined,
+        };
+
+        result.innerHTML = '<div class="small">Saving…</div>';
+
+        const response = await fetch('/api/assignments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          const deepLinkSection = data.deepLink
+            ? `<p class="small">Deep-link (simulated return to Canvas): <code>${data.deepLink}</code></p>`
+            : '';
+
+          result.innerHTML = `
+            <div class="status">Assignment created</div>
+            <p class="small">Student launch URL:</p>
+            <pre>${data.studentLaunchLink}</pre>
+            ${deepLinkSection}
+          `;
+          refreshAssignments();
+        } else {
+          result.innerHTML = `<p class="small" style="color: crimson;">${data.error || 'Could not create assignment'}</p>`;
+        }
+      }
+
+      createButton.addEventListener('click', createAssignment);
+      refreshAssignments();
+    </script>
+  </body>
+</html>
