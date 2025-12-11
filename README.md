@@ -57,7 +57,7 @@ The app defaults to `http://localhost:3000`. Use `BASE_URL` if you expose it via
 ### Environment variables
 
 - `PORT` – provided by Railway; defaults to `3000` locally.
-- `BASE_URL` – optional. Set to the public URL of your deployment so generated links work from Canvas (e.g., `https://your-app.up.railway.app`). If you omit the scheme, the server now assumes `https://` and will fall back to the incoming request host to avoid invalid URL errors.
+- `BASE_URL` – optional. Set to the public URL of your deployment so generated links work from Canvas (e.g., `https://your-app.up.railway.app`).
 
 ## Deploying to Railway
 

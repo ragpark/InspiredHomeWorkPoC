@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
-const ENV_BASE_URL = process.env.BASE_URL;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const assignments = new Map();
@@ -78,24 +78,7 @@ async function serveStatic(req, res) {
   }
 }
 
-function resolveBaseUrl(req) {
-  const host = req.headers.host || `localhost:${PORT}`;
-  const fallback = host.startsWith('localhost') ? `http://${host}` : `https://${host}`;
-  let candidate = ENV_BASE_URL || '';
-
-  if (candidate && !/^https?:\/\//i.test(candidate)) {
-    candidate = `https://${candidate}`;
-  }
-
-  try {
-    const chosen = candidate || fallback;
-    return new URL(chosen).origin;
-  } catch (err) {
-    return fallback;
-  }
-}
-
-function createAssignment(payload, baseUrl) {
+function createAssignment(payload) {
   const id = randomUUID();
   const { title, description, tasks = [], students = [], groups = [], ltiReturnUrl } = payload;
   const normalizedTasks = tasks.filter(Boolean).map(task => task.trim()).filter(Boolean);
@@ -111,8 +94,8 @@ function createAssignment(payload, baseUrl) {
 
   assignments.set(id, assignment);
 
-  const studentLaunchLink = `${baseUrl}/student.html?assignmentId=${id}`;
-  const teacherLink = `${baseUrl}/teacher.html?assignmentId=${id}`;
+  const studentLaunchLink = `${BASE_URL}/student.html?assignmentId=${id}`;
+  const teacherLink = `${BASE_URL}/teacher.html?assignmentId=${id}`;
   const deepLink = ltiReturnUrl
     ? `${ltiReturnUrl}${ltiReturnUrl.includes('?') ? '&' : '?'}launch_url=${encodeURIComponent(studentLaunchLink)}`
     : null;
@@ -130,8 +113,7 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  const baseUrl = resolveBaseUrl(req);
-  const url = new URL(req.url, baseUrl);
+  const url = new URL(req.url, BASE_URL);
   const baseHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -145,7 +127,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/api/assignments') {
     try {
       const payload = await parseBody(req);
-      const { assignment, studentLaunchLink, teacherLink, deepLink } = createAssignment(payload, baseUrl);
+      const { assignment, studentLaunchLink, teacherLink, deepLink } = createAssignment(payload);
       res.writeHead(201, { 'Content-Type': 'application/json', ...baseHeaders });
       return res.end(JSON.stringify({ assignment, studentLaunchLink, teacherLink, deepLink }));
     } catch (err) {
@@ -164,7 +146,7 @@ const server = http.createServer(async (req, res) => {
     const assignment = assignments.get(id);
     if (!assignment) return notFound(res);
     res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
-    return res.end(JSON.stringify({ assignment, launchUrl: `${baseUrl}/student.html?assignmentId=${id}` }));
+    return res.end(JSON.stringify({ assignment, launchUrl: `${BASE_URL}/student.html?assignmentId=${id}` }));
   }
 
   if (req.method === 'POST' && url.pathname.startsWith('/api/lti/deep-link/')) {
@@ -174,7 +156,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const payload = await parseBody(req);
       const returnUrl = payload.returnUrl;
-      const launchUrl = `${baseUrl}/student.html?assignmentId=${id}`;
+      const launchUrl = `${BASE_URL}/student.html?assignmentId=${id}`;
       const link = returnUrl
         ? `${returnUrl}${returnUrl.includes('?') ? '&' : '?'}launch_url=${encodeURIComponent(launchUrl)}`
         : launchUrl;
@@ -205,7 +187,7 @@ const server = http.createServer(async (req, res) => {
           message: 'Simulated LTI 1.3 launch.',
           role,
           assignment,
-          launchTarget: role.toLowerCase().includes('teacher') ? `${baseUrl}/teacher.html` : `${baseUrl}/student.html`,
+          launchTarget: role.toLowerCase().includes('teacher') ? `${BASE_URL}/teacher.html` : `${BASE_URL}/student.html`,
           note: 'Replace with real OIDC login + JWT validation in production.',
         })
       );
@@ -221,6 +203,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  const defaultOrigin = ENV_BASE_URL || `http://localhost:${PORT}`;
-  console.log(`InspiredHomeworkPoC server running. Base origin: ${defaultOrigin}`);
+  console.log(`InspiredHomeworkPoC server running on ${BASE_URL}`);
 });
