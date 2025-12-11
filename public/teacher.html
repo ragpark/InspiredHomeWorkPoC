@@ -17,6 +17,12 @@
     </header>
 
     <section class="card">
+      <h2>Data sources</h2>
+      <p class="small">Preview the in-memory data powering this PoC and pull items into your assignment.</p>
+      <div class="data-grid" id="dataSummary"></div>
+    </section>
+
+    <section class="card">
       <div class="form-grid">
         <div>
           <label for="title">Assignment title</label>
@@ -40,6 +46,31 @@
           <label for="groups">Group names (comma separated)</label>
           <input id="groups" placeholder="Period 2, Algebra Club" />
         </div>
+      </div>
+
+      <div class="form-grid" style="margin-top: 8px;">
+        <div>
+          <label>Pick learners from the data store</label>
+          <div id="learnerList" class="list-grid"></div>
+        </div>
+        <div>
+          <label>Scheme of work (3 semesters)</label>
+          <div id="scheme" class="scheme"></div>
+        </div>
+      </div>
+
+      <div class="content-panel">
+        <div class="content-panel__header">
+          <div>
+            <strong>Content resources</strong>
+            <p class="small">Filter by topic and add directly into the task list.</p>
+          </div>
+          <div class="content-filters">
+            <label for="topicFilter" class="small">Topic filter</label>
+            <select id="topicFilter"></select>
+          </div>
+        </div>
+        <div id="contentResources" class="list-grid"></div>
       </div>
 
       <label for="returnUrl">Canvas deep-link return URL (optional)</label>
@@ -66,6 +97,15 @@
       const assignmentsList = document.getElementById('assignments');
       const result = document.getElementById('result');
       const count = document.getElementById('count');
+      const learnerList = document.getElementById('learnerList');
+      const scheme = document.getElementById('scheme');
+      const topicFilter = document.getElementById('topicFilter');
+      const contentResources = document.getElementById('contentResources');
+      const tasksTextArea = document.getElementById('tasks');
+      const dataSummary = document.getElementById('dataSummary');
+
+      const selectedLearners = new Set();
+      let resourceCache = [];
 
       async function refreshAssignments() {
         const response = await fetch('/api/assignments');
@@ -89,6 +129,118 @@
         });
       }
 
+      function renderDataSummary({ learners, schemeOfWork, resources }) {
+        dataSummary.innerHTML = `
+          <div class="summary-card">
+            <div class="summary-label">Learners</div>
+            <div class="summary-value">${learners.length}</div>
+            <p class="small">${learners.map((l) => l.name).slice(0, 3).join(', ')}${learners.length > 3 ? '…' : ''}</p>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Scheme of work</div>
+            <div class="summary-value">${schemeOfWork.semesters.length} semesters</div>
+            <p class="small">${schemeOfWork.academicYear}</p>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Content resources</div>
+            <div class="summary-value">${resources.length}</div>
+            <p class="small">Mapped by topic, difficulty, and length</p>
+          </div>
+        `;
+      }
+
+      function renderLearners(list) {
+        learnerList.innerHTML = '';
+        list.forEach((learner) => {
+          const card = document.createElement('label');
+          card.className = 'chip';
+          card.innerHTML = `
+            <input type="checkbox" data-email="${learner.email}" />
+            <div>
+              <strong>${learner.name}</strong>
+              <div class="small">${learner.email} • ${learner.cohort}</div>
+            </div>
+          `;
+          card.querySelector('input').addEventListener('change', (evt) => {
+            if (evt.target.checked) {
+              selectedLearners.add(learner.email);
+            } else {
+              selectedLearners.delete(learner.email);
+            }
+          });
+          learnerList.appendChild(card);
+        });
+      }
+
+      function renderScheme(schemeOfWork) {
+        scheme.innerHTML = '';
+        schemeOfWork.semesters.forEach((semester) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'scheme-block';
+          wrapper.innerHTML = `
+            <div class="scheme-header">
+              <div>
+                <strong>${semester.name}</strong>
+                <div class="small">${semester.focus}</div>
+              </div>
+              <span class="badge">${semester.weeks.length} weeks</span>
+            </div>
+            <div class="scheme-weeks">${semester.weeks
+              .map((week) => `<div class="tag">Week ${week.week}: ${week.topic}</div>`)
+              .join('')}</div>
+          `;
+          scheme.appendChild(wrapper);
+        });
+      }
+
+      function renderContent(resources) {
+        contentResources.innerHTML = '';
+        resources.forEach((resource) => {
+          const card = document.createElement('div');
+          card.className = 'resource-card';
+          card.innerHTML = `
+            <div>
+              <strong>${resource.title}</strong>
+              <div class="small">${resource.topic}</div>
+              <div class="small">${resource.type} • ${resource.difficulty} • ${resource.lengthMinutes} minutes</div>
+            </div>
+            <button class="secondary" data-id="${resource.id}">Add to tasks</button>
+          `;
+          card.querySelector('button').addEventListener('click', () => {
+            const existing = tasksTextArea.value.trim();
+            const line = `${resource.title} (${resource.type}, ${resource.lengthMinutes} mins, ${resource.topic})`;
+            tasksTextArea.value = existing ? `${existing}\n${line}` : line;
+          });
+          contentResources.appendChild(card);
+        });
+      }
+
+      async function loadData() {
+        const [learnerRes, schemeRes, resourcesRes] = await Promise.all([
+          fetch('/api/learners'),
+          fetch('/api/scheme-of-work'),
+          fetch('/api/content-resources'),
+        ]);
+
+        const learners = await learnerRes.json();
+        const schemeData = await schemeRes.json();
+        const content = await resourcesRes.json();
+
+        resourceCache = content.resources;
+        renderDataSummary({ learners: learners.learners, schemeOfWork: schemeData.schemeOfWork, resources: content.resources });
+        renderLearners(learners.learners);
+        renderScheme(schemeData.schemeOfWork);
+        renderContent(content.resources);
+
+        const uniqueTopics = Array.from(new Set(content.resources.map((r) => r.topic)));
+        topicFilter.innerHTML = '<option value="">All topics</option>' + uniqueTopics.map((topic) => `<option value="${topic}">${topic}</option>`).join('');
+        topicFilter.addEventListener('change', () => {
+          const topic = topicFilter.value;
+          const filtered = topic ? resourceCache.filter((r) => r.topic === topic) : resourceCache;
+          renderContent(filtered);
+        });
+      }
+
       async function createAssignment() {
         const tasks = document.getElementById('tasks').value
           .split('\n')
@@ -102,7 +254,8 @@
           students: document.getElementById('students').value
             .split(',')
             .map((s) => s.trim())
-            .filter(Boolean),
+            .filter(Boolean)
+            .concat(Array.from(selectedLearners)),
           groups: document.getElementById('groups').value
             .split(',')
             .map((g) => g.trim())
@@ -137,6 +290,7 @@
       }
 
       createButton.addEventListener('click', createAssignment);
+      loadData();
       refreshAssignments();
     </script>
   </body>

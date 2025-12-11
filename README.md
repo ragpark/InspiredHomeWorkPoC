@@ -25,6 +25,10 @@ server.js          → Node HTTP server, API + static file host
 ### Server responsibilities (`server.js`)
 - Serves static assets from `public/` and handles simple CORS for local testing.
 - Maintains an in-memory `Map` of assignments using `crypto.randomUUID()` identifiers.
+- In-memory data sources for the teacher UI:
+  - `GET /api/learners` → learners with `id`, `name`, `email`, `cohort`, `status`.
+  - `GET /api/scheme-of-work` → a 3-semester academic year broken into weekly topics.
+  - `GET /api/content-resources?topic=` → content aligned to topics, with `type`, `difficulty`, and `lengthMinutes` fields.
 - REST-ish JSON endpoints:
   - `POST /api/assignments` creates a new assignment, returning the student launch link and (optionally) a simulated deep link if an LMS return URL is provided.
   - `GET /api/assignments` lists assignments; `GET /api/assignments/:id` retrieves a single item.
@@ -33,7 +37,11 @@ server.js          → Node HTTP server, API + static file host
 - Defaults to `PORT` (from Railway) and `BASE_URL` environment variables to build fully-qualified launch links.
 
 ### Frontend responsibilities (`public/*.html`)
-- **Teacher UI**: captures title, description, tasks (newline separated), targeted students, and groups. On save, it displays both the student launch URL and an optional deep-link callback URL suitable for LMS posting.
+- **Teacher UI**: captures title, description, tasks (newline separated), targeted students, and groups. It can also:
+  - Pick learners from the learner store to append to the assignment.
+  - Browse the 3-semester scheme of work by week and topic.
+  - Filter content resources by topic and insert them into the task list.
+  On save, it displays both the student launch URL and an optional deep-link callback URL suitable for LMS posting.
 - **Student UI**: accepts either a full link or an assignment ID, fetches the assignment, and renders tasks with basic metadata.
 - Shared CSS delivers a modern card-based layout without external assets.
 
@@ -57,17 +65,20 @@ The app defaults to `http://localhost:3000`. Use `BASE_URL` if you expose it via
 ### Environment variables
 
 - `PORT` – provided by Railway; defaults to `3000` locally.
-- `BASE_URL` – optional. Set to the public URL of your deployment so generated links work from Canvas (e.g., `https://your-app.up.railway.app`).
+- `BASE_URL` – optional. Set to the public URL of your deployment so generated links work from Canvas (e.g., `https://your-app.up.railway.app`). If you omit the scheme, the server now assumes `https://` and will fall back to the incoming request host to avoid invalid URL errors.
 
 ## Deploying to Railway
 
 1. Create a new Railway project and deploy this repository.
-2. Set the `PORT` variable to `3000` (Railway typically injects it automatically) and `BASE_URL` to your Railway domain.
+2. Set environment variables:
+   - `PORT` to `3000` (Railway injects this automatically in most cases).
+   - `BASE_URL` to your Railway domain (e.g., `https://your-app.up.railway.app`). If omitted, the server falls back to the request host.
 3. Use the `Start Command` `npm run start`.
 4. Open the Railway domain and test the flow:
-   - Visit `/teacher.html`, create an assignment, and copy the generated launch URL.
+   - Visit `/teacher.html` to browse learners, the scheme of work, and content resources. Build an assignment by selecting learners and injecting content into the task list.
    - (Optional) Provide a Canvas deep-link return URL to mimic posting the launch link back to your course.
    - Launch `/student.html?assignmentId=<id>` to verify the student experience.
+5. Update the in-memory data stores in `server.js` if you want to tailor the learners, weekly topics, or content resources for your demo.
 
 ## Extending toward production
 

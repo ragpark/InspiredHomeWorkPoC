@@ -8,10 +8,110 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+const ENV_BASE_URL = process.env.BASE_URL;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const assignments = new Map();
+const learners = [
+  { id: 'L001', name: 'Ada Lovelace', email: 'ada@example.com', cohort: 'Algebra 2', status: 'Active' },
+  { id: 'L002', name: 'Alan Turing', email: 'alan@example.com', cohort: 'Geometry', status: 'Active' },
+  { id: 'L003', name: 'Katherine Johnson', email: 'katherine@example.com', cohort: 'Algebra 2', status: 'Active' },
+  { id: 'L004', name: 'Maryam Mirzakhani', email: 'maryam@example.com', cohort: 'Calculus', status: 'Active' },
+  { id: 'L005', name: 'Grace Hopper', email: 'grace@example.com', cohort: 'Geometry', status: 'On leave' },
+];
+
+const schemeOfWork = {
+  academicYear: '2024-2025',
+  semesters: [
+    {
+      name: 'Semester 1',
+      focus: 'Number sense and proportional reasoning',
+      weeks: [
+        { week: 1, topic: 'Fractions and mixed numbers' },
+        { week: 2, topic: 'Ratios and rates' },
+        { week: 3, topic: 'Percent change' },
+        { week: 4, topic: 'Proportional relationships' },
+        { week: 5, topic: 'Scaling and similarity' },
+        { week: 6, topic: 'Unit conversions' },
+      ],
+    },
+    {
+      name: 'Semester 2',
+      focus: 'Algebraic reasoning and functions',
+      weeks: [
+        { week: 7, topic: 'Linear equations and inequalities' },
+        { week: 8, topic: 'Systems of equations' },
+        { week: 9, topic: 'Quadratic functions' },
+        { week: 10, topic: 'Exponential functions' },
+        { week: 11, topic: 'Polynomial expressions' },
+        { week: 12, topic: 'Sequences and series' },
+      ],
+    },
+    {
+      name: 'Semester 3',
+      focus: 'Geometry, statistics, and consolidation',
+      weeks: [
+        { week: 13, topic: 'Transformations and congruence' },
+        { week: 14, topic: 'Similarity and right triangles' },
+        { week: 15, topic: 'Circles and arcs' },
+        { week: 16, topic: 'Data representations' },
+        { week: 17, topic: 'Probability and inference' },
+        { week: 18, topic: 'Review and capstone project' },
+      ],
+    },
+  ],
+};
+
+const contentResources = [
+  {
+    id: 'RES-101',
+    topic: 'Fractions and mixed numbers',
+    difficulty: 'Foundation',
+    lengthMinutes: 15,
+    type: 'Activity',
+    title: 'Hands-on fraction strip lab',
+  },
+  {
+    id: 'RES-102',
+    topic: 'Ratios and rates',
+    difficulty: 'Core',
+    lengthMinutes: 20,
+    type: 'Assessment',
+    title: 'Exit ticket: Rate of change scenarios',
+  },
+  {
+    id: 'RES-201',
+    topic: 'Linear equations and inequalities',
+    difficulty: 'Core',
+    lengthMinutes: 30,
+    type: 'Activity',
+    title: 'Desmos exploration: balancing equations',
+  },
+  {
+    id: 'RES-202',
+    topic: 'Quadratic functions',
+    difficulty: 'Stretch',
+    lengthMinutes: 40,
+    type: 'Book chapter',
+    title: 'Vertex form and transformations',
+  },
+  {
+    id: 'RES-301',
+    topic: 'Transformations and congruence',
+    difficulty: 'Core',
+    lengthMinutes: 25,
+    type: 'Activity',
+    title: 'Rigid motions on the coordinate plane',
+  },
+  {
+    id: 'RES-302',
+    topic: 'Probability and inference',
+    difficulty: 'Stretch',
+    lengthMinutes: 30,
+    type: 'Assessment',
+    title: 'Project brief: design a simple experiment',
+  },
+];
 
 function sendJson(res, status, payload) {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -78,7 +178,24 @@ async function serveStatic(req, res) {
   }
 }
 
-function createAssignment(payload) {
+function resolveBaseUrl(req) {
+  const host = req.headers.host || `localhost:${PORT}`;
+  const fallback = host.startsWith('localhost') ? `http://${host}` : `https://${host}`;
+  let candidate = ENV_BASE_URL || '';
+
+  if (candidate && !/^https?:\/\//i.test(candidate)) {
+    candidate = `https://${candidate}`;
+  }
+
+  try {
+    const chosen = candidate || fallback;
+    return new URL(chosen).origin;
+  } catch (err) {
+    return fallback;
+  }
+}
+
+function createAssignment(payload, baseUrl) {
   const id = randomUUID();
   const { title, description, tasks = [], students = [], groups = [], ltiReturnUrl } = payload;
   const normalizedTasks = tasks.filter(Boolean).map(task => task.trim()).filter(Boolean);
@@ -94,8 +211,8 @@ function createAssignment(payload) {
 
   assignments.set(id, assignment);
 
-  const studentLaunchLink = `${BASE_URL}/student.html?assignmentId=${id}`;
-  const teacherLink = `${BASE_URL}/teacher.html?assignmentId=${id}`;
+  const studentLaunchLink = `${baseUrl}/student.html?assignmentId=${id}`;
+  const teacherLink = `${baseUrl}/teacher.html?assignmentId=${id}`;
   const deepLink = ltiReturnUrl
     ? `${ltiReturnUrl}${ltiReturnUrl.includes('?') ? '&' : '?'}launch_url=${encodeURIComponent(studentLaunchLink)}`
     : null;
@@ -113,7 +230,8 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  const url = new URL(req.url, BASE_URL);
+  const baseUrl = resolveBaseUrl(req);
+  const url = new URL(req.url, baseUrl);
   const baseHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -124,10 +242,29 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ status: 'ok', timestamp: Date.now() }));
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/learners') {
+    res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
+    return res.end(JSON.stringify({ learners }));
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/scheme-of-work') {
+    res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
+    return res.end(JSON.stringify({ schemeOfWork }));
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/content-resources') {
+    const topic = url.searchParams.get('topic');
+    const filtered = topic
+      ? contentResources.filter(resource => resource.topic.toLowerCase().includes(topic.toLowerCase()))
+      : contentResources;
+    res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
+    return res.end(JSON.stringify({ resources: filtered }));
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/assignments') {
     try {
       const payload = await parseBody(req);
-      const { assignment, studentLaunchLink, teacherLink, deepLink } = createAssignment(payload);
+      const { assignment, studentLaunchLink, teacherLink, deepLink } = createAssignment(payload, baseUrl);
       res.writeHead(201, { 'Content-Type': 'application/json', ...baseHeaders });
       return res.end(JSON.stringify({ assignment, studentLaunchLink, teacherLink, deepLink }));
     } catch (err) {
@@ -146,7 +283,7 @@ const server = http.createServer(async (req, res) => {
     const assignment = assignments.get(id);
     if (!assignment) return notFound(res);
     res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
-    return res.end(JSON.stringify({ assignment, launchUrl: `${BASE_URL}/student.html?assignmentId=${id}` }));
+    return res.end(JSON.stringify({ assignment, launchUrl: `${baseUrl}/student.html?assignmentId=${id}` }));
   }
 
   if (req.method === 'POST' && url.pathname.startsWith('/api/lti/deep-link/')) {
@@ -156,7 +293,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const payload = await parseBody(req);
       const returnUrl = payload.returnUrl;
-      const launchUrl = `${BASE_URL}/student.html?assignmentId=${id}`;
+      const launchUrl = `${baseUrl}/student.html?assignmentId=${id}`;
       const link = returnUrl
         ? `${returnUrl}${returnUrl.includes('?') ? '&' : '?'}launch_url=${encodeURIComponent(launchUrl)}`
         : launchUrl;
@@ -187,7 +324,7 @@ const server = http.createServer(async (req, res) => {
           message: 'Simulated LTI 1.3 launch.',
           role,
           assignment,
-          launchTarget: role.toLowerCase().includes('teacher') ? `${BASE_URL}/teacher.html` : `${BASE_URL}/student.html`,
+          launchTarget: role.toLowerCase().includes('teacher') ? `${baseUrl}/teacher.html` : `${baseUrl}/student.html`,
           note: 'Replace with real OIDC login + JWT validation in production.',
         })
       );
@@ -203,5 +340,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`InspiredHomeworkPoC server running on ${BASE_URL}`);
+  const defaultOrigin = ENV_BASE_URL || `http://localhost:${PORT}`;
+  console.log(`InspiredHomeworkPoC server running. Base origin: ${defaultOrigin}`);
 });
