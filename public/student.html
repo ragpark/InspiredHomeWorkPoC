@@ -33,6 +33,74 @@
       const content = document.getElementById('content');
       const input = document.getElementById('assignmentId');
 
+      const tutorModal = document.createElement('div');
+      tutorModal.id = 'tutorModal';
+      tutorModal.className = 'modal hidden';
+      tutorModal.innerHTML = `
+        <div class="modal-overlay" id="tutorOverlay"></div>
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h3>Homework Tutor</h3>
+              <p class="small">Quick content player to step through your tasks.</p>
+            </div>
+            <button id="closeTutor" class="secondary">Exit</button>
+          </div>
+          <div class="tutor-grid">
+            <div class="tutor-pane" id="tutorTasks"><p class="small">Load an assignment to view tasks.</p></div>
+            <div class="tutor-pane" id="tutorPlayer"><p class="small">Select a task to preview details.</p></div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(tutorModal);
+
+      function openTutor(assignment) {
+        const tasksEl = document.getElementById('tutorTasks');
+        const playerEl = document.getElementById('tutorPlayer');
+        if (!assignment || !assignment.tasks.length) {
+          tasksEl.innerHTML = '<p class="small">No tasks available to preview.</p>';
+          playerEl.innerHTML = '<p class="small">Add tasks to see them here.</p>';
+        } else {
+          tasksEl.innerHTML = assignment.tasks
+            .map(
+              (task, idx) => `
+                <button class="tutor-task" data-index="${idx}">
+                  <span class="badge">${idx + 1}</span>
+                  <span>${task}</span>
+                </button>
+              `
+            )
+            .join('');
+          const buttons = tasksEl.querySelectorAll('.tutor-task');
+          buttons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+              buttons.forEach((b) => b.classList.remove('active'));
+              btn.classList.add('active');
+              const task = assignment.tasks[Number(btn.dataset.index)];
+              playerEl.innerHTML = `
+                <div class="player-pane">
+                  <h4>Task ${Number(btn.dataset.index) + 1}</h4>
+                  <p>${task}</p>
+                  <p class="small">Use the external launch link to complete this task in a new tab.</p>
+                </div>
+              `;
+            });
+          });
+          buttons[0]?.click();
+        }
+
+        tutorModal.classList.remove('hidden');
+        tutorModal.classList.add('open');
+      }
+
+      function closeTutor() {
+        tutorModal.classList.remove('open');
+        tutorModal.classList.add('hidden');
+      }
+
+      tutorModal.querySelector('#closeTutor').addEventListener('click', closeTutor);
+      tutorModal.querySelector('#tutorOverlay').addEventListener('click', closeTutor);
+
       function renderAssignment(assignment, launchUrl) {
         if (!assignment) {
           content.innerHTML = '<p class="small">Assignment not found.</p>';
@@ -52,9 +120,15 @@
               <strong>Tasks</strong>
               ${taskItems}
             </div>
-            <p class="small">Launch URL: <code>${launchUrl}</code></p>
+            <p class="small">Launch URL: <a href="${launchUrl}" target="_blank" rel="noopener">Open in new tab</a></p>
+            <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="secondary" id="openTutor">Open Homework Tutor</button>
+            </div>
           </div>
         `;
+
+        const tutorButton = document.getElementById('openTutor');
+        tutorButton?.addEventListener('click', () => openTutor(assignment));
       }
 
       async function loadAssignment(id) {

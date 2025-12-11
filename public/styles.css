@@ -287,3 +287,88 @@ pre {
   border-radius: 12px;
   background: #fff;
 }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.modal.open {
+  display: flex;
+}
+
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  position: relative;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.2);
+  padding: 16px;
+  width: min(960px, 94vw);
+  max-height: 90vh;
+  overflow: auto;
+  z-index: 1;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tutor-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 12px;
+}
+
+.tutor-pane {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  min-height: 240px;
+}
+
+.tutor-task {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.tutor-task + .tutor-task {
+  margin-top: 8px;
+}
+
+.tutor-task.active {
+  border-color: var(--brand);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.15);
+}
+
+.player-pane h4 {
+  margin-top: 0;
+}
