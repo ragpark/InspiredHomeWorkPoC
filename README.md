@@ -88,3 +88,43 @@ The app defaults to `http://localhost:3000`. Use `BASE_URL` if you expose it via
 - Sign LTI Deep Link responses using your platform key set (`/api/lti/deep-link/:id`).
 - Add user authentication and role checking to scope assignments to instructors.
 - Add submission tracking and grading callbacks to complete the LTI Advantage workflow.
+
+## Taking the PoC to production on AWS
+
+The PoC keeps dependencies and infrastructure minimal. To productionize it on AWS while preserving the contract, you can adopt the following pattern:
+
+1. **Hosting & network entry**
+   - Terminate HTTPS and protect the app with **Amazon CloudFront** (WAF rules for rate limiting and IP allow/block lists) in front of an **Application Load Balancer (ALB)** or **API Gateway**.
+   - Serve static assets (`public/*`) from **Amazon S3** with CloudFront caching. Point `teacher.html` and `student.html` at your API base URL (API Gateway domain or custom domain on ALB).
+
+2. **Compute & runtime**
+   - Lift the Node server into **AWS Fargate (ECS)** behind an ALB for stateful features that need sockets or long-lived processes, or decompose it into **Lambda** functions if you prefer fully serverless endpoints.
+   - Externalize environment configuration through **AWS Systems Manager Parameter Store** or **Secrets Manager** for `BASE_URL`, LTI keys, and the AI recommender credentials.
+
+3. **Data & persistence**
+   - Replace in-memory stores with managed data services:
+     - **Amazon DynamoDB** for assignments, learner profiles, and scheme-of-work records (fast key-value access, point-in-time recovery).
+     - **Amazon S3** for any uploaded assets or attachments referenced in tasks.
+     - **Amazon RDS/Aurora** if you need relational reporting or joins across roster, grading, and assignment entities.
+   - Introduce background jobs (Lambda + EventBridge or Step Functions) to archive old assignments and emit analytics events.
+
+4. **LTI 1.3 and LMS integration**
+   - Implement real OIDC login + JWT validation in a dedicated **Lambda authorizer** or an auth service fronted by **API Gateway**; cache keys using **AWS ElastiCache (Redis)** if needed.
+   - Store platform and tool key sets (JWKS) in **Secrets Manager** and rotate them automatically.
+   - Sign LTI Deep Link responses and Assignment & Grade Services (AGS) calls using your managed keys; emit outcomes asynchronously via **SQS** if the LMS expects async grade return.
+
+5. **AI recommender integration**
+   - Host the “black box” model behind **API Gateway + Lambda** or **Amazon Bedrock** (if you use foundation models) and point `RECOMMENDER_API_URL` at that endpoint.
+   - Use **Lambda Powertools** or structured logging for traceability with `request_id`, `tenant_id`, and `source_system` fields from the contract. Forward logs to **CloudWatch Logs** and optionally **Amazon OpenSearch Service** for analytics.
+   - Apply IAM- or API-key–based auth at the gateway, and enforce per-tenant throttling via usage plans.
+
+6. **Operations, observability, and compliance**
+   - Instrument the Node app with **Amazon CloudWatch** metrics (latency, errors, cold starts if using Lambda) and dashboards. Set up **CloudWatch Alarms** and **SNS** notifications for SLA breaches.
+   - Enable **AWS WAF** rules on CloudFront/API Gateway for OWASP protections; add **Shield** for DDoS resilience on public endpoints.
+   - Capture audit trails (assignment changes, LTI launches) in **CloudTrail** or an append-only DynamoDB table.
+
+7. **CI/CD**
+   - Store infrastructure as code in **AWS CDK** or **Terraform** (ECS/Lambda, API Gateway, DynamoDB, S3/CloudFront).
+   - Automate builds and deployments with **GitHub Actions** → **AWS CodeDeploy/CodePipeline**, running `npm test` or lightweight checks before publishing container images to **ECR**.
+
+Following this path keeps the public contract stable (`/api/assignments`, `/api/recommend-homework`, LTI endpoints) while swapping in AWS-managed security, data durability, and observability layers suitable for production.
