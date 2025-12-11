@@ -37,6 +37,48 @@
       <label for="tasks">Tasks (one per line)</label>
       <textarea id="tasks" placeholder="Read chapter 5\nSolve problems 1-10\nSubmit screenshots"></textarea>
 
+      <div class="content-panel" style="margin-top: 12px;">
+        <div class="content-panel__header">
+          <div>
+            <strong>AI-powered homework suggestion</strong>
+            <p class="small">Use local logic or an external recommender configured with environment variables.</p>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label for="aiLearner">Learner</label>
+            <select id="aiLearner"></select>
+          </div>
+          <div>
+            <label for="aiTopic">Topic</label>
+            <select id="aiTopic"></select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label for="aiTime">Time budget (minutes)</label>
+            <input id="aiTime" type="number" min="5" step="5" value="30" />
+          </div>
+          <div>
+            <label for="aiProfile">Difficulty profile</label>
+            <select id="aiProfile">
+              <option value="balanced">Balanced (Foundation 0.3 / Core 0.5 / Stretch 0.2)</option>
+              <option value="core">Mostly Core (Foundation 0.2 / Core 0.6 / Stretch 0.2)</option>
+              <option value="stretch">Stretch (Foundation 0.1 / Core 0.4 / Stretch 0.5)</option>
+            </select>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <label class="small" style="display: flex; gap: 6px; align-items: center;">
+            <input type="checkbox" id="aiExplain" />
+            Explain choices
+          </label>
+          <button id="generateAi" type="button">Generate tasks with AI</button>
+          <span id="aiStatus" class="small"></span>
+        </div>
+        <div id="aiExplanation" class="small" style="margin-top: 8px;"></div>
+      </div>
+
       <div class="form-grid">
         <div>
           <label for="students">Student emails or IDs (comma separated)</label>
@@ -103,6 +145,14 @@
       const contentResources = document.getElementById('contentResources');
       const tasksTextArea = document.getElementById('tasks');
       const dataSummary = document.getElementById('dataSummary');
+      const aiLearner = document.getElementById('aiLearner');
+      const aiTopic = document.getElementById('aiTopic');
+      const aiTime = document.getElementById('aiTime');
+      const aiProfile = document.getElementById('aiProfile');
+      const aiExplain = document.getElementById('aiExplain');
+      const aiStatus = document.getElementById('aiStatus');
+      const aiExplanation = document.getElementById('aiExplanation');
+      const generateAiButton = document.getElementById('generateAi');
 
       const selectedLearners = new Set();
       let resourceCache = [];
@@ -232,13 +282,89 @@
         renderScheme(schemeData.schemeOfWork);
         renderContent(content.resources);
 
-        const uniqueTopics = Array.from(new Set(content.resources.map((r) => r.topic)));
+        const uniqueTopics = Array.from(
+          new Set([
+            ...content.resources.map((r) => r.topic),
+            ...schemeData.schemeOfWork.semesters.flatMap((sem) => sem.weeks.map((week) => week.topic)),
+          ])
+        );
         topicFilter.innerHTML = '<option value="">All topics</option>' + uniqueTopics.map((topic) => `<option value="${topic}">${topic}</option>`).join('');
         topicFilter.addEventListener('change', () => {
           const topic = topicFilter.value;
           const filtered = topic ? resourceCache.filter((r) => r.topic === topic) : resourceCache;
           renderContent(filtered);
         });
+
+        aiTopic.innerHTML = '<option value="">Select a topic</option>' + uniqueTopics.map((topic) => `<option value="${topic}">${topic}</option>`).join('');
+        aiLearner.innerHTML = '<option value="">Select a learner</option>' + learners.learners
+          .map((l) => `<option value="${l.id}">${l.name} (${l.id})</option>`)
+          .join('');
+      }
+
+      function resolveDifficultyProfile(value) {
+        if (value === 'core') return { Foundation: 0.2, Core: 0.6, Stretch: 0.2 };
+        if (value === 'stretch') return { Foundation: 0.1, Core: 0.4, Stretch: 0.5 };
+        return { Foundation: 0.3, Core: 0.5, Stretch: 0.2 };
+      }
+
+      async function generateAiHomework() {
+        aiStatus.textContent = '';
+        aiExplanation.textContent = '';
+        generateAiButton.disabled = true;
+        generateAiButton.textContent = 'Generating…';
+
+        const learnerId = aiLearner.value;
+        const topic = aiTopic.value;
+        const maxTotalTimeMinutes = Number(aiTime.value) || 30;
+        const difficultyProfile = resolveDifficultyProfile(aiProfile.value);
+        const explain = aiExplain.checked;
+
+        if (!learnerId || !topic) {
+          aiStatus.textContent = 'Pick a learner and topic to generate suggestions.';
+          generateAiButton.disabled = false;
+          generateAiButton.textContent = 'Generate tasks with AI';
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/recommend-homework', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ learnerId, topic, maxTotalTimeMinutes, difficultyProfile, explain }),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Could not generate recommendation');
+          }
+
+          const homework = data.homework || {};
+          if (!document.getElementById('title').value && homework.title) {
+            document.getElementById('title').value = homework.title;
+          }
+          if (!document.getElementById('description').value && homework.description) {
+            document.getElementById('description').value = homework.description;
+          }
+
+          if (homework.tasks && Array.isArray(homework.tasks)) {
+            tasksTextArea.value = homework.tasks.map((task) => task.taskText || '').filter(Boolean).join('\n');
+          }
+
+          const explanations = data.explanations || {};
+          const notesList = (explanations.notes || []).map((note) => `<li>${note}</li>`).join('');
+          aiExplanation.innerHTML = explanations.global
+            ? `<div><strong>AI rationale</strong></div><p>${explanations.global}</p>${notesList ? `<ul>${notesList}</ul>` : ''}`
+            : notesList
+            ? `<div><strong>AI rationale</strong></div><ul>${notesList}</ul>`
+            : '';
+
+          aiStatus.textContent = 'Suggestion applied. Adjust anything you like before assigning.';
+        } catch (err) {
+          aiStatus.textContent = err.message;
+        } finally {
+          generateAiButton.disabled = false;
+          generateAiButton.textContent = 'Generate tasks with AI';
+        }
       }
 
       async function createAssignment() {
@@ -290,6 +416,7 @@
       }
 
       createButton.addEventListener('click', createAssignment);
+      generateAiButton.addEventListener('click', generateAiHomework);
       loadData();
       refreshAssignments();
     </script>

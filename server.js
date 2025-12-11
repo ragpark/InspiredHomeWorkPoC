@@ -9,6 +9,8 @@ const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
 const ENV_BASE_URL = process.env.BASE_URL;
+const RECOMMENDER_API_URL = process.env.RECOMMENDER_API_URL || '';
+const RECOMMENDER_API_KEY = process.env.RECOMMENDER_API_KEY || '';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const assignments = new Map();
@@ -113,8 +115,122 @@ const contentResources = [
   },
 ];
 
-function sendJson(res, status, payload) {
-  res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+function buildRecommendationRequest({ learnerId, topic, maxTotalTimeMinutes, difficultyProfile, explain }) {
+  const learner = learners.find(l => l.id === learnerId) || null;
+  const topicResources = contentResources.filter(r =>
+    topic ? r.topic.toLowerCase().includes(topic.toLowerCase()) : true
+  );
+
+  return {
+    requestId: randomUUID(),
+    apiVersion: '2025-01-01',
+    learner: learner
+      ? {
+          learnerId: learner.id,
+          cohort: learner.cohort,
+          status: learner.status,
+        }
+      : {
+          learnerId,
+          cohort: null,
+          status: 'Unknown',
+        },
+    context: {
+      topic,
+      maxTotalTimeMinutes,
+      difficultyProfile,
+    },
+    contentCatalogue: topicResources.map(r => ({
+      contentId: r.id,
+      topic: r.topic,
+      difficulty: r.difficulty,
+      lengthMinutes: r.lengthMinutes,
+      type: r.type,
+      title: r.title,
+    })),
+    explain: Boolean(explain),
+  };
+}
+
+function ruleBasedRecommendation({ learnerId, topic, maxTotalTimeMinutes, difficultyProfile, explain }) {
+  const requestId = randomUUID();
+  const homeworkId = randomUUID();
+  const matches = contentResources.filter(resource =>
+    topic ? resource.topic.toLowerCase().includes(topic.toLowerCase()) : true
+  );
+
+  const pool = matches.length ? matches : contentResources;
+  const tasks = [];
+  let total = 0;
+
+  for (const resource of pool) {
+    if (tasks.length && total >= maxTotalTimeMinutes * 0.8) {
+      break;
+    }
+    tasks.push({
+      sequence: tasks.length + 1,
+      contentId: resource.id,
+      taskText: `Complete "${resource.title}" (${resource.lengthMinutes} minutes, ${resource.difficulty})`,
+      estimatedTimeMinutes: resource.lengthMinutes,
+      difficulty: resource.difficulty,
+    });
+    total += resource.lengthMinutes;
+    if (total >= maxTotalTimeMinutes) {
+      break;
+    }
+  }
+
+  const explanationNotes = [];
+  if (!RECOMMENDER_API_URL) {
+    explanationNotes.push('Fell back to rule-based logic because RECOMMENDER_API_URL is not configured.');
+  }
+  if (!tasks.length) {
+    explanationNotes.push('No matching resources were found for the requested topic.');
+  }
+
+  return {
+    requestId,
+    modelVersion: 'rule-based-v1',
+    homework: {
+      homeworkId,
+      title: `Auto-generated homework for ${topic}`,
+      description: `Automatically generated set of tasks for ${topic}.`,
+      estimatedTotalTimeMinutes: total,
+      targetDifficultyProfile: difficultyProfile,
+      explain: Boolean(explain),
+      tasks,
+    },
+    explanations: {
+      global: `Selected up to ${maxTotalTimeMinutes} minutes of content matching the requested topic and difficulty profile.`,
+      notes: explanationNotes,
+      learnerId,
+    },
+  };
+}
+
+async function callExternalRecommender(payload) {
+  if (!RECOMMENDER_API_URL) return null;
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (RECOMMENDER_API_KEY) {
+    headers.Authorization = `Bearer ${RECOMMENDER_API_KEY}`;
+  }
+
+  const response = await fetch(RECOMMENDER_API_URL, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Recommender HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+function sendJson(res, status, payload, headers = {}) {
+  res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...headers });
   res.end(JSON.stringify(payload));
 }
 
@@ -261,6 +377,57 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ resources: filtered }));
   }
 
+  if (req.method === 'POST' && url.pathname === '/api/recommend-homework') {
+    try {
+      const body = await parseBody(req);
+      const {
+        learnerId,
+        topic,
+        maxTotalTimeMinutes = 30,
+        difficultyProfile = { Foundation: 0.3, Core: 0.5, Stretch: 0.2 },
+        explain = false,
+      } = body || {};
+
+      if (!learnerId || !topic) {
+        return sendJson(res, 400, { error: 'learnerId and topic are required' }, baseHeaders);
+      }
+
+      const recommendationRequest = buildRecommendationRequest({
+        learnerId,
+        topic,
+        maxTotalTimeMinutes,
+        difficultyProfile,
+        explain,
+      });
+
+      let result = null;
+      try {
+        const external = await callExternalRecommender(recommendationRequest);
+        if (external) {
+          result = external;
+        }
+      } catch (err) {
+        console.error('External recommender failed:', err.message);
+      }
+
+      if (!result) {
+        result = ruleBasedRecommendation({
+          learnerId,
+          topic,
+          maxTotalTimeMinutes,
+          difficultyProfile,
+          explain,
+        });
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
+      return res.end(JSON.stringify(result));
+    } catch (err) {
+      console.error('Error in /api/recommend-homework:', err);
+      return sendJson(res, 500, { error: 'Failed to generate recommendation' }, baseHeaders);
+    }
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/assignments') {
     try {
       const payload = await parseBody(req);
@@ -268,7 +435,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(201, { 'Content-Type': 'application/json', ...baseHeaders });
       return res.end(JSON.stringify({ assignment, studentLaunchLink, teacherLink, deepLink }));
     } catch (err) {
-      return sendJson(res, 400, { error: err.message });
+      return sendJson(res, 400, { error: err.message }, baseHeaders);
     }
   }
 
@@ -308,7 +475,7 @@ const server = http.createServer(async (req, res) => {
         })
       );
     } catch (err) {
-      return sendJson(res, 400, { error: err.message });
+      return sendJson(res, 400, { error: err.message }, baseHeaders);
     }
   }
 
@@ -329,7 +496,7 @@ const server = http.createServer(async (req, res) => {
         })
       );
     } catch (err) {
-      return sendJson(res, 400, { error: err.message });
+      return sendJson(res, 400, { error: err.message }, baseHeaders);
     }
   }
 

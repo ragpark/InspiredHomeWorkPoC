@@ -10,13 +10,14 @@ The project is intentionally dependency-light to run in restricted environments 
 - **Student workspace** that launches via the generated link to view assigned tasks.
 - **LTI 1.3-friendly endpoints** (login, launch, and deep-link simulation) that you can replace with production-ready signing and validation.
 - **In-memory storage** to keep the PoC stateless and simple during demos.
+- **Data layer for planning**: learners, a 3-semester scheme of work (weekly topics), and topic-aligned content resources with difficulty, duration, and type.
 
 ## Architecture overview
 
 ```
 public/
   index.html       → landing page
-  teacher.html     → teacher UI for creating assignments
+  teacher.html     → teacher UI for creating assignments & browsing data sources
   student.html     → student view to load a given assignment
   styles.css       → shared styling
 server.js          → Node HTTP server, API + static file host
