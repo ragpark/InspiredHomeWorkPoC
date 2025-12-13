@@ -165,10 +165,11 @@ The PoC keeps dependencies and infrastructure minimal. To productionize it on AW
    - Externalize environment configuration through **AWS Systems Manager Parameter Store** or **Secrets Manager** for `BASE_URL`, LTI keys, and the AI recommender credentials.
 
 3. **Data & persistence**
-   - Replace in-memory stores with managed data services:
+   - Replace in-memory stores with managed content + data services:
      - **Amazon DynamoDB for LMS Data** for assignments, learner profiles, and scheme-of-work records (fast key-value access, point-in-time recovery).
      - **Amazon S3/PRIZM Repo** for any Courseware assets and attachments referenced in tasks for launching via the PRIZM player and Berlin Chatbot Integration.
      - **Amazon RDS/Aurora** For relational reporting or joins across roster, grading, and assignment entities.
+     - **PRIZM LRS** For PRIZM + Berlin player telemetry and data .
    - Introduce background jobs (Lambda + EventBridge or Step Functions) to archive old assignments and emit analytics events.
 
 4. **LTI 1.3 and LMS integration**
