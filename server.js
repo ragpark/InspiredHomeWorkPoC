@@ -22,6 +22,34 @@ const learners = [
   { id: 'L005', name: 'Grace Hopper', email: 'grace@example.com', cohort: 'Geometry', status: 'On leave' },
 ];
 
+const learnerPerformance = {
+  L001: {
+    mastery: [
+      { outcomeId: 'maths.fractions.equivalence', topic: 'Fractions and mixed numbers', proficiency: 0.82, confidence: 0.9 },
+      { outcomeId: 'maths.algebra.linear-two-step', topic: 'Linear equations and inequalities', proficiency: 0.46, confidence: 0.6 },
+      { outcomeId: 'maths.geometry.transformations', topic: 'Transformations and congruence', proficiency: 0.71, confidence: 0.75 },
+    ],
+    recentActivity: {
+      numAssignmentsLast7d: 2,
+      averageScoreLast7d: 0.78,
+      averageTimeOnTaskMinutes: 26,
+      lastHomeworkTopic: 'Linear equations and inequalities',
+    },
+  },
+  L002: {
+    mastery: [
+      { outcomeId: 'maths.geometry.triangles', topic: 'Similarity and right triangles', proficiency: 0.55, confidence: 0.55 },
+      { outcomeId: 'maths.number.ratios', topic: 'Ratios and rates', proficiency: 0.82, confidence: 0.81 },
+    ],
+    recentActivity: {
+      numAssignmentsLast7d: 1,
+      averageScoreLast7d: 0.7,
+      averageTimeOnTaskMinutes: 21,
+      lastHomeworkTopic: 'Similarity and right triangles',
+    },
+  },
+};
+
 const schemeOfWork = {
   academicYear: '2024-2025',
   semesters: [
@@ -72,6 +100,7 @@ const contentResources = [
     lengthMinutes: 15,
     type: 'Activity',
     title: 'Hands-on fraction strip lab',
+    alignedOutcomes: ['maths.fractions.equivalence'],
   },
   {
     id: 'RES-102',
@@ -80,6 +109,7 @@ const contentResources = [
     lengthMinutes: 20,
     type: 'Assessment',
     title: 'Exit ticket: Rate of change scenarios',
+    alignedOutcomes: ['maths.number.ratios'],
   },
   {
     id: 'RES-201',
@@ -88,6 +118,7 @@ const contentResources = [
     lengthMinutes: 30,
     type: 'Activity',
     title: 'Desmos exploration: balancing equations',
+    alignedOutcomes: ['maths.algebra.linear-two-step'],
   },
   {
     id: 'RES-202',
@@ -96,6 +127,7 @@ const contentResources = [
     lengthMinutes: 40,
     type: 'Book chapter',
     title: 'Vertex form and transformations',
+    alignedOutcomes: ['maths.algebra.quadratic-forms'],
   },
   {
     id: 'RES-301',
@@ -104,6 +136,7 @@ const contentResources = [
     lengthMinutes: 25,
     type: 'Activity',
     title: 'Rigid motions on the coordinate plane',
+    alignedOutcomes: ['maths.geometry.transformations'],
   },
   {
     id: 'RES-302',
@@ -112,8 +145,107 @@ const contentResources = [
     lengthMinutes: 30,
     type: 'Assessment',
     title: 'Project brief: design a simple experiment',
+    alignedOutcomes: ['maths.statistics.inference'],
   },
 ];
+
+function findTopicByWeek(weekNumber) {
+  for (const semester of schemeOfWork.semesters) {
+    const week = semester.weeks.find(entry => entry.week === weekNumber);
+    if (week) {
+      return { ...week, semester: semester.name, focus: semester.focus };
+    }
+  }
+  return null;
+}
+
+function buildStandardRecommendationRequest({ learnerId, weekNumber, topicOverride, maxTotalTimeMinutes = 30 }) {
+  const learner = learners.find(l => l.id === learnerId) || null;
+  const calendar = findTopicByWeek(weekNumber) || { week: weekNumber, topic: topicOverride || 'Unspecified' };
+  const topic = topicOverride || calendar.topic;
+  const performance = learnerPerformance[learnerId] || { mastery: [], recentActivity: {} };
+  const catalogue = contentResources.map(resource => ({
+    contentId: resource.id,
+    topic: resource.topic,
+    difficulty: resource.difficulty,
+    lengthMinutes: resource.lengthMinutes,
+    type: resource.type,
+    title: resource.title,
+    alignedOutcomes: resource.alignedOutcomes || [],
+  }));
+
+  return {
+    requestId: randomUUID(),
+    apiVersion: '2025-02-01',
+    timestampUtc: new Date().toISOString(),
+    learner: learner
+      ? { id: learner.id, cohort: learner.cohort, status: learner.status, email: learner.email }
+      : { id: learnerId, cohort: null, status: 'Unknown' },
+    performanceSnapshot: performance,
+    calendar: {
+      academicYear: schemeOfWork.academicYear,
+      weekNumber,
+      topic,
+      semester: calendar.semester || 'Unmapped',
+    },
+    contentCatalogue: catalogue,
+    constraints: {
+      maxTotalTimeMinutes,
+      targetTopic: topic,
+    },
+  };
+}
+
+function calendarAwareRecommendation({ learnerId, weekNumber, topicOverride, maxTotalTimeMinutes = 30 }) {
+  const requestPayload = buildStandardRecommendationRequest({ learnerId, weekNumber, topicOverride, maxTotalTimeMinutes });
+  const { performanceSnapshot, calendar, contentCatalogue } = requestPayload;
+  const topic = calendar.topic;
+  const weakOutcomes = new Set(
+    (performanceSnapshot.mastery || [])
+      .filter(entry => entry.proficiency !== undefined && entry.proficiency < 0.7)
+      .map(entry => entry.outcomeId)
+  );
+
+  const candidates = contentCatalogue
+    .filter(resource => resource.topic.toLowerCase().includes((topic || '').toLowerCase()))
+    .sort((a, b) => (weakOutcomes.size && a.alignedOutcomes.some(o => weakOutcomes.has(o)) ? -1 : 0) - (weakOutcomes.size && b.alignedOutcomes.some(o => weakOutcomes.has(o)) ? -1 : 0));
+
+  const tasks = [];
+  let total = 0;
+  for (const resource of candidates.length ? candidates : contentCatalogue) {
+    const nextTotal = total + resource.lengthMinutes;
+    tasks.push({
+      sequence: tasks.length + 1,
+      contentId: resource.contentId,
+      taskText: `Study: ${resource.title} (${resource.type}, ${resource.lengthMinutes} mins, ${resource.difficulty})`,
+      estimatedTimeMinutes: resource.lengthMinutes,
+      difficulty: resource.difficulty,
+      alignedOutcomes: resource.alignedOutcomes,
+      topic: resource.topic,
+    });
+    total = nextTotal;
+    if (total >= maxTotalTimeMinutes) break;
+  }
+
+  return {
+    requestId: requestPayload.requestId,
+    modelVersion: 'calendar-rule-based-v1',
+    generatedAt: new Date().toISOString(),
+    inputs: requestPayload,
+    homeworkRecommendation: {
+      homeworkId: randomUUID(),
+      title: `Week ${calendar.weekNumber}: ${topic}`,
+      topic,
+      weekNumber: calendar.weekNumber,
+      estimatedTotalTimeMinutes: total,
+      tasks,
+    },
+    explanations: {
+      global: `Selected tasks for week ${calendar.weekNumber} on ${topic}, prioritizing outcomes with lower proficiency where available.`,
+      notes: tasks.length ? [] : ['No tasks matched the requested week/topic, so no tasks were generated.'],
+    },
+  };
+}
 
 function buildRecommendationRequest({ learnerId, topic, maxTotalTimeMinutes, difficultyProfile, explain }) {
   const learner = learners.find(l => l.id === learnerId) || null;
@@ -425,6 +557,29 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       console.error('Error in /api/recommend-homework:', err);
       return sendJson(res, 500, { error: 'Failed to generate recommendation' }, baseHeaders);
+    }
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/recommendations/calendar-aware') {
+    try {
+      const body = await parseBody(req);
+      const { learnerId, weekNumber = 1, topic, maxTotalTimeMinutes = 30 } = body || {};
+
+      if (!learnerId) {
+        return sendJson(res, 400, { error: 'learnerId is required' }, baseHeaders);
+      }
+
+      const recommendation = calendarAwareRecommendation({
+        learnerId,
+        weekNumber: Number(weekNumber) || 1,
+        topicOverride: topic,
+        maxTotalTimeMinutes: Number(maxTotalTimeMinutes) || 30,
+      });
+
+      return sendJson(res, 200, recommendation, baseHeaders);
+    } catch (err) {
+      console.error('Error in /api/recommendations/calendar-aware:', err);
+      return sendJson(res, 500, { error: 'Failed to generate calendar-aware recommendation' }, baseHeaders);
     }
   }
 

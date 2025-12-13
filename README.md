@@ -11,6 +11,7 @@ The project is intentionally dependency-light to run in restricted environments 
 - **LTI 1.3-friendly endpoints** (login, launch, and deep-link simulation) that you can replace with production-ready signing and validation.
 - **In-memory storage** to keep the PoC stateless and simple during demos.
 - **Data layer for planning**: learners, a 3-semester scheme of work (weekly topics), and topic-aligned content resources with difficulty, duration, and type.
+- **Calendar-aware recommendation API**: combines learner performance snapshots, the academic calendar, and courseware metadata to pre-fill assignments via a standard contract.
 
 ## Architecture overview
 
@@ -52,6 +53,68 @@ server.js          → Node HTTP server, API + static file host
    - `studentLaunchLink` → the URL Canvas will embed for students.
    - `deepLink` → if the teacher supplied a Canvas deep-link return URL, the server appends the launch URL to it (a placeholder for a signed deep-link response).
 3. Canvas stores and surfaces the launch link to students. When opened, students hit `student.html` with `assignmentId` in the query string and the app renders their tasks.
+
+## Calendar-aware recommendation service
+
+Use `POST /api/recommendations/calendar-aware` to populate the teacher assignment UI with week-aware suggestions that consider learner performance, courseware metadata (difficulty, length, aligned outcomes), and the academic calendar.
+
+**Request contract (JSON)**
+
+```json
+{
+  "learnerId": "L001",
+  "weekNumber": 7,
+  "topic": "Linear equations and inequalities",
+  "maxTotalTimeMinutes": 30
+}
+```
+
+- `learnerId` (required): resolves to the in-memory learner plus their performance snapshot.
+- `weekNumber`: maps into the 3-semester scheme of work to pull the current topic; `topic` overrides the week topic when provided.
+- `maxTotalTimeMinutes`: budget for selected tasks.
+
+**Response contract (JSON)**
+
+```json
+{
+  "requestId": "...",
+  "modelVersion": "calendar-rule-based-v1",
+  "generatedAt": "2025-02-01T12:00:00Z",
+  "inputs": {
+    "learner": { "id": "L001", "cohort": "Algebra 2", "status": "Active" },
+    "performanceSnapshot": { "mastery": ["..."] },
+    "calendar": { "academicYear": "2024-2025", "weekNumber": 7, "topic": "Linear equations and inequalities" },
+    "contentCatalogue": [{ "contentId": "RES-201", "alignedOutcomes": ["maths.algebra.linear-two-step"] }]
+  },
+  "homeworkRecommendation": {
+    "homeworkId": "...",
+    "title": "Week 7: Linear equations and inequalities",
+    "topic": "Linear equations and inequalities",
+    "weekNumber": 7,
+    "estimatedTotalTimeMinutes": 30,
+    "tasks": [
+      {
+        "sequence": 1,
+        "contentId": "RES-201",
+        "taskText": "Study: Desmos exploration: balancing equations (Activity, 30 mins, Core)",
+        "estimatedTimeMinutes": 30,
+        "difficulty": "Core",
+        "alignedOutcomes": ["maths.algebra.linear-two-step"],
+        "topic": "Linear equations and inequalities"
+      }
+    ]
+  },
+  "explanations": {
+    "global": "Selected tasks for week 7 on Linear equations and inequalities, prioritizing outcomes with lower proficiency where available.",
+    "notes": []
+  }
+}
+```
+
+**How the teacher UI uses it**
+
+- In `teacher.html`, set a learner, time budget, and calendar week. The **Calendar-aware recommendation** button posts to the endpoint above.
+- The response fills the assignment title/description (if empty) and replaces the tasks textarea with recommended tasks. Explanations are shown in the AI rationale panel so you can review or edit before saving.
 
 ## Running locally
 

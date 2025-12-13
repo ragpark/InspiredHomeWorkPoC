@@ -67,6 +67,10 @@
               <option value="stretch">Stretch (Foundation 0.1 / Core 0.4 / Stretch 0.5)</option>
             </select>
           </div>
+          <div>
+            <label for="aiWeek">Academic calendar week</label>
+            <input id="aiWeek" type="number" min="1" max="18" value="1" />
+          </div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
           <label class="small" style="display: flex; gap: 6px; align-items: center;">
@@ -74,6 +78,7 @@
             Explain choices
           </label>
           <button id="generateAi" type="button">Generate tasks with AI</button>
+          <button id="generateCalendarAi" type="button" class="secondary">Calendar-aware recommendation</button>
           <span id="aiStatus" class="small"></span>
         </div>
         <div id="aiExplanation" class="small" style="margin-top: 8px;"></div>
@@ -153,6 +158,8 @@
       const aiStatus = document.getElementById('aiStatus');
       const aiExplanation = document.getElementById('aiExplanation');
       const generateAiButton = document.getElementById('generateAi');
+      const generateCalendarButton = document.getElementById('generateCalendarAi');
+      const aiWeek = document.getElementById('aiWeek');
 
       const selectedLearners = new Set();
       let resourceCache = [];
@@ -367,6 +374,65 @@
         }
       }
 
+      async function generateCalendarRecommendation() {
+        aiStatus.textContent = '';
+        aiExplanation.textContent = '';
+        generateCalendarButton.disabled = true;
+        generateCalendarButton.textContent = 'Generating…';
+
+        const learnerId = aiLearner.value;
+        const weekNumber = Number(aiWeek.value) || 1;
+        const topic = aiTopic.value;
+        const maxTotalTimeMinutes = Number(aiTime.value) || 30;
+
+        if (!learnerId) {
+          aiStatus.textContent = 'Pick a learner to generate a calendar-aware set.';
+          generateCalendarButton.disabled = false;
+          generateCalendarButton.textContent = 'Calendar-aware recommendation';
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/recommendations/calendar-aware', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ learnerId, weekNumber, topic, maxTotalTimeMinutes }),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Could not generate recommendation');
+          }
+
+          const homework = data.homeworkRecommendation || {};
+          if (!document.getElementById('title').value && homework.title) {
+            document.getElementById('title').value = homework.title;
+          }
+          if (!document.getElementById('description').value && data.inputs?.calendar?.topic) {
+            document.getElementById('description').value = `Focus: ${data.inputs.calendar.topic} (week ${data.inputs.calendar.weekNumber})`;
+          }
+
+          if (homework.tasks && Array.isArray(homework.tasks)) {
+            tasksTextArea.value = homework.tasks.map((task) => task.taskText || '').filter(Boolean).join('\n');
+          }
+
+          const explanations = data.explanations || {};
+          const notesList = (explanations.notes || []).map((note) => `<li>${note}</li>`).join('');
+          aiExplanation.innerHTML = explanations.global
+            ? `<div><strong>AI rationale</strong></div><p>${explanations.global}</p>${notesList ? `<ul>${notesList}</ul>` : ''}`
+            : notesList
+            ? `<div><strong>AI rationale</strong></div><ul>${notesList}</ul>`
+            : '';
+
+          aiStatus.textContent = 'Calendar-aware set applied.';
+        } catch (err) {
+          aiStatus.textContent = err.message;
+        } finally {
+          generateCalendarButton.disabled = false;
+          generateCalendarButton.textContent = 'Calendar-aware recommendation';
+        }
+      }
+
       async function createAssignment() {
         const tasks = document.getElementById('tasks').value
           .split('\n')
@@ -417,6 +483,7 @@
 
       createButton.addEventListener('click', createAssignment);
       generateAiButton.addEventListener('click', generateAiHomework);
+      generateCalendarButton.addEventListener('click', generateCalendarRecommendation);
       loadData();
       refreshAssignments();
     </script>
