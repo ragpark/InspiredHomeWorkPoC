@@ -191,3 +191,16 @@ The PoC keeps dependencies and infrastructure minimal. To productionize it on AW
    - Automate builds and deployments with **GitHub Actions** → **AWS CodeDeploy/CodePipeline**, running `npm test` or lightweight checks before publishing container images to **ECR**.
 
 Following this path keeps the public contract stable (`/api/assignments`, `/api/recommend-homework`, LTI endpoints) while swapping in AWS-managed security, data durability, and observability layers suitable for production.
+
+## Multi-tenant Canvas integration and grade return at scale
+
+When you need to serve many Canvas LMS instances without tightly coupling to any single tenant, use a hub-and-spoke pattern with clear separation of concerns:
+
+- **Tenant registry + config service**: Store each Canvas tenant’s platform IDs, JWKS URLs, client IDs, deep-link return URLs, and AGS endpoints in DynamoDB (or Aurora). Expose a config service so runtime components resolve tenant settings by `platform_id` / `tenant_id`, not by code-level switches.
+- **Stateless LTI edge**: Front the LTI login/launch and deep-link endpoints with API Gateway + Lambda (or ALB + Fargate) so multiple Canvas tenants hit the same edge. Token validation uses tenant metadata from the registry and caches keys per issuer. Keep launch/session data short-lived in Redis/ElastiCache.
+- **Assignment and link provisioning**: A shared assignments service issues student launch links per tenant and persists the mapping (assignment → tenant → launch URL). Canvas receives only the signed deep-link response, while the student link itself remains tenant-agnostic (fully-qualified URL with tenant context embedded in claims or query params).
+- **Outcome and grade return pipeline**: Decouple grade posting from the main request path. Emit a message (SNS/SQS or EventBridge) with outcome payloads (`platform_id`, `lineitem_id`, `score`, `attempt_id`). A worker service signs and posts to the correct Canvas AGS endpoint using tenant-specific credentials from the registry. Retries and dead-letter queues protect upstream stability.
+- **Multi-tenant observability and audit**: Include `tenant_id`, `platform_id`, `request_id`, and `assignment_id` in all logs and metrics. Ship to CloudWatch/OpenSearch for per-tenant dashboards and alerting. Store an audit trail (DynamoDB streams or CloudTrail-style append-only logs) for compliance.
+- **Security and isolation**: Keep secrets (client secrets, private keys) in AWS Secrets Manager scoped per tenant; rotate automatically. Enforce per-tenant throttles/quotas with API Gateway usage plans or WAF rate limits. Prefer data partitioning (DynamoDB PK includes `tenant_id`) to avoid cross-tenant leakage.
+
+This architecture lets you add or rotate Canvas tenants via configuration, keeps launches/stateless edges horizontally scalable, and isolates grade return complexities behind an asynchronous worker so no single LMS instance blocks the others.
