@@ -4,156 +4,222 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Student | Inspired Homework</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <header>
-      <h1>Student workspace</h1>
-      <p>Launch homework from Canvas or use a shared link from your teacher.</p>
-      <div class="pill-list">
-        <a class="pill" href="/">Back to overview</a>
-      </div>
-    </header>
-
-    <section class="card">
-      <div class="form-grid">
-        <div>
-          <label for="assignmentId">Assignment ID</label>
-          <input id="assignmentId" placeholder="Paste the link or ID" />
-        </div>
-        <div style="display: flex; align-items: flex-end;">
-          <button id="load">Load homework</button>
-        </div>
-      </div>
-      <p class="note">Links from Canvas include the assignmentId query automatically.</p>
-      <div id="content" style="margin-top: 16px;"></div>
-    </section>
-
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      const content = document.getElementById('content');
-      const input = document.getElementById('assignmentId');
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
+            colors: {
+              primary: {
+                50: '#eef2ff',
+                100: '#e0e7ff',
+                500: '#4f46e5',
+                600: '#4338ca',
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+    <script type="text/babel">
+      const { useState, useEffect, useMemo } = React;
 
-      const tutorModal = document.createElement('div');
-      tutorModal.id = 'tutorModal';
-      tutorModal.className = 'modal hidden';
-      tutorModal.innerHTML = `
-        <div class="modal-overlay" id="tutorOverlay"></div>
-        <div class="modal-content">
-          <div class="modal-header">
-            <div>
-              <h3>Homework Tutor</h3>
-              <p class="small">Quick content player to step through your tasks.</p>
-            </div>
-            <button id="closeTutor" class="secondary">Exit</button>
+      const Shell = ({ children }) => (
+        <div className="max-w-4xl mx-auto px-4 py-10 space-y-8">
+          <div className="space-y-2">
+            <span className="text-xs uppercase tracking-wide text-primary-600 font-semibold">Student workspace</span>
+            <h1 className="text-3xl font-semibold text-slate-900">Open and complete your homework</h1>
+            <p className="text-sm text-slate-600">Use the launch link from Canvas or paste an assignment ID to view tasks.</p>
           </div>
-          <div class="tutor-grid">
-            <div class="tutor-pane" id="tutorTasks"><p class="small">Load an assignment to view tasks.</p></div>
-            <div class="tutor-pane" id="tutorPlayer"><p class="small">Select a task to preview details.</p></div>
-          </div>
+          {children}
         </div>
-      `;
-      document.body.appendChild(tutorModal);
+      );
 
-      function openTutor(assignment) {
-        const tasksEl = document.getElementById('tutorTasks');
-        const playerEl = document.getElementById('tutorPlayer');
-        if (!assignment || !assignment.tasks.length) {
-          tasksEl.innerHTML = '<p class="small">No tasks available to preview.</p>';
-          playerEl.innerHTML = '<p class="small">Add tasks to see them here.</p>';
-        } else {
-          tasksEl.innerHTML = assignment.tasks
-            .map(
-              (task, idx) => `
-                <button class="tutor-task" data-index="${idx}">
-                  <span class="badge">${idx + 1}</span>
-                  <span>${task}</span>
-                </button>
-              `
-            )
-            .join('');
-          const buttons = tasksEl.querySelectorAll('.tutor-task');
-          buttons.forEach((btn) => {
-            btn.addEventListener('click', () => {
-              buttons.forEach((b) => b.classList.remove('active'));
-              btn.classList.add('active');
-              const task = assignment.tasks[Number(btn.dataset.index)];
-              playerEl.innerHTML = `
-                <div class="player-pane">
-                  <h4>Task ${Number(btn.dataset.index) + 1}</h4>
-                  <p>${task}</p>
-                  <p class="small">Use the external launch link to complete this task in a new tab.</p>
+      const Input = ({ label, ...rest }) => (
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-slate-700">{label}</span>
+          <input className="input" {...rest} />
+        </label>
+      );
+
+      const HomeworkTutor = ({ open, assignment, onClose }) => {
+        const [activeIndex, setActiveIndex] = useState(0);
+        useEffect(() => {
+          if (open) setActiveIndex(0);
+        }, [open, assignment]);
+        const tasks = assignment?.tasks || [];
+        return (
+          <div className={`fixed inset-0 z-50 ${open ? 'flex' : 'hidden'} items-center justify-center bg-slate-900/60`}>
+            <div className="bg-white w-full max-w-5xl rounded-2xl shadow-xl overflow-hidden">
+              <div className="flex items-start justify-between px-6 py-4 border-b border-slate-200">
+                <div>
+                  <h3 className="text-xl font-semibold text-slate-900">Homework Tutor</h3>
+                  <p className="text-sm text-slate-600">Two-pane player to step through tasks. Exit anytime.</p>
                 </div>
-              `;
-            });
-          });
-          buttons[0]?.click();
-        }
-
-        tutorModal.classList.remove('hidden');
-        tutorModal.classList.add('open');
-      }
-
-      function closeTutor() {
-        tutorModal.classList.remove('open');
-        tutorModal.classList.add('hidden');
-      }
-
-      tutorModal.querySelector('#closeTutor').addEventListener('click', closeTutor);
-      tutorModal.querySelector('#tutorOverlay').addEventListener('click', closeTutor);
-
-      function renderAssignment(assignment, launchUrl) {
-        if (!assignment) {
-          content.innerHTML = '<p class="small">Assignment not found.</p>';
-          return;
-        }
-
-        const taskItems = assignment.tasks.length
-          ? `<ul>${assignment.tasks.map((task) => `<li>${task}</li>`).join('')}</ul>`
-          : '<p class="small">No tasks yet.</p>';
-
-        content.innerHTML = `
-          <div class="assignment-card">
-            <div class="badge">${assignment.students.length ? 'Individual or group' : 'Shared link'}</div>
-            <h3>${assignment.title}</h3>
-            <p class="small">${assignment.description || 'No description provided.'}</p>
-            <div>
-              <strong>Tasks</strong>
-              ${taskItems}
-            </div>
-            <p class="small">Launch URL: <a href="${launchUrl}" target="_blank" rel="noopener">Open in new tab</a></p>
-            <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
-              <button class="secondary" id="openTutor">Open Homework Tutor</button>
+                <button className="btn-secondary" onClick={onClose}>Exit</button>
+              </div>
+              <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+                <div className="md:col-span-1 p-4 space-y-3 bg-slate-50/60 min-h-[320px]">
+                  <p className="text-xs uppercase tracking-wide text-slate-600">Tasks</p>
+                  {tasks.length === 0 && <p className="text-sm text-slate-600">No tasks to show.</p>}
+                  <div className="space-y-2">
+                    {tasks.map((task, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveIndex(idx)}
+                        className={`w-full text-left rounded-lg px-3 py-2 text-sm border transition ${
+                          activeIndex === idx
+                            ? 'border-primary-500 bg-primary-50 text-primary-800'
+                            : 'border-slate-200 hover:border-primary-300'
+                        }`}
+                      >
+                        <span className="mr-2 text-xs font-semibold text-slate-600">{idx + 1}</span>
+                        {task}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="md:col-span-2 p-6 min-h-[320px]">
+                  {tasks.length === 0 ? (
+                    <p className="text-sm text-slate-600">Add tasks to see details here.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs uppercase tracking-wide text-slate-600">Task {activeIndex + 1}</p>
+                      <h4 className="text-xl font-semibold text-slate-900">{tasks[activeIndex]}</h4>
+                      <p className="text-sm text-slate-600">
+                        Use the new-tab link in the assignment details to launch the task and return here when done.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        `;
+        );
+      };
 
-        const tutorButton = document.getElementById('openTutor');
-        tutorButton?.addEventListener('click', () => openTutor(assignment));
+      function StudentApp() {
+        const [assignmentId, setAssignmentId] = useState('');
+        const [assignment, setAssignment] = useState(null);
+        const [launchUrl, setLaunchUrl] = useState('');
+        const [status, setStatus] = useState('');
+        const [showTutor, setShowTutor] = useState(false);
+
+        const tasks = assignment?.tasks || [];
+
+        const loadAssignment = async (id) => {
+          setStatus('Loading...');
+          const res = await fetch(`/api/assignments/${id}`);
+          if (!res.ok) {
+            setAssignment(null);
+            setStatus('Assignment not found.');
+            return;
+          }
+          const data = await res.json();
+          setAssignment(data.assignment);
+          setLaunchUrl(data.launchUrl);
+          setStatus('');
+        };
+
+        useEffect(() => {
+          const urlId = new URLSearchParams(window.location.search).get('assignmentId');
+          if (urlId) {
+            setAssignmentId(urlId);
+            loadAssignment(urlId);
+          }
+        }, []);
+
+        const summary = useMemo(
+          () => [
+            { label: 'Tasks', value: tasks.length },
+            { label: 'Individuals', value: assignment?.students?.length || 0 },
+            { label: 'Groups', value: assignment?.groups?.length || 0 },
+          ],
+          [tasks.length, assignment]
+        );
+
+        return (
+          <Shell>
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+              <div className="grid gap-4 md:grid-cols-[2fr,auto] items-end">
+                <Input
+                  label="Assignment ID or launch URL"
+                  placeholder="Paste the link or ID"
+                  value={assignmentId}
+                  onChange={(e) => setAssignmentId(e.target.value)}
+                />
+                <button className="btn h-fit" onClick={() => assignmentId && loadAssignment(assignmentId)}>
+                  Load homework
+                </button>
+              </div>
+              <p className="text-xs text-slate-600">Canvas launch links already include the assignmentId query parameter.</p>
+              {status && <p className="text-sm text-slate-600">{status}</p>}
+            </div>
+
+            {assignment && (
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge>Assignment</Badge>
+                      <span className="text-xs text-slate-500">{new Date(assignment.createdAt).toLocaleString()}</span>
+                    </div>
+                    <h2 className="text-2xl font-semibold text-slate-900">{assignment.title}</h2>
+                    <p className="text-sm text-slate-600">{assignment.description || 'No description provided.'}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <a
+                      className="btn-secondary"
+                      href={launchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open in new tab
+                    </a>
+                    <button className="btn" onClick={() => setShowTutor(true)}>
+                      Open Homework Tutor
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {summary.map((item) => (
+                    <div key={item.label} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                      <p className="text-xs text-slate-600">{item.label}</p>
+                      <p className="text-xl font-semibold text-slate-900">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-slate-800">Tasks</p>
+                  {tasks.length === 0 && <p className="text-sm text-slate-600">No tasks listed.</p>}
+                  <ol className="list-decimal list-inside space-y-2 text-slate-700">
+                    {tasks.map((task, idx) => (
+                      <li key={idx}>{task}</li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            )}
+
+            <HomeworkTutor open={showTutor} assignment={assignment} onClose={() => setShowTutor(false)} />
+          </Shell>
+        );
       }
 
-      async function loadAssignment(id) {
-        const response = await fetch(`/api/assignments/${id}`);
-        if (!response.ok) {
-          renderAssignment(null);
-          return;
-        }
-        const data = await response.json();
-        renderAssignment(data.assignment, data.launchUrl);
-      }
-
-      document.getElementById('load').addEventListener('click', () => {
-        const raw = input.value.trim();
-        const id = raw.includes('assignmentId=')
-          ? new URL(raw).searchParams.get('assignmentId')
-          : raw;
-        if (id) loadAssignment(id);
-      });
-
-      const urlId = new URLSearchParams(window.location.search).get('assignmentId');
-      if (urlId) {
-        input.value = urlId;
-        loadAssignment(urlId);
-      }
+      ReactDOM.createRoot(document.getElementById('root')).render(<StudentApp />);
     </script>
   </body>
 </html>
