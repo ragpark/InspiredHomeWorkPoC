@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Teacher | Inspired Homework</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Teacher workspace</h1>
+      <p>Create and publish homework as an individual or group deep link into Canvas.</p>
+      <div class="pill-list">
+        <a class="pill" href="/">Back to overview</a>
+        <a class="pill secondary" href="/student.html">Preview student page</a>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>Data sources</h2>
+      <p class="small">Preview the in-memory data powering this PoC and pull items into your assignment.</p>
+      <div class="data-grid" id="dataSummary"></div>
+    </section>
+
+    <section class="card">
+      <div class="form-grid">
+        <div>
+          <label for="title">Assignment title</label>
+          <input id="title" placeholder="Fractions practice" />
+        </div>
+        <div>
+          <label for="description">Notes for students</label>
+          <input id="description" placeholder="What should students know?" />
+        </div>
+      </div>
+
+      <label for="tasks">Tasks (one per line)</label>
+      <textarea id="tasks" placeholder="Read chapter 5\nSolve problems 1-10\nSubmit screenshots"></textarea>
+
+      <div class="content-panel" style="margin-top: 12px;">
+        <div class="content-panel__header">
+          <div>
+            <strong>AI-powered homework suggestion</strong>
+            <p class="small">Use local logic or an external recommender configured with environment variables.</p>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label for="aiLearner">Learner</label>
+            <select id="aiLearner"></select>
+          </div>
+          <div>
+            <label for="aiTopic">Topic</label>
+            <select id="aiTopic"></select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label for="aiTime">Time budget (minutes)</label>
+            <input id="aiTime" type="number" min="5" step="5" value="30" />
+          </div>
+          <div>
+            <label for="aiProfile">Difficulty profile</label>
+            <select id="aiProfile">
+              <option value="balanced">Balanced (Foundation 0.3 / Core 0.5 / Stretch 0.2)</option>
+              <option value="core">Mostly Core (Foundation 0.2 / Core 0.6 / Stretch 0.2)</option>
+              <option value="stretch">Stretch (Foundation 0.1 / Core 0.4 / Stretch 0.5)</option>
+            </select>
+          </div>
+          <div>
+            <label for="aiWeek">Academic calendar week</label>
+            <input id="aiWeek" type="number" min="1" max="18" value="1" />
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <label class="small" style="display: flex; gap: 6px; align-items: center;">
+            <input type="checkbox" id="aiExplain" />
+            Explain choices
+          </label>
+          <button id="generateAi" type="button">Generate tasks with AI</button>
+          <button id="generateCalendarAi" type="button" class="secondary">Calendar-aware recommendation</button>
+          <span id="aiStatus" class="small"></span>
+        </div>
+        <div id="aiExplanation" class="small" style="margin-top: 8px;"></div>
+      </div>
+
+      <div class="form-grid">
+        <div>
+          <label for="students">Student emails or IDs (comma separated)</label>
+          <input id="students" placeholder="ada@example.com, brian@example.com" />
+        </div>
+        <div>
+          <label for="groups">Group names (comma separated)</label>
+          <input id="groups" placeholder="Period 2, Algebra Club" />
+        </div>
+      </div>
+
+      <div class="form-grid" style="margin-top: 8px;">
+        <div>
+          <label>Pick learners from the data store</label>
+          <div id="learnerList" class="list-grid"></div>
+        </div>
+        <div>
+          <label>Scheme of work (3 semesters)</label>
+          <div id="scheme" class="scheme"></div>
+        </div>
+      </div>
+
+      <div class="content-panel">
+        <div class="content-panel__header">
+          <div>
+            <strong>Content resources</strong>
+            <p class="small">Filter by topic and add directly into the task list.</p>
+          </div>
+          <div class="content-filters">
+            <label for="topicFilter" class="small">Topic filter</label>
+            <select id="topicFilter"></select>
+          </div>
+        </div>
+        <div id="contentResources" class="list-grid"></div>
+      </div>
+
+      <label for="returnUrl">Canvas deep-link return URL (optional)</label>
+      <input id="returnUrl" placeholder="https://canvas.example.com/courses/123/assignments" />
+
+      <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <button id="create">Create assignment</button>
+        <span class="small">Assignments are stored in memory for this demo.</span>
+      </div>
+
+      <div id="result" style="margin-top: 16px;"></div>
+    </section>
+
+    <section class="card">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <h2 style="margin: 0;">Recent assignments</h2>
+        <span class="badge" id="count">0 created</span>
+      </div>
+      <div class="assignments" id="assignments"></div>
+    </section>
+
+    <script>
+      const createButton = document.getElementById('create');
+      const assignmentsList = document.getElementById('assignments');
+      const result = document.getElementById('result');
+      const count = document.getElementById('count');
+      const learnerList = document.getElementById('learnerList');
+      const scheme = document.getElementById('scheme');
+      const topicFilter = document.getElementById('topicFilter');
+      const contentResources = document.getElementById('contentResources');
+      const tasksTextArea = document.getElementById('tasks');
+      const dataSummary = document.getElementById('dataSummary');
+      const aiLearner = document.getElementById('aiLearner');
+      const aiTopic = document.getElementById('aiTopic');
+      const aiTime = document.getElementById('aiTime');
+      const aiProfile = document.getElementById('aiProfile');
+      const aiExplain = document.getElementById('aiExplain');
+      const aiStatus = document.getElementById('aiStatus');
+      const aiExplanation = document.getElementById('aiExplanation');
+      const generateAiButton = document.getElementById('generateAi');
+      const generateCalendarButton = document.getElementById('generateCalendarAi');
+      const aiWeek = document.getElementById('aiWeek');
+
+      const selectedLearners = new Set();
+      let resourceCache = [];
+
+      async function refreshAssignments() {
+        const response = await fetch('/api/assignments');
+        const data = await response.json();
+        assignmentsList.innerHTML = '';
+        count.textContent = `${data.assignments.length} created`;
+
+        data.assignments.forEach((assignment) => {
+          const card = document.createElement('div');
+          card.className = 'assignment-card';
+          card.innerHTML = `
+            <h3>${assignment.title}</h3>
+            <p class="small">${assignment.description || 'No description yet'}</p>
+            <div class="small">Tasks: ${assignment.tasks.length}</div>
+            <div class="small">Individuals: ${assignment.students.join(', ') || '—'}</div>
+            <div class="small">Groups: ${assignment.groups.join(', ') || '—'}</div>
+            <div class="small">Created ${new Date(assignment.createdAt).toLocaleString()}</div>
+            <pre>Launch: ${window.location.origin}/student.html?assignmentId=${assignment.id}</pre>
+          `;
+          assignmentsList.appendChild(card);
+        });
+      }
+
+      function renderDataSummary({ learners, schemeOfWork, resources }) {
+        dataSummary.innerHTML = `
+          <div class="summary-card">
+            <div class="summary-label">Learners</div>
+            <div class="summary-value">${learners.length}</div>
+            <p class="small">${learners.map((l) => l.name).slice(0, 3).join(', ')}${learners.length > 3 ? '…' : ''}</p>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Scheme of work</div>
+            <div class="summary-value">${schemeOfWork.semesters.length} semesters</div>
+            <p class="small">${schemeOfWork.academicYear}</p>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Content resources</div>
+            <div class="summary-value">${resources.length}</div>
+            <p class="small">Mapped by topic, difficulty, and length</p>
+          </div>
+        `;
+      }
+
+      function renderLearners(list) {
+        learnerList.innerHTML = '';
+        list.forEach((learner) => {
+          const card = document.createElement('label');
+          card.className = 'chip';
+          card.innerHTML = `
+            <input type="checkbox" data-email="${learner.email}" />
+            <div>
+              <strong>${learner.name}</strong>
+              <div class="small">${learner.email} • ${learner.cohort}</div>
+            </div>
+          `;
+          card.querySelector('input').addEventListener('change', (evt) => {
+            if (evt.target.checked) {
+              selectedLearners.add(learner.email);
+            } else {
+              selectedLearners.delete(learner.email);
+            }
+          });
+          learnerList.appendChild(card);
+        });
+      }
+
+      function renderScheme(schemeOfWork) {
+        scheme.innerHTML = '';
+        schemeOfWork.semesters.forEach((semester) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'scheme-block';
+          wrapper.innerHTML = `
+            <div class="scheme-header">
+              <div>
+                <strong>${semester.name}</strong>
+                <div class="small">${semester.focus}</div>
+              </div>
+              <span class="badge">${semester.weeks.length} weeks</span>
+            </div>
+            <div class="scheme-weeks">${semester.weeks
+              .map((week) => `<div class="tag">Week ${week.week}: ${week.topic}</div>`)
+              .join('')}</div>
+          `;
+          scheme.appendChild(wrapper);
+        });
+      }
+
+      function renderContent(resources) {
+        contentResources.innerHTML = '';
+        resources.forEach((resource) => {
+          const card = document.createElement('div');
+          card.className = 'resource-card';
+          card.innerHTML = `
+            <div>
+              <strong>${resource.title}</strong>
+              <div class="small">${resource.topic}</div>
+              <div class="small">${resource.type} • ${resource.difficulty} • ${resource.lengthMinutes} minutes</div>
+            </div>
+            <button class="secondary" data-id="${resource.id}">Add to tasks</button>
+          `;
+          card.querySelector('button').addEventListener('click', () => {
+            const existing = tasksTextArea.value.trim();
+            const line = `${resource.title} (${resource.type}, ${resource.lengthMinutes} mins, ${resource.topic})`;
+            tasksTextArea.value = existing ? `${existing}\n${line}` : line;
+          });
+          contentResources.appendChild(card);
+        });
+      }
+
+      async function loadData() {
+        const [learnerRes, schemeRes, resourcesRes] = await Promise.all([
+          fetch('/api/learners'),
+          fetch('/api/scheme-of-work'),
+          fetch('/api/content-resources'),
+        ]);
+
+        const learners = await learnerRes.json();
+        const schemeData = await schemeRes.json();
+        const content = await resourcesRes.json();
+
+        resourceCache = content.resources;
+        renderDataSummary({ learners: learners.learners, schemeOfWork: schemeData.schemeOfWork, resources: content.resources });
+        renderLearners(learners.learners);
+        renderScheme(schemeData.schemeOfWork);
+        renderContent(content.resources);
+
+        const uniqueTopics = Array.from(
+          new Set([
+            ...content.resources.map((r) => r.topic),
+            ...schemeData.schemeOfWork.semesters.flatMap((sem) => sem.weeks.map((week) => week.topic)),
+          ])
+        );
+        topicFilter.innerHTML = '<option value="">All topics</option>' + uniqueTopics.map((topic) => `<option value="${topic}">${topic}</option>`).join('');
+        topicFilter.addEventListener('change', () => {
+          const topic = topicFilter.value;
+          const filtered = topic ? resourceCache.filter((r) => r.topic === topic) : resourceCache;
+          renderContent(filtered);
+        });
+
+        aiTopic.innerHTML = '<option value="">Select a topic</option>' + uniqueTopics.map((topic) => `<option value="${topic}">${topic}</option>`).join('');
+        aiLearner.innerHTML = '<option value="">Select a learner</option>' + learners.learners
+          .map((l) => `<option value="${l.id}">${l.name} (${l.id})</option>`)
+          .join('');
+      }
+
+      function resolveDifficultyProfile(value) {
+        if (value === 'core') return { Foundation: 0.2, Core: 0.6, Stretch: 0.2 };
+        if (value === 'stretch') return { Foundation: 0.1, Core: 0.4, Stretch: 0.5 };
+        return { Foundation: 0.3, Core: 0.5, Stretch: 0.2 };
+      }
+
+      async function generateAiHomework() {
+        aiStatus.textContent = '';
+        aiExplanation.textContent = '';
+        generateAiButton.disabled = true;
+        generateAiButton.textContent = 'Generating…';
+
+        const learnerId = aiLearner.value;
+        const topic = aiTopic.value;
+        const maxTotalTimeMinutes = Number(aiTime.value) || 30;
+        const difficultyProfile = resolveDifficultyProfile(aiProfile.value);
+        const explain = aiExplain.checked;
+
+        if (!learnerId || !topic) {
+          aiStatus.textContent = 'Pick a learner and topic to generate suggestions.';
+          generateAiButton.disabled = false;
+          generateAiButton.textContent = 'Generate tasks with AI';
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/recommend-homework', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ learnerId, topic, maxTotalTimeMinutes, difficultyProfile, explain }),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Could not generate recommendation');
+          }
+
+          const homework = data.homework || {};
+          if (!document.getElementById('title').value && homework.title) {
+            document.getElementById('title').value = homework.title;
+          }
+          if (!document.getElementById('description').value && homework.description) {
+            document.getElementById('description').value = homework.description;
+          }
+
+          if (homework.tasks && Array.isArray(homework.tasks)) {
+            tasksTextArea.value = homework.tasks.map((task) => task.taskText || '').filter(Boolean).join('\n');
+          }
+
+          const explanations = data.explanations || {};
+          const notesList = (explanations.notes || []).map((note) => `<li>${note}</li>`).join('');
+          aiExplanation.innerHTML = explanations.global
+            ? `<div><strong>AI rationale</strong></div><p>${explanations.global}</p>${notesList ? `<ul>${notesList}</ul>` : ''}`
+            : notesList
+            ? `<div><strong>AI rationale</strong></div><ul>${notesList}</ul>`
+            : '';
+
+          aiStatus.textContent = 'Suggestion applied. Adjust anything you like before assigning.';
+        } catch (err) {
+          aiStatus.textContent = err.message;
+        } finally {
+          generateAiButton.disabled = false;
+          generateAiButton.textContent = 'Generate tasks with AI';
+        }
+      }
+
+      async function generateCalendarRecommendation() {
+        aiStatus.textContent = '';
+        aiExplanation.textContent = '';
+        generateCalendarButton.disabled = true;
+        generateCalendarButton.textContent = 'Generating…';
+
+        const learnerId = aiLearner.value;
+        const weekNumber = Number(aiWeek.value) || 1;
+        const topic = aiTopic.value;
+        const maxTotalTimeMinutes = Number(aiTime.value) || 30;
+
+        if (!learnerId) {
+          aiStatus.textContent = 'Pick a learner to generate a calendar-aware set.';
+          generateCalendarButton.disabled = false;
+          generateCalendarButton.textContent = 'Calendar-aware recommendation';
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/recommendations/calendar-aware', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ learnerId, weekNumber, topic, maxTotalTimeMinutes }),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Could not generate recommendation');
+          }
+
+          const homework = data.homeworkRecommendation || {};
+          if (!document.getElementById('title').value && homework.title) {
+            document.getElementById('title').value = homework.title;
+          }
+          if (!document.getElementById('description').value && data.inputs?.calendar?.topic) {
+            document.getElementById('description').value = `Focus: ${data.inputs.calendar.topic} (week ${data.inputs.calendar.weekNumber})`;
+          }
+
+          if (homework.tasks && Array.isArray(homework.tasks)) {
+            tasksTextArea.value = homework.tasks.map((task) => task.taskText || '').filter(Boolean).join('\n');
+          }
+
+          const explanations = data.explanations || {};
+          const notesList = (explanations.notes || []).map((note) => `<li>${note}</li>`).join('');
+          aiExplanation.innerHTML = explanations.global
+            ? `<div><strong>AI rationale</strong></div><p>${explanations.global}</p>${notesList ? `<ul>${notesList}</ul>` : ''}`
+            : notesList
+            ? `<div><strong>AI rationale</strong></div><ul>${notesList}</ul>`
+            : '';
+
+          aiStatus.textContent = 'Calendar-aware set applied.';
+        } catch (err) {
+          aiStatus.textContent = err.message;
+        } finally {
+          generateCalendarButton.disabled = false;
+          generateCalendarButton.textContent = 'Calendar-aware recommendation';
+        }
+      }
+
+      async function createAssignment() {
+        const tasks = document.getElementById('tasks').value
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean);
+
+        const payload = {
+          title: document.getElementById('title').value,
+          description: document.getElementById('description').value,
+          tasks,
+          students: document.getElementById('students').value
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .concat(Array.from(selectedLearners)),
+          groups: document.getElementById('groups').value
+            .split(',')
+            .map((g) => g.trim())
+            .filter(Boolean),
+          ltiReturnUrl: document.getElementById('returnUrl').value.trim() || undefined,
+        };
+
+        result.innerHTML = '<div class="small">Saving…</div>';
+
+        const response = await fetch('/api/assignments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          const deepLinkSection = data.deepLink
+            ? `<p class="small">Deep-link (simulated return to Canvas): <code>${data.deepLink}</code></p>`
+            : '';
+
+          result.innerHTML = `
+            <div class="status">Assignment created</div>
+            <p class="small">Student launch URL:</p>
+            <pre>${data.studentLaunchLink}</pre>
+            ${deepLinkSection}
+          `;
+          refreshAssignments();
+        } else {
+          result.innerHTML = `<p class="small" style="color: crimson;">${data.error || 'Could not create assignment'}</p>`;
+        }
+      }
+
+      createButton.addEventListener('click', createAssignment);
+      generateAiButton.addEventListener('click', generateAiHomework);
+      generateCalendarButton.addEventListener('click', generateCalendarRecommendation);
+      loadData();
+      refreshAssignments();
+    </script>
+  </body>
+</html>
