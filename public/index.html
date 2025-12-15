@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Inspired Homework | Canvas Proxy Landing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              serif: ['Crimson Pro', 'Georgia', 'serif'],
+              sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+            },
+            colors: {
+              primary: {
+                50: '#f0f4ff',
+                100: '#e0eaff',
+                200: '#c7d7fe',
+                300: '#a4bcfc',
+                400: '#8195f8',
+                500: '#6366f1',
+                600: '#4f46e5',
+                700: '#4338ca',
+                800: '#3730a3',
+                900: '#312e81',
+              },
+              accent: {
+                50: '#fefce8',
+                100: '#fef9c3',
+                200: '#fef08a',
+                300: '#fde047',
+                400: '#facc15',
+                500: '#eab308',
+                600: '#ca8a04',
+                700: '#a16207',
+                800: '#854d0e',
+                900: '#713f12',
+              },
+              slate: {
+                25: '#fcfcfd',
+                950: '#0a0c12',
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .glass-card {
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-slate-25 via-slate-50 to-primary-50 min-h-screen font-sans text-slate-900">
+    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-white/40">
+      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-semibold flex items-center justify-center">
+            IH
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-wide text-primary-700">Canvas proxy</p>
+            <h1 class="text-lg font-semibold">Inspired Homework PoC</h1>
+          </div>
+        </div>
+        <nav class="flex items-center gap-3 text-sm font-medium">
+          <a class="text-slate-700 hover:text-primary-600" href="/teacher.html">Teacher Studio</a>
+          <a class="text-slate-700 hover:text-primary-600" href="/student.html">Student View</a>
+          <span class="px-3 py-1 rounded-full bg-accent-100 text-accent-700">LTI 1.3 Demo</span>
+        </nav>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-12 space-y-10">
+      <section class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-primary-900 to-slate-900 text-white p-10 shadow-xl">
+        <div class="relative z-10 lg:flex lg:items-center lg:justify-between lg:gap-12">
+          <div class="max-w-2xl space-y-4">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-sm font-medium">
+              <span class="w-2 h-2 rounded-full bg-emerald-300"></span>
+              Ready for Canvas launch flows
+            </span>
+            <h2 class="font-serif text-4xl font-semibold leading-tight">Welcome to Inspired Homework</h2>
+            <p class="text-lg text-slate-100 leading-relaxed">
+              This landing page acts as a proxy for Canvas LMS. Use it to kick off teacher and student
+              journeys, verify LTI-style deep linking, and explore AI-assisted assignment planning.
+            </p>
+            <div class="flex flex-wrap gap-3">
+              <a href="/teacher.html" class="px-5 py-3 rounded-xl bg-white text-slate-900 font-semibold shadow-lg hover:-translate-y-0.5 transition">
+                Open Teacher Studio
+              </a>
+              <a href="/student.html" class="px-5 py-3 rounded-xl border border-white/40 text-white font-semibold hover:bg-white/10 transition">
+                Preview Student View
+              </a>
+            </div>
+          </div>
+          <div class="mt-8 lg:mt-0 lg:w-80 space-y-3">
+            <div class="glass-card rounded-2xl p-4 text-slate-900 shadow-lg">
+              <p class="text-sm font-semibold text-primary-700 mb-2">Purpose of this PoC</p>
+              <ul class="text-sm text-slate-700 space-y-2 list-disc list-inside">
+                <li>Behave like a Canvas LMS launch point for local demos.</li>
+                <li>Route teachers to the Assignment Studio React experience.</li>
+                <li>Route learners to the modern Homework Tutor student view.</li>
+                <li>Keep assignments in memory for rapid iteration.</li>
+              </ul>
+            </div>
+            <div class="glass-card rounded-2xl p-4 text-slate-900 shadow-lg">
+              <p class="text-sm font-semibold text-primary-700 mb-2">Quick links</p>
+              <div class="flex flex-col gap-2 text-sm">
+                <a class="flex items-center gap-2 text-primary-700 hover:text-primary-900" href="/teacher.html">
+                  <span class="w-2 h-2 rounded-full bg-primary-500"></span> Teacher assignment flow
+                </a>
+                <a class="flex items-center gap-2 text-primary-700 hover:text-primary-900" href="/student.html">
+                  <span class="w-2 h-2 rounded-full bg-primary-500"></span> Student launch + Homework Tutor
+                </a>
+                <a class="flex items-center gap-2 text-primary-700 hover:text-primary-900" href="/README.md" target="_blank">
+                  <span class="w-2 h-2 rounded-full bg-primary-500"></span> Architecture & deployment notes
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="absolute inset-0 pointer-events-none">
+          <div class="absolute top-6 right-10 w-48 h-48 bg-primary-400/20 rounded-full blur-3xl"></div>
+          <div class="absolute bottom-8 left-10 w-56 h-56 bg-accent-400/10 rounded-full blur-2xl"></div>
+        </div>
+      </section>
+
+      <section class="grid lg:grid-cols-3 gap-6">
+        <div class="glass-card rounded-2xl p-6 shadow-md border border-white/60">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center font-semibold">1</div>
+            <h3 class="font-semibold text-lg">Launch like Canvas</h3>
+          </div>
+          <p class="text-sm text-slate-700 leading-relaxed">
+            Treat this page as the LMS surface. In production, Canvas would deep-link into the tool; here, the
+            buttons above let you jump into the same flows without LMS setup.
+          </p>
+        </div>
+        <div class="glass-card rounded-2xl p-6 shadow-md border border-white/60">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center font-semibold">2</div>
+            <h3 class="font-semibold text-lg">Plan & assign</h3>
+          </div>
+          <p class="text-sm text-slate-700 leading-relaxed">
+            Use the Teacher Studio to craft assignments, apply AI or calendar-aware recommendations, and capture
+            the launch link you would normally hand back to Canvas.
+          </p>
+        </div>
+        <div class="glass-card rounded-2xl p-6 shadow-md border border-white/60">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center font-semibold">3</div>
+            <h3 class="font-semibold text-lg">Preview the learner view</h3>
+          </div>
+          <p class="text-sm text-slate-700 leading-relaxed">
+            Open the Student View to see the Homework Tutor modal, new-tab launch link, and task walkthrough the
+            way a Canvas learner would experience it.
+          </p>
+        </div>
+      </section>
+
+      <section class="grid lg:grid-cols-2 gap-6">
+        <div class="glass-card rounded-2xl p-6 shadow-md border border-white/60">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold text-lg">Testing checklist</h3>
+            <span class="text-xs px-3 py-1 rounded-full bg-primary-100 text-primary-700">LTI-style</span>
+          </div>
+          <ol class="list-decimal list-inside space-y-2 text-sm text-slate-700">
+            <li>Create an assignment in Teacher Studio and copy the student launch URL.</li>
+            <li>Optional: simulate deep linking with the Canvas return URL field.</li>
+            <li>Open the launch URL (or click Student View) to validate the learner flow.</li>
+            <li>Use AI recommendations to populate tasks, then manually adjust before assigning.</li>
+          </ol>
+        </div>
+        <div class="glass-card rounded-2xl p-6 shadow-md border border-white/60">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold text-lg">What to expect</h3>
+            <span class="text-xs px-3 py-1 rounded-full bg-accent-100 text-accent-700">PoC scope</span>
+          </div>
+          <ul class="space-y-2 text-sm text-slate-700">
+            <li><strong>In-memory storage</strong> to keep iteration fast; restart clears assignments.</li>
+            <li><strong>AI hooks</strong> ready for external recommender endpoints or local fallback.</li>
+            <li><strong>Canvas-friendly links</strong> surfaced on creation for LMS insertion.</li>
+            <li><strong>No auth</strong> in this PoC—replace with full LTI 1.3 OIDC + JWT validation later.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
