@@ -3,23 +3,70 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Student | Inspired Homework</title>
+    <title>Assignment Studio | Student View</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/styles.css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
-            fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
+            fontFamily: {
+              serif: ['Crimson Pro', 'Georgia', 'serif'],
+              sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+            },
             colors: {
               primary: {
-                50: '#eef2ff',
-                100: '#e0e7ff',
-                500: '#4f46e5',
-                600: '#4338ca',
+                50: '#f0f4ff',
+                100: '#e0eaff',
+                200: '#c7d7fe',
+                300: '#a4bcfc',
+                400: '#8195f8',
+                500: '#6366f1',
+                600: '#4f46e5',
+                700: '#4338ca',
+                800: '#3730a3',
+                900: '#312e81',
+              },
+              accent: {
+                50: '#fefce8',
+                100: '#fef9c3',
+                200: '#fef08a',
+                300: '#fde047',
+                400: '#facc15',
+                500: '#eab308',
+                600: '#ca8a04',
+                700: '#a16207',
+                800: '#854d0e',
+                900: '#713f12',
+              },
+              slate: {
+                25: '#fcfcfd',
+                950: '#0a0c12',
+              },
+            },
+            animation: {
+              'slide-up': 'slideUp 0.6s ease-out forwards',
+              'fade-in': 'fadeIn 0.4s ease-out forwards',
+              'scale-in': 'scaleIn 0.3s ease-out forwards',
+            },
+            keyframes: {
+              slideUp: {
+                '0%': { transform: 'translateY(20px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' },
+              },
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              scaleIn: {
+                '0%': { transform: 'scale(0.95)', opacity: '0' },
+                '100%': { transform: 'scale(1)', opacity: '1' },
               },
             },
           },
@@ -30,47 +77,56 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
-  <body class="bg-slate-50 text-slate-900">
+  <body class="bg-gradient-to-br from-slate-25 via-slate-50 to-primary-50 min-h-screen text-slate-900">
     <div id="root"></div>
     <script type="text/babel">
       const { useState, useEffect, useMemo } = React;
 
-      const Shell = ({ children }) => (
-        <div className="max-w-4xl mx-auto px-4 py-10 space-y-8">
-          <div className="space-y-2">
-            <span className="text-xs uppercase tracking-wide text-primary-600 font-semibold">Student workspace</span>
-            <h1 className="text-3xl font-semibold text-slate-900">Open and complete your homework</h1>
-            <p className="text-sm text-slate-600">Use the launch link from Canvas or paste an assignment ID to view tasks.</p>
-          </div>
+      const ModernCard = ({ children, className = '' }) => (
+        <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm ${className}`}>{children}</div>
+      );
+
+      const Badge = ({ children }) => (
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-medium border border-primary-100">
           {children}
-        </div>
+        </span>
       );
 
       const Input = ({ label, ...rest }) => (
-        <label className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-slate-700">{label}</span>
-          <input className="input" {...rest} />
+        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+          <span>{label}</span>
+          <input
+            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+            {...rest}
+          />
         </label>
       );
 
       const HomeworkTutor = ({ open, assignment, onClose }) => {
         const [activeIndex, setActiveIndex] = useState(0);
+
         useEffect(() => {
           if (open) setActiveIndex(0);
         }, [open, assignment]);
+
         const tasks = assignment?.tasks || [];
+
         return (
-          <div className={`fixed inset-0 z-50 ${open ? 'flex' : 'hidden'} items-center justify-center bg-slate-900/60`}>
-            <div className="bg-white w-full max-w-5xl rounded-2xl shadow-xl overflow-hidden">
+          <div
+            className={`fixed inset-0 z-50 ${open ? 'flex' : 'hidden'} items-center justify-center bg-slate-950/70 backdrop-blur-sm`}
+          >
+            <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden">
               <div className="flex items-start justify-between px-6 py-4 border-b border-slate-200">
                 <div>
                   <h3 className="text-xl font-semibold text-slate-900">Homework Tutor</h3>
                   <p className="text-sm text-slate-600">Two-pane player to step through tasks. Exit anytime.</p>
                 </div>
-                <button className="btn-secondary" onClick={onClose}>Exit</button>
+                <button className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 hover:bg-slate-50" onClick={onClose}>
+                  Exit
+                </button>
               </div>
               <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200">
-                <div className="md:col-span-1 p-4 space-y-3 bg-slate-50/60 min-h-[320px]">
+                <div className="md:col-span-1 p-4 space-y-3 bg-slate-50/70 min-h-[320px]">
                   <p className="text-xs uppercase tracking-wide text-slate-600">Tasks</p>
                   {tasks.length === 0 && <p className="text-sm text-slate-600">No tasks to show.</p>}
                   <div className="space-y-2">
@@ -80,7 +136,7 @@
                         onClick={() => setActiveIndex(idx)}
                         className={`w-full text-left rounded-lg px-3 py-2 text-sm border transition ${
                           activeIndex === idx
-                            ? 'border-primary-500 bg-primary-50 text-primary-800'
+                            ? 'border-primary-500 bg-primary-50 text-primary-800 shadow-sm'
                             : 'border-slate-200 hover:border-primary-300'
                         }`}
                       >
@@ -150,72 +206,148 @@
         );
 
         return (
-          <Shell>
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
-              <div className="grid gap-4 md:grid-cols-[2fr,auto] items-end">
-                <Input
-                  label="Assignment ID or launch URL"
-                  placeholder="Paste the link or ID"
-                  value={assignmentId}
-                  onChange={(e) => setAssignmentId(e.target.value)}
-                />
-                <button className="btn h-fit" onClick={() => assignmentId && loadAssignment(assignmentId)}>
-                  Load homework
-                </button>
+          <div className="min-h-screen">
+            <header className="bg-white/80 backdrop-blur-lg border-b border-white/30 sticky top-0 z-50">
+              <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">IH</span>
+                  </div>
+                  <div>
+                    <h1 className="font-serif text-xl font-semibold text-slate-900">Student workspace</h1>
+                    <p className="text-sm text-slate-600">Canvas LTI 1.3 • Complete your homework</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <a href="/" className="text-slate-600 hover:text-primary-600 transition-colors">Overview</a>
+                  <a href="/teacher.html" className="text-slate-600 hover:text-primary-600 transition-colors">Teacher View</a>
+                  <span className="px-3 py-1 bg-accent-100 text-accent-700 text-xs font-medium rounded-full">Live Demo</span>
+                </div>
               </div>
-              <p className="text-xs text-slate-600">Canvas launch links already include the assignmentId query parameter.</p>
-              {status && <p className="text-sm text-slate-600">{status}</p>}
+            </header>
+
+            <div className="max-w-7xl mx-auto px-6 py-8 space-y-10">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-primary-900 to-slate-900 p-10 text-white shadow-lg">
+                <div className="relative z-10 max-w-3xl space-y-4">
+                  <span className="inline-flex px-3 py-1 rounded-full bg-white/15 border border-white/20 text-sm font-medium">
+                    Modern learner experience
+                  </span>
+                  <h2 className="font-serif text-4xl font-semibold leading-tight">
+                    Track tasks, launch content, and use the Homework Tutor side-by-side
+                  </h2>
+                  <p className="text-lg text-slate-100 leading-relaxed">
+                    Paste your assignment link from Canvas or enter the ID directly. Open tasks in a new tab and use the
+                    Homework Tutor to stay organised.
+                  </p>
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    <span className="px-3 py-1 bg-white/10 border border-white/20 rounded-full">Canvas LTI 1.3</span>
+                    <span className="px-3 py-1 bg-white/10 border border-white/20 rounded-full">New-tab launch link</span>
+                    <span className="px-3 py-1 bg-white/10 border border-white/20 rounded-full">Two-pane tutor</span>
+                  </div>
+                </div>
+                <div className="absolute top-8 right-8 w-64 h-64 bg-gradient-to-br from-primary-400/20 to-accent-400/20 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-8 right-16 w-48 h-48 bg-gradient-to-tl from-accent-400/10 to-primary-400/10 rounded-full blur-2xl"></div>
+              </div>
+
+              <div className="grid lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-6">
+                  <ModernCard className="p-6">
+                    <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                      <Input
+                        label="Assignment ID or launch URL"
+                        placeholder="Paste the link or ID"
+                        value={assignmentId}
+                        onChange={(e) => setAssignmentId(e.target.value)}
+                      />
+                      <button
+                        className="px-5 py-3 rounded-xl bg-primary-500 text-white font-semibold hover:bg-primary-600 transition"
+                        onClick={() => assignmentId && loadAssignment(assignmentId)}
+                      >
+                        Load homework
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-2">Canvas launch links already include the assignmentId query parameter.</p>
+                    {status && <p className="text-sm text-slate-600 mt-2">{status}</p>}
+                  </ModernCard>
+
+                  {assignment && (
+                    <ModernCard className="p-6 space-y-6">
+                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge>Assignment</Badge>
+                            <span className="text-xs text-slate-500">{new Date(assignment.createdAt).toLocaleString()}</span>
+                          </div>
+                          <h2 className="text-2xl font-semibold text-slate-900">{assignment.title}</h2>
+                          <p className="text-sm text-slate-600">{assignment.description || 'No description provided.'}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <a
+                            className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+                            href={launchUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Open in new tab
+                          </a>
+                          <button
+                            className="px-4 py-2 rounded-xl bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition"
+                            onClick={() => setShowTutor(true)}
+                          >
+                            Open Homework Tutor
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        {summary.map((item) => (
+                          <div key={item.label} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                            <p className="text-xs text-slate-600">{item.label}</p>
+                            <p className="text-xl font-semibold text-slate-900">{item.value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-slate-800">Tasks</p>
+                        {tasks.length === 0 && <p className="text-sm text-slate-600">No tasks listed.</p>}
+                        <ol className="list-decimal list-inside space-y-2 text-slate-700">
+                          {tasks.map((task, idx) => (
+                            <li key={idx}>{task}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    </ModernCard>
+                  )}
+                </div>
+
+                <div className="space-y-6">
+                  <ModernCard className="p-6">
+                    <h4 className="font-semibold text-slate-900 mb-3">How this works</h4>
+                    <ul className="space-y-3 text-sm text-slate-600">
+                      <li>
+                        <span className="font-semibold text-slate-800">1.</span> Paste the Canvas launch link or assignment ID.
+                      </li>
+                      <li>
+                        <span className="font-semibold text-slate-800">2.</span> Open the assignment in a new tab to start working.
+                      </li>
+                      <li>
+                        <span className="font-semibold text-slate-800">3.</span> Use Homework Tutor to keep tasks visible while you work.
+                      </li>
+                    </ul>
+                  </ModernCard>
+
+                  <ModernCard className="p-6">
+                    <h4 className="font-semibold text-slate-900 mb-3">Need help?</h4>
+                    <p className="text-sm text-slate-600 mb-3">If a link fails to open, return to Canvas and relaunch the activity.</p>
+                    <div className="text-xs text-slate-500">Your progress is reported back through the LTI tool when enabled.</div>
+                  </ModernCard>
+                </div>
+              </div>
+
+              <HomeworkTutor open={showTutor} assignment={assignment} onClose={() => setShowTutor(false)} />
             </div>
-
-            {assignment && (
-              <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Badge>Assignment</Badge>
-                      <span className="text-xs text-slate-500">{new Date(assignment.createdAt).toLocaleString()}</span>
-                    </div>
-                    <h2 className="text-2xl font-semibold text-slate-900">{assignment.title}</h2>
-                    <p className="text-sm text-slate-600">{assignment.description || 'No description provided.'}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <a
-                      className="btn-secondary"
-                      href={launchUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Open in new tab
-                    </a>
-                    <button className="btn" onClick={() => setShowTutor(true)}>
-                      Open Homework Tutor
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {summary.map((item) => (
-                    <div key={item.label} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
-                      <p className="text-xs text-slate-600">{item.label}</p>
-                      <p className="text-xl font-semibold text-slate-900">{item.value}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold text-slate-800">Tasks</p>
-                  {tasks.length === 0 && <p className="text-sm text-slate-600">No tasks listed.</p>}
-                  <ol className="list-decimal list-inside space-y-2 text-slate-700">
-                    {tasks.map((task, idx) => (
-                      <li key={idx}>{task}</li>
-                    ))}
-                  </ol>
-                </div>
-              </div>
-            )}
-
-            <HomeworkTutor open={showTutor} assignment={assignment} onClose={() => setShowTutor(false)} />
-          </Shell>
+          </div>
         );
       }
 
