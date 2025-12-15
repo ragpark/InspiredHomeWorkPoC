@@ -259,6 +259,7 @@
 
       const [aiForm, setAiForm] = useState({
         learnerId: '',
+        quartile: '',
         topic: '',
         week: 1,
         time: 30,
@@ -398,6 +399,18 @@
           const next = new Set(prev);
           if (next.has(quartileKey)) next.delete(quartileKey);
           else next.add(quartileKey);
+
+          if (next.size === 0) {
+            setAiForm((prevForm) => ({ ...prevForm, quartile: '', learnerId: '' }));
+          } else if (!next.has(aiForm.quartile)) {
+            const [firstQuartile] = Array.from(next);
+            setAiForm((prevForm) => ({
+              ...prevForm,
+              quartile: firstQuartile,
+              learnerId: resolveQuartileLearnerId(firstQuartile),
+            }));
+          }
+
           return next;
         });
       };
@@ -405,6 +418,11 @@
       const addResource = (resource) => {
         const resourceLine = `${resource.title} (${resource.type}, ${resource.lengthMinutes} mins, ${resource.topic})`;
         updateForm('tasks', form.tasks ? `${form.tasks}\n${resourceLine}` : resourceLine);
+      };
+
+      const resolveQuartileLearnerId = (quartileKey) => {
+        const quartileGroup = quartileGroups.find((group) => group.key === quartileKey);
+        return quartileGroup?.learners?.[0]?.id || '';
       };
 
       const resolveDifficultyProfile = (value) => {
@@ -428,8 +446,9 @@
       };
 
       const generateAI = async (calendarAware = false) => {
-        if (!aiForm.learnerId || !aiForm.topic) {
-          setAiStatus('Please select a learner and topic');
+        const learnerId = aiForm.learnerId || resolveQuartileLearnerId(aiForm.quartile);
+        if (!aiForm.quartile || !aiForm.topic || !learnerId) {
+          setAiStatus('Please select a quartile with available learners and a topic');
           return;
         }
 
@@ -437,7 +456,7 @@
         setAiExplanation('');
 
         const payload = {
-          learnerId: aiForm.learnerId,
+          learnerId,
           topic: aiForm.topic,
           maxTotalTimeMinutes: Number(aiForm.time),
           difficultyProfile: resolveDifficultyProfile(aiForm.profile),
@@ -501,8 +520,8 @@
       };
 
       const steps = [
-        { id: 1, title: 'Assignment Details', description: 'Title, description, and tasks' },
         { id: 2, title: 'AI Enhancement', description: 'Generate personalised content' },
+        { id: 1, title: 'Assignment Details', description: 'Title, description, and tasks' },
         { id: 3, title: 'Learner Selection', description: 'Choose recipients and publish' }
       ];
 
@@ -555,17 +574,22 @@
             </div>
 
             <div className="workflow-nav mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {steps.map((step) => (
-                  <StepIndicator
-                    key={step.id}
-                    step={step.id}
-                    currentStep={currentStep}
-                    title={step.title}
-                    isComplete={completedSteps.has(step.id)}
-                    onClick={() => setCurrentStep(step.id)}
-                  />
-                ))}
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                  {steps.map((step) => (
+                    <StepIndicator
+                      key={step.id}
+                      step={step.id}
+                      currentStep={currentStep}
+                      title={step.title}
+                      isComplete={completedSteps.has(step.id)}
+                      onClick={() => setCurrentStep(step.id)}
+                    />
+                  ))}
+                </div>
+                <FloatingActionButton onClick={submitAssignment}>
+                  Create Assignment
+                </FloatingActionButton>
               </div>
             </div>
 
@@ -663,16 +687,23 @@
                       <div className="space-y-6">
                         <div className="grid md:grid-cols-2 gap-6">
                           <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Select Learner</label>
+                            <label className="text-sm font-semibold text-slate-700">Quartile focus</label>
                             <select
-                              value={aiForm.learnerId}
-                              onChange={(e) => setAiForm(prev => ({ ...prev, learnerId: e.target.value }))}
+                              value={aiForm.quartile}
+                              onChange={(e) => setAiForm((prev) => {
+                                const quartile = e.target.value;
+                                return {
+                                  ...prev,
+                                  quartile,
+                                  learnerId: resolveQuartileLearnerId(quartile),
+                                };
+                              })}
                               className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                             >
-                              <option value="">Choose a learner for personalisation</option>
-                              {learners.map((learner) => (
-                                <option key={learner.id} value={learner.id}>
-                                  {learner.name} ({learner.cohort})
+                              <option value="">Choose a quartile for personalisation</option>
+                              {quartileGroups.map((group) => (
+                                <option key={group.key} value={group.key}>
+                                  {group.label} • {group.learners.length} learner{group.learners.length !== 1 ? 's' : ''}
                                 </option>
                               ))}
                             </select>
@@ -840,9 +871,7 @@
                             {selectedLearners.size} learner{selectedLearners.size !== 1 ? 's' : ''} selected
                             {form.students && ` + ${form.students.split(',').filter(Boolean).length} additional`}
                           </div>
-                          <FloatingActionButton onClick={submitAssignment}>
-                            Create Assignment
-                          </FloatingActionButton>
+                          <span className="text-sm text-slate-500">Use the top bar to create the assignment.</span>
                         </div>
 
                         {status && (
