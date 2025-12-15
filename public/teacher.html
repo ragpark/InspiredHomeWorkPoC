@@ -205,23 +205,31 @@
       </ModernCard>
     );
 
-    const LearnerCard = ({ learner, isSelected, onToggle }) => (
-      <label className={`block p-4 rounded-xl border transition-all cursor-pointer ${
-        isSelected
-          ? 'border-primary-300 bg-primary-50 shadow-sm'
-          : 'border-slate-200 bg-white hover:border-slate-300'
-      }`}>
+    const QuartileCard = ({ group, isSelected, onToggle }) => (
+      <label
+        className={`block p-4 rounded-xl border transition-all cursor-pointer ${
+          isSelected
+            ? 'border-primary-300 bg-primary-50 shadow-sm'
+            : 'border-slate-200 bg-white hover:border-slate-300'
+        }`}
+      >
         <div className="flex items-start gap-3">
           <input
             type="checkbox"
             checked={isSelected}
-            onChange={() => onToggle(learner.email)}
+            onChange={() => onToggle(group.key)}
             className="mt-1 text-primary-500 rounded focus:ring-primary-500"
+            aria-label={`Select ${group.label}`}
           />
           <div className="flex-1 space-y-1">
-            <div className="font-medium text-slate-900 text-sm">{learner.name}</div>
-            <div className="text-xs text-slate-600">{learner.email}</div>
-            <div className="text-xs text-slate-500">{learner.cohort}</div>
+            <div className="font-semibold text-slate-900 text-sm flex items-center gap-2">
+              <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${group.badge}`}>{group.label}</span>
+              <span className="text-[11px] uppercase tracking-wide text-slate-500">{group.tier}</span>
+            </div>
+            <div className="text-xs text-slate-600 leading-relaxed">{group.description}</div>
+            <div className="text-[11px] text-slate-500">
+              {group.learners.length} learner{group.learners.length !== 1 ? 's' : ''} in this quartile
+            </div>
           </div>
         </div>
       </label>
@@ -235,7 +243,7 @@
       const [resources, setResources] = useState([]);
       const [assignments, setAssignments] = useState([]);
       const [selectedTopic, setSelectedTopic] = useState('');
-      const [selectedLearners, setSelectedLearners] = useState(new Set());
+      const [selectedQuartiles, setSelectedQuartiles] = useState(new Set());
       const [status, setStatus] = useState('');
       const [aiStatus, setAiStatus] = useState('');
       const [aiExplanation, setAiExplanation] = useState('');
@@ -258,12 +266,83 @@
         explain: false,
       });
 
+      const quartileMeta = {
+        Q1: {
+          label: 'Quartile 1',
+          tier: 'High readiness',
+          badge: 'bg-green-100 text-green-800',
+          description: 'Accelerated track with stronger mastery signals. Great fit for stretch challenges.',
+        },
+        Q2: {
+          label: 'Quartile 2',
+          tier: 'Above midpoint',
+          badge: 'bg-emerald-50 text-emerald-700',
+          description: 'Confident with core objectives; benefits from a balance of practice and light extension.',
+        },
+        Q3: {
+          label: 'Quartile 3',
+          tier: 'Developing',
+          badge: 'bg-amber-50 text-amber-700',
+          description: 'Building consistency on essentials. Prioritise scaffolded practice and feedback loops.',
+        },
+        Q4: {
+          label: 'Quartile 4',
+          tier: 'High support',
+          badge: 'bg-orange-50 text-orange-700',
+          description: 'Requires focused intervention with short, targeted tasks and immediate feedback.',
+        },
+      };
+
+      const quartileOrder = ['Q1', 'Q2', 'Q3', 'Q4'];
+
       const topics = useMemo(() => {
         if (!scheme) return [];
         const schemeTopics = scheme.semesters.flatMap((sem) => sem.weeks.map((w) => w.topic));
         const resourceTopics = resources.map((r) => r.topic);
         return Array.from(new Set([...schemeTopics, ...resourceTopics])).sort();
       }, [scheme, resources]);
+
+      const quartileGroups = useMemo(() => {
+        const grouped = learners.reduce((acc, learner) => {
+          const key = learner.quartile || 'Unclassified';
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(learner);
+          return acc;
+        }, {});
+
+        const orderedKeys = [
+          ...quartileOrder.filter((key) => grouped[key]),
+          ...Object.keys(grouped).filter((key) => !quartileOrder.includes(key)),
+        ];
+
+        return orderedKeys.map((key) => {
+          const meta = quartileMeta[key] || {
+            label: key,
+            tier: 'Mixed readiness',
+            badge: 'bg-slate-100 text-slate-700',
+            description: 'Learners grouped without personal identifiers.',
+          };
+
+          return {
+            key,
+            label: meta.label,
+            tier: meta.tier,
+            badge: meta.badge,
+            description: meta.description,
+            learners: grouped[key] || [],
+          };
+        });
+      }, [learners]);
+
+      const selectedLearners = useMemo(() => {
+        const selected = new Set();
+        quartileGroups.forEach((group) => {
+          if (selectedQuartiles.has(group.key)) {
+            group.learners.forEach((learner) => selected.add(learner.email));
+          }
+        });
+        return selected;
+      }, [quartileGroups, selectedQuartiles]);
 
       const filteredResources = useMemo(() => {
         return resources.filter(r => !selectedTopic || r.topic === selectedTopic);
@@ -314,11 +393,11 @@
 
       const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-      const toggleLearner = (email) => {
-        setSelectedLearners(prev => {
+      const toggleQuartile = (quartileKey) => {
+        setSelectedQuartiles((prev) => {
           const next = new Set(prev);
-          if (next.has(email)) next.delete(email);
-          else next.add(email);
+          if (next.has(quartileKey)) next.delete(quartileKey);
+          else next.add(quartileKey);
           return next;
         });
       };
@@ -745,12 +824,12 @@
                       </div>
 
                       <div className="grid md:grid-cols-2 gap-6 mb-8">
-                        {learners.map((learner) => (
-                          <LearnerCard
-                            key={learner.id}
-                            learner={learner}
-                            isSelected={selectedLearners.has(learner.email)}
-                            onToggle={toggleLearner}
+                        {quartileGroups.map((group) => (
+                          <QuartileCard
+                            key={group.key}
+                            group={group}
+                            isSelected={selectedQuartiles.has(group.key)}
+                            onToggle={toggleQuartile}
                           />
                         ))}
                       </div>
