@@ -14,12 +14,18 @@ const RECOMMENDER_API_KEY = process.env.RECOMMENDER_API_KEY || '';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const assignments = new Map();
+const schools = [
+  { id: 'SCH-A', name: 'Northfield High School' },
+  { id: 'SCH-B', name: 'Lakeside Academy' },
+  { id: 'SCH-C', name: 'Riverside Prep' },
+];
+
 const learners = [
-  { id: 'L001', name: 'Ada Lovelace', email: 'ada@example.com', cohort: 'Algebra 2', status: 'Active', quartile: 'Q1' },
-  { id: 'L002', name: 'Alan Turing', email: 'alan@example.com', cohort: 'Geometry', status: 'Active', quartile: 'Q2' },
-  { id: 'L003', name: 'Katherine Johnson', email: 'katherine@example.com', cohort: 'Algebra 2', status: 'Active', quartile: 'Q3' },
-  { id: 'L004', name: 'Maryam Mirzakhani', email: 'maryam@example.com', cohort: 'Calculus', status: 'Active', quartile: 'Q4' },
-  { id: 'L005', name: 'Grace Hopper', email: 'grace@example.com', cohort: 'Geometry', status: 'On leave', quartile: 'Q2' },
+  { id: 'L001', name: 'Ada Lovelace', email: 'ada@example.com', cohort: 'Algebra 2', status: 'Active', quartile: 'Q1', schoolId: 'SCH-A' },
+  { id: 'L002', name: 'Alan Turing', email: 'alan@example.com', cohort: 'Geometry', status: 'Active', quartile: 'Q2', schoolId: 'SCH-A' },
+  { id: 'L003', name: 'Katherine Johnson', email: 'katherine@example.com', cohort: 'Algebra 2', status: 'Active', quartile: 'Q3', schoolId: 'SCH-B' },
+  { id: 'L004', name: 'Maryam Mirzakhani', email: 'maryam@example.com', cohort: 'Calculus', status: 'Active', quartile: 'Q4', schoolId: 'SCH-B' },
+  { id: 'L005', name: 'Grace Hopper', email: 'grace@example.com', cohort: 'Geometry', status: 'On leave', quartile: 'Q2', schoolId: 'SCH-C' },
 ];
 
 const learnerPerformance = {
@@ -366,6 +372,10 @@ function sendJson(res, status, payload, headers = {}) {
   res.end(JSON.stringify(payload));
 }
 
+function getSchoolById(id) {
+  return schools.find((school) => school.id === id) || null;
+}
+
 async function parseBody(req) {
   return new Promise((resolve, reject) => {
     let data = '';
@@ -445,7 +455,11 @@ function resolveBaseUrl(req) {
 
 function createAssignment(payload, baseUrl) {
   const id = randomUUID();
-  const { title, description, tasks = [], students = [], groups = [], ltiReturnUrl } = payload;
+  const { title, description, tasks = [], students = [], groups = [], ltiReturnUrl, schoolId } = payload;
+  const school = getSchoolById(schoolId);
+  if (!school) {
+    throw new Error('schoolId is required and must match a configured school');
+  }
   const normalizedTasks = tasks.filter(Boolean).map(task => task.trim()).filter(Boolean);
   const assignment = {
     id,
@@ -455,12 +469,14 @@ function createAssignment(payload, baseUrl) {
     students: students.map(String),
     groups: groups.map(String),
     createdAt: new Date().toISOString(),
+    schoolId: school.id,
+    schoolName: school.name,
   };
 
   assignments.set(id, assignment);
 
-  const studentLaunchLink = `${baseUrl}/student.html?assignmentId=${id}`;
-  const teacherLink = `${baseUrl}/teacher.html?assignmentId=${id}`;
+  const studentLaunchLink = `${baseUrl}/student.html?assignmentId=${id}&schoolId=${encodeURIComponent(school.id)}`;
+  const teacherLink = `${baseUrl}/teacher.html?assignmentId=${id}&schoolId=${encodeURIComponent(school.id)}`;
   const deepLink = ltiReturnUrl
     ? `${ltiReturnUrl}${ltiReturnUrl.includes('?') ? '&' : '?'}launch_url=${encodeURIComponent(studentLaunchLink)}`
     : null;
@@ -490,9 +506,16 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ status: 'ok', timestamp: Date.now() }));
   }
 
-  if (req.method === 'GET' && url.pathname === '/api/learners') {
+  if (req.method === 'GET' && url.pathname === '/api/schools') {
     res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
-    return res.end(JSON.stringify({ learners }));
+    return res.end(JSON.stringify({ schools }));
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/learners') {
+    const schoolId = url.searchParams.get('schoolId');
+    const filtered = schoolId ? learners.filter((learner) => learner.schoolId === schoolId) : learners;
+    res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
+    return res.end(JSON.stringify({ learners: filtered }));
   }
 
   if (req.method === 'GET' && url.pathname === '/api/scheme-of-work') {
@@ -595,7 +618,10 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && url.pathname === '/api/assignments') {
-    const data = Array.from(assignments.values());
+    const schoolId = url.searchParams.get('schoolId');
+    const data = Array.from(assignments.values()).filter((assignment) =>
+      schoolId ? assignment.schoolId === schoolId : true
+    );
     res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
     return res.end(JSON.stringify({ assignments: data }));
   }
@@ -603,9 +629,18 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname.startsWith('/api/assignments/')) {
     const id = url.pathname.split('/')[3];
     const assignment = assignments.get(id);
+    const requestedSchoolId = url.searchParams.get('schoolId');
     if (!assignment) return notFound(res);
+    if (!requestedSchoolId) {
+      return sendJson(res, 400, { error: 'schoolId is required to open this assignment' }, baseHeaders);
+    }
+    if (assignment.schoolId !== requestedSchoolId) {
+      return sendJson(res, 403, { error: 'This assignment is not available for the requested school.' }, baseHeaders);
+    }
     res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
-    return res.end(JSON.stringify({ assignment, launchUrl: `${baseUrl}/student.html?assignmentId=${id}` }));
+    return res.end(
+      JSON.stringify({ assignment, launchUrl: `${baseUrl}/student.html?assignmentId=${id}&schoolId=${encodeURIComponent(requestedSchoolId)}` })
+    );
   }
 
   if (req.method === 'POST' && url.pathname.startsWith('/api/lti/deep-link/')) {

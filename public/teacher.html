@@ -242,6 +242,9 @@
       const [scheme, setScheme] = useState(null);
       const [resources, setResources] = useState([]);
       const [assignments, setAssignments] = useState([]);
+      const [schools, setSchools] = useState([]);
+      const [selectedSchool, setSelectedSchool] = useState('');
+      const [schoolStatus, setSchoolStatus] = useState('');
       const [selectedTopic, setSelectedTopic] = useState('');
       const [selectedQuartiles, setSelectedQuartiles] = useState(new Set());
       const [status, setStatus] = useState('');
@@ -345,6 +348,8 @@
         return selected;
       }, [quartileGroups, selectedQuartiles]);
 
+      const selectedSchoolName = useMemo(() => schools.find((s) => s.id === selectedSchool)?.name || '', [schools, selectedSchool]);
+
       const filteredResources = useMemo(() => {
         return resources.filter(r => !selectedTopic || r.topic === selectedTopic);
       }, [resources, selectedTopic]);
@@ -367,32 +372,73 @@
       }, [form, selectedLearners]);
 
       useEffect(() => {
-        async function load() {
+        async function loadStatic() {
           try {
-            const [learnerRes, schemeRes, resourceRes, assignmentRes] = await Promise.all([
-              fetch('/api/learners'),
+            const [schemeRes, resourceRes] = await Promise.all([
               fetch('/api/scheme-of-work'),
               fetch('/api/content-resources'),
-              fetch('/api/assignments'),
+            ]);
+
+            const schemeData = await schemeRes.json();
+            const resourceData = await resourceRes.json();
+            setScheme(schemeData.schemeOfWork || null);
+            setResources(resourceData.resources || []);
+          } catch (error) {
+            console.error('Failed to load static data:', error);
+          }
+        }
+        loadStatic();
+      }, []);
+
+      useEffect(() => {
+        async function loadSchools() {
+          try {
+            const res = await fetch('/api/schools');
+            const data = await res.json();
+            const list = data.schools || [];
+            setSchools(list);
+            const urlSchool = new URLSearchParams(window.location.search).get('schoolId');
+            const hasUrlSchool = urlSchool && list.some((school) => school.id === urlSchool);
+            const defaultSchool = hasUrlSchool ? urlSchool : list[0]?.id || '';
+            setSelectedSchool(defaultSchool);
+          } catch (error) {
+            setSchoolStatus('Unable to load schools');
+          }
+        }
+        loadSchools();
+      }, []);
+
+      useEffect(() => {
+        if (!selectedSchool) return;
+        async function loadBySchool() {
+          try {
+            const [learnerRes, assignmentRes] = await Promise.all([
+              fetch(`/api/learners?schoolId=${selectedSchool}`),
+              fetch(`/api/assignments?schoolId=${selectedSchool}`),
             ]);
 
             const learnersData = await learnerRes.json();
-            const schemeData = await schemeRes.json();
-            const resourceData = await resourceRes.json();
             const assignmentData = await assignmentRes.json();
-
             setLearners(learnersData.learners || []);
-            setScheme(schemeData.schemeOfWork || null);
-            setResources(resourceData.resources || []);
             setAssignments(assignmentData.assignments || []);
+            setSchoolStatus('');
           } catch (error) {
-            console.error('Failed to load data:', error);
+            console.error('Failed to load school data:', error);
+            setSchoolStatus('Unable to load data for this school');
           }
         }
-        load();
-      }, []);
+        loadBySchool();
+      }, [selectedSchool]);
 
       const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+      const changeSchool = (schoolId) => {
+        setSelectedSchool(schoolId);
+        setSelectedQuartiles(new Set());
+        setAiForm((prev) => ({ ...prev, quartile: '', learnerId: '' }));
+        setStatus('');
+        setAiStatus('');
+      };
 
       const toggleQuartile = (quartileKey) => {
         setSelectedQuartiles((prev) => {
@@ -486,6 +532,10 @@
       };
 
       const submitAssignment = async () => {
+        if (!selectedSchool) {
+          setStatus('Select a school before creating assignments.');
+          return;
+        }
         setStatus('Creating assignment...');
 
         const payload = {
@@ -498,6 +548,7 @@
           ],
           groups: form.groups.split(',').map((g) => g.trim()).filter(Boolean),
           ltiReturnUrl: form.returnUrl.trim() || undefined,
+          schoolId: selectedSchool,
         };
 
         try {
@@ -543,6 +594,18 @@
                   <a href="/" className="text-sm text-slate-600 hover:text-primary-600 transition-colors">Overview</a>
                   <a href="/student.html" className="text-sm text-slate-600 hover:text-primary-600 transition-colors">Student View</a>
                   <div className="px-3 py-1 bg-accent-100 text-accent-700 text-xs font-medium rounded-full">Live Demo</div>
+                  <div className="hidden md:flex items-center gap-2">
+                    <span className="text-xs text-slate-500">School</span>
+                    <select
+                      value={selectedSchool}
+                      onChange={(e) => changeSchool(e.target.value)}
+                      className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                      {schools.map((school) => (
+                        <option key={school.id} value={school.id}>{school.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -571,6 +634,30 @@
                 <div className="absolute top-8 right-8 w-64 h-64 bg-gradient-to-br from-primary-400/20 to-accent-400/20 rounded-full blur-3xl"></div>
                 <div className="absolute bottom-8 right-16 w-48 h-48 bg-gradient-to-tl from-accent-400/10 to-primary-400/10 rounded-full blur-2xl"></div>
               </div>
+            </div>
+
+            <div className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+              <ModernCard className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Teaching context</p>
+                  <h3 className="text-lg font-semibold text-slate-900">Select a school to load its learners and assignments</h3>
+                  <p className="text-sm text-slate-600">LTI links can pass <code>schoolId</code> to pre-select a school. Homework links will include this for student access control.</p>
+                  {schoolStatus && <p className="text-sm text-red-600 mt-2">{schoolStatus}</p>}
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-slate-700" htmlFor="school-selector">School</label>
+                  <select
+                    id="school-selector"
+                    value={selectedSchool}
+                    onChange={(e) => changeSchool(e.target.value)}
+                    className="px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent min-w-[240px]"
+                  >
+                    {schools.map((school) => (
+                      <option key={school.id} value={school.id}>{school.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </ModernCard>
             </div>
 
             <div className="workflow-nav mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
@@ -920,13 +1007,17 @@
                   </div>
                 </ModernCard>
 
-                <ModernCard className="p-6">
-                  <h4 className="font-semibold text-slate-900 mb-4">Quick Stats</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Available learners</span>
-                      <span className="font-medium">{learners.length}</span>
-                    </div>
+                  <ModernCard className="p-6">
+                    <h4 className="font-semibold text-slate-900 mb-4">Quick Stats</h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Selected school</span>
+                        <span className="font-medium">{selectedSchoolName || 'None'}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Available learners</span>
+                        <span className="font-medium">{learners.length}</span>
+                      </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Content resources</span>
                       <span className="font-medium">{resources.length}</span>
