@@ -171,15 +171,66 @@
         const [launchUrl, setLaunchUrl] = useState('');
         const [status, setStatus] = useState('');
         const [showTutor, setShowTutor] = useState(false);
+        const [schools, setSchools] = useState([]);
+        const [schoolId, setSchoolId] = useState('');
 
         const tasks = assignment?.tasks || [];
 
-        const loadAssignment = async (id) => {
+        const extractAssignmentId = (value) => {
+          const trimmed = value.trim();
+          if (!trimmed) return '';
+
+          try {
+            const url = new URL(trimmed, window.location.origin);
+            const paramId = url.searchParams.get('assignmentId');
+            if (paramId) return paramId;
+          } catch (err) {
+            // Not a URL, fall through
+          }
+
+          const match = trimmed.match(/assignmentId=([^&#]+)/);
+          if (match?.[1]) return decodeURIComponent(match[1]);
+
+          return trimmed;
+        };
+
+        useEffect(() => {
+          async function loadSchools() {
+            try {
+              const res = await fetch('/api/schools');
+              const data = await res.json();
+              const list = data.schools || [];
+              setSchools(list);
+              const urlSchool = new URLSearchParams(window.location.search).get('schoolId');
+              const defaultSchool = urlSchool && list.some((s) => s.id === urlSchool) ? urlSchool : list[0]?.id || '';
+              setSchoolId(defaultSchool);
+            } catch (err) {
+              setStatus('Unable to load schools');
+            }
+          }
+          loadSchools();
+        }, []);
+
+        const loadAssignment = async (rawId, schoolOverride) => {
+          const id = extractAssignmentId(rawId);
+          if (!id) {
+            setStatus('Please enter a valid assignment link or ID.');
+            return;
+          }
+          const school = schoolOverride || schoolId;
+          if (!school) {
+            setStatus('Select your school before opening the assignment.');
+            return;
+          }
+
+          setAssignmentId(id);
           setStatus('Loading...');
-          const res = await fetch(`/api/assignments/${id}`);
+
+          const res = await fetch(`/api/assignments/${id}?schoolId=${encodeURIComponent(school)}`);
           if (!res.ok) {
             setAssignment(null);
-            setStatus('Assignment not found.');
+            const data = await res.json().catch(() => ({}));
+            setStatus(data.error || 'Assignment not found.');
             return;
           }
           const data = await res.json();
@@ -189,18 +240,20 @@
         };
 
         useEffect(() => {
-          const urlId = new URLSearchParams(window.location.search).get('assignmentId');
-          if (urlId) {
+          const params = new URLSearchParams(window.location.search);
+          const urlId = params.get('assignmentId');
+          if (urlId && schoolId) {
             setAssignmentId(urlId);
-            loadAssignment(urlId);
+            loadAssignment(urlId, schoolId);
           }
-        }, []);
+        }, [schoolId]);
 
         const summary = useMemo(
           () => [
             { label: 'Tasks', value: tasks.length },
             { label: 'Individuals', value: assignment?.students?.length || 0 },
             { label: 'Groups', value: assignment?.groups?.length || 0 },
+            { label: 'School', value: assignment?.schoolName || 'Not specified' },
           ],
           [tasks.length, assignment]
         );
@@ -253,6 +306,18 @@
                 <div className="lg:col-span-2 space-y-6">
                   <ModernCard className="p-6">
                     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                      <label className="flex-1 text-sm font-medium text-slate-700">
+                        <span className="block mb-2">School</span>
+                        <select
+                          className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                          value={schoolId}
+                          onChange={(e) => setSchoolId(e.target.value)}
+                        >
+                          {schools.map((school) => (
+                            <option key={school.id} value={school.id}>{school.name}</option>
+                          ))}
+                        </select>
+                      </label>
                       <Input
                         label="Assignment ID or launch URL"
                         placeholder="Paste the link or ID"
@@ -266,7 +331,7 @@
                         Load homework
                       </button>
                     </div>
-                    <p className="text-xs text-slate-600 mt-2">Canvas launch links already include the assignmentId query parameter.</p>
+                    <p className="text-xs text-slate-600 mt-2">Canvas launch links already include the assignmentId query parameter and the schoolId so only the right school can open them.</p>
                     {status && <p className="text-sm text-slate-600 mt-2">{status}</p>}
                   </ModernCard>
 
@@ -280,6 +345,7 @@
                           </div>
                           <h2 className="text-2xl font-semibold text-slate-900">{assignment.title}</h2>
                           <p className="text-sm text-slate-600">{assignment.description || 'No description provided.'}</p>
+                          <p className="text-xs text-slate-500">School: {assignment.schoolName || assignment.schoolId || 'Not specified'}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <a
