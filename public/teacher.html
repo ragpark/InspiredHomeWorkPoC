@@ -447,17 +447,39 @@
         return { Foundation: 0.3, Core: 0.5, Stretch: 0.2 };
       };
 
+      const normalizeTasks = (taskList) => {
+        if (!Array.isArray(taskList)) return [];
+        return taskList
+          .map((task, index) => {
+            if (typeof task === 'string') return task.trim();
+            if (!task || typeof task !== 'object') return '';
+            if (task.taskText) return task.taskText;
+            const title = task.title || task.name || `Task ${index + 1}`;
+            const duration = task.lengthMinutes || task.estimatedTimeMinutes;
+            const difficulty = task.difficulty;
+            const segments = [title];
+            if (duration) segments.push(`${duration} mins`);
+            if (difficulty) segments.push(difficulty);
+            return segments.join(' • ');
+          })
+          .filter(Boolean);
+      };
+
       const applyRecommendation = (data) => {
-        const homework = data.homework || {};
-        if (homework.title && !form.title) updateForm('title', homework.title);
-        if (homework.description && !form.description) updateForm('description', homework.description);
-        if (homework.tasks && Array.isArray(homework.tasks)) {
-          const tasks = homework.tasks.map((task) => task.taskText || '').filter(Boolean).join('\n');
-          if (tasks) {
-            const merged = form.tasks ? `${form.tasks}\n${tasks}` : tasks;
-            updateForm('tasks', merged);
+        const homework = data.homework || data.homeworkRecommendation || {};
+        const tasks = normalizeTasks(homework.tasks || data.tasks);
+
+        setForm((prev) => {
+          const next = { ...prev };
+          if (homework.title && !prev.title) next.title = homework.title;
+          if (homework.description && !prev.description) next.description = homework.description;
+          if (tasks.length) {
+            const newLines = tasks.join('\n');
+            next.tasks = prev.tasks ? `${prev.tasks}\n${newLines}` : newLines;
           }
-        }
+          return next;
+        });
+
         const explanations = data.explanations || {};
         const notes = (explanations.notes || []).map((note) => `• ${note}`).join('\n');
         setAiExplanation([explanations.global, notes].filter(Boolean).join('\n'));
