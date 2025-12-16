@@ -156,7 +156,9 @@
     );
 
     const ModernCard = ({ children, className = '', hover = false }) => (
-      <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm ${hover ? 'hover:shadow-md' : ''} transition-all duration-200 ${className}`}>
+      <div
+        className={`bg-white rounded-2xl border border-slate-200 shadow-sm ${hover ? 'hover:shadow-md' : ''} transition-all duration-200 ${className}`}
+      >
         {children}
       </div>
     );
@@ -205,23 +207,31 @@
       </ModernCard>
     );
 
-    const LearnerCard = ({ learner, isSelected, onToggle }) => (
-      <label className={`block p-4 rounded-xl border transition-all cursor-pointer ${
-        isSelected
-          ? 'border-primary-300 bg-primary-50 shadow-sm'
-          : 'border-slate-200 bg-white hover:border-slate-300'
-      }`}>
+    const QuartileCard = ({ group, isSelected, onToggle }) => (
+      <label
+        className={`block p-4 rounded-xl border transition-all cursor-pointer ${
+          isSelected
+            ? 'border-primary-300 bg-primary-50 shadow-sm'
+            : 'border-slate-200 bg-white hover:border-slate-300'
+        }`}
+      >
         <div className="flex items-start gap-3">
           <input
             type="checkbox"
             checked={isSelected}
-            onChange={() => onToggle(learner.email)}
+            onChange={() => onToggle(group.key)}
             className="mt-1 text-primary-500 rounded focus:ring-primary-500"
+            aria-label={`Select ${group.label}`}
           />
           <div className="flex-1 space-y-1">
-            <div className="font-medium text-slate-900 text-sm">{learner.name}</div>
-            <div className="text-xs text-slate-600">{learner.email}</div>
-            <div className="text-xs text-slate-500">{learner.cohort}</div>
+            <div className="font-semibold text-slate-900 text-sm flex items-center gap-2">
+              <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${group.badge}`}>{group.label}</span>
+              <span className="text-[11px] uppercase tracking-wide text-slate-500">{group.tier}</span>
+            </div>
+            <div className="text-xs text-slate-600 leading-relaxed">{group.description}</div>
+            <div className="text-[11px] text-slate-500">
+              {group.learners.length} learner{group.learners.length !== 1 ? 's' : ''} in this quartile
+            </div>
           </div>
         </div>
       </label>
@@ -234,8 +244,11 @@
       const [scheme, setScheme] = useState(null);
       const [resources, setResources] = useState([]);
       const [assignments, setAssignments] = useState([]);
+      const [schools, setSchools] = useState([]);
+      const [selectedSchool, setSelectedSchool] = useState('');
+      const [schoolStatus, setSchoolStatus] = useState('');
       const [selectedTopic, setSelectedTopic] = useState('');
-      const [selectedLearners, setSelectedLearners] = useState(new Set());
+      const [selectedQuartiles, setSelectedQuartiles] = useState(new Set());
       const [status, setStatus] = useState('');
       const [aiStatus, setAiStatus] = useState('');
       const [aiExplanation, setAiExplanation] = useState('');
@@ -251,6 +264,7 @@
 
       const [aiForm, setAiForm] = useState({
         learnerId: '',
+        quartile: '',
         topic: '',
         week: 1,
         time: 30,
@@ -258,12 +272,88 @@
         explain: false,
       });
 
+      const quartileMeta = {
+        Q1: {
+          label: 'Quartile 1',
+          tier: 'High readiness',
+          badge: 'bg-green-100 text-green-800',
+          description: 'Accelerated track with stronger mastery signals. Great fit for stretch challenges.',
+        },
+        Q2: {
+          label: 'Quartile 2',
+          tier: 'Above midpoint',
+          badge: 'bg-emerald-50 text-emerald-700',
+          description: 'Confident with core objectives; benefits from a balance of practice and light extension.',
+        },
+        Q3: {
+          label: 'Quartile 3',
+          tier: 'Developing',
+          badge: 'bg-amber-50 text-amber-700',
+          description: 'Building consistency on essentials. Prioritise scaffolded practice and feedback loops.',
+        },
+        Q4: {
+          label: 'Quartile 4',
+          tier: 'High support',
+          badge: 'bg-orange-50 text-orange-700',
+          description: 'Requires focused intervention with short, targeted tasks and immediate feedback.',
+        },
+      };
+
+      const quartileOrder = ['Q1', 'Q2', 'Q3', 'Q4'];
+
       const topics = useMemo(() => {
         if (!scheme) return [];
         const schemeTopics = scheme.semesters.flatMap((sem) => sem.weeks.map((w) => w.topic));
         const resourceTopics = resources.map((r) => r.topic);
         return Array.from(new Set([...schemeTopics, ...resourceTopics])).sort();
       }, [scheme, resources]);
+
+      const quartileGroups = useMemo(() => {
+        const grouped = learners.reduce((acc, learner) => {
+          const key = learner.quartile || 'Unclassified';
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(learner);
+          return acc;
+        }, {});
+
+        const orderedKeys = [
+          ...quartileOrder.filter((key) => grouped[key]),
+          ...Object.keys(grouped).filter((key) => !quartileOrder.includes(key)),
+        ];
+
+        return orderedKeys.map((key) => {
+          const meta = quartileMeta[key] || {
+            label: key,
+            tier: 'Mixed readiness',
+            badge: 'bg-slate-100 text-slate-700',
+            description: 'Learners grouped without personal identifiers.',
+          };
+
+          return {
+            key,
+            label: meta.label,
+            tier: meta.tier,
+            badge: meta.badge,
+            description: meta.description,
+            learners: grouped[key] || [],
+          };
+        });
+      }, [learners]);
+
+      const selectedLearners = useMemo(() => {
+        const selected = new Set();
+        quartileGroups.forEach((group) => {
+          if (selectedQuartiles.has(group.key)) {
+            group.learners.forEach((learner) => selected.add(learner.email));
+          }
+        });
+        return selected;
+      }, [quartileGroups, selectedQuartiles]);
+
+      const selectedSchoolName = useMemo(() => {
+        const match = schools.find((s) => s.id === selectedSchool);
+        return match ? match.name : '';
+      }, [schools, selectedSchool]);
 
       const filteredResources = useMemo(() => {
         return resources.filter(r => !selectedTopic || r.topic === selectedTopic);
@@ -287,38 +377,91 @@
       }, [form, selectedLearners]);
 
       useEffect(() => {
-        async function load() {
+        async function loadStatic() {
           try {
-            const [learnerRes, schemeRes, resourceRes, assignmentRes] = await Promise.all([
-              fetch('/api/learners'),
+            const [schemeRes, resourceRes] = await Promise.all([
               fetch('/api/scheme-of-work'),
               fetch('/api/content-resources'),
-              fetch('/api/assignments'),
+            ]);
+
+            const schemeData = await schemeRes.json();
+            const resourceData = await resourceRes.json();
+            setScheme(schemeData.schemeOfWork || null);
+            setResources(resourceData.resources || []);
+          } catch (error) {
+            console.error('Failed to load static data:', error);
+          }
+        }
+        loadStatic();
+      }, []);
+
+      useEffect(() => {
+        async function loadSchools() {
+          try {
+            const res = await fetch('/api/schools');
+            const data = await res.json();
+            const list = data.schools || [];
+            setSchools(list);
+            const urlSchool = new URLSearchParams(window.location.search).get('schoolId');
+            const hasUrlSchool = urlSchool && list.some((school) => school.id === urlSchool);
+            const defaultSchool = hasUrlSchool ? urlSchool : (list[0] ? list[0].id : '');
+            setSelectedSchool(defaultSchool);
+          } catch (error) {
+            setSchoolStatus('Unable to load schools');
+          }
+        }
+        loadSchools();
+      }, []);
+
+      useEffect(() => {
+        if (!selectedSchool) return;
+        async function loadBySchool() {
+          try {
+            const [learnerRes, assignmentRes] = await Promise.all([
+              fetch(`/api/learners?schoolId=${selectedSchool}`),
+              fetch(`/api/assignments?schoolId=${selectedSchool}`),
             ]);
 
             const learnersData = await learnerRes.json();
-            const schemeData = await schemeRes.json();
-            const resourceData = await resourceRes.json();
             const assignmentData = await assignmentRes.json();
-
             setLearners(learnersData.learners || []);
-            setScheme(schemeData.schemeOfWork || null);
-            setResources(resourceData.resources || []);
             setAssignments(assignmentData.assignments || []);
+            setSchoolStatus('');
           } catch (error) {
-            console.error('Failed to load data:', error);
+            console.error('Failed to load school data:', error);
+            setSchoolStatus('Unable to load data for this school');
           }
         }
-        load();
-      }, []);
+        loadBySchool();
+      }, [selectedSchool]);
 
       const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-      const toggleLearner = (email) => {
-        setSelectedLearners(prev => {
+      const changeSchool = (schoolId) => {
+        setSelectedSchool(schoolId);
+        setSelectedQuartiles(new Set());
+        setAiForm((prev) => ({ ...prev, quartile: '', learnerId: '' }));
+        setStatus('');
+        setAiStatus('');
+      };
+
+      const toggleQuartile = (quartileKey) => {
+        setSelectedQuartiles((prev) => {
           const next = new Set(prev);
-          if (next.has(email)) next.delete(email);
-          else next.add(email);
+          if (next.has(quartileKey)) next.delete(quartileKey);
+          else next.add(quartileKey);
+
+          if (next.size === 0) {
+            setAiForm((prevForm) => ({ ...prevForm, quartile: '', learnerId: '' }));
+          } else if (!next.has(aiForm.quartile)) {
+            const [firstQuartile] = Array.from(next);
+            setAiForm((prevForm) => ({
+              ...prevForm,
+              quartile: firstQuartile,
+              learnerId: resolveQuartileLearnerId(firstQuartile),
+            }));
+          }
+
           return next;
         });
       };
@@ -326,6 +469,14 @@
       const addResource = (resource) => {
         const resourceLine = `${resource.title} (${resource.type}, ${resource.lengthMinutes} mins, ${resource.topic})`;
         updateForm('tasks', form.tasks ? `${form.tasks}\n${resourceLine}` : resourceLine);
+      };
+
+      const resolveQuartileLearnerId = (quartileKey) => {
+        const quartileGroup = quartileGroups.find((group) => group.key === quartileKey);
+        if (quartileGroup && quartileGroup.learners && quartileGroup.learners[0]) {
+          return quartileGroup.learners[0].id || '';
+        }
+        return '';
       };
 
       const resolveDifficultyProfile = (value) => {
@@ -348,9 +499,10 @@
         setAiStatus('Recommendations applied successfully');
       };
 
-      const generateAI = async (calendarAware = false) => {
-        if (!aiForm.learnerId || !aiForm.topic) {
-          setAiStatus('Please select a learner and topic');
+      const generateAI = async () => {
+        const learnerId = aiForm.learnerId || resolveQuartileLearnerId(aiForm.quartile);
+        if (!aiForm.quartile || !aiForm.topic || !learnerId) {
+          setAiStatus('Please select a quartile with available learners and a topic');
           return;
         }
 
@@ -358,36 +510,58 @@
         setAiExplanation('');
 
         const payload = {
-          learnerId: aiForm.learnerId,
+          learnerId,
           topic: aiForm.topic,
           maxTotalTimeMinutes: Number(aiForm.time),
           difficultyProfile: resolveDifficultyProfile(aiForm.profile),
           explain: aiForm.explain,
         };
 
-        let endpoint = '/api/recommend-homework';
-        if (calendarAware) {
-          endpoint = '/api/recommendations/calendar-aware';
-          payload.weekNumber = Number(aiForm.week);
-          payload.topicOverride = aiForm.topic;
-        }
+        const useCalendarAware = aiForm.week !== '' && aiForm.week !== null && aiForm.week !== undefined;
+        const calendarPayload = useCalendarAware
+          ? { ...payload, weekNumber: Number(aiForm.week), topicOverride: aiForm.topic }
+          : null;
 
         try {
-          const response = await fetch(endpoint, {
+          const primaryEndpoint = useCalendarAware ? '/api/recommendations/calendar-aware' : '/api/recommend-homework';
+          const response = await fetch(primaryEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(useCalendarAware ? calendarPayload : payload),
           });
 
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || 'Could not generate recommendation');
           applyRecommendation(data);
+          setAiStatus(useCalendarAware ? 'Calendar-aware recommendations applied successfully' : 'Recommendations applied successfully');
         } catch (error) {
+          if (useCalendarAware) {
+            try {
+              const fallbackResponse = await fetch('/api/recommend-homework', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
+
+              const fallbackData = await fallbackResponse.json();
+              if (!fallbackResponse.ok) throw new Error(fallbackData.error || 'Could not generate recommendation');
+              applyRecommendation(fallbackData);
+              setAiStatus('Recommendations applied (fallback without calendar context)');
+              return;
+            } catch (fallbackError) {
+              setAiStatus(fallbackError.message);
+              return;
+            }
+          }
           setAiStatus(error.message);
         }
       };
 
       const submitAssignment = async () => {
+        if (!selectedSchool) {
+          setStatus('Select a school before creating assignments.');
+          return;
+        }
         setStatus('Creating assignment...');
 
         const payload = {
@@ -400,6 +574,7 @@
           ],
           groups: form.groups.split(',').map((g) => g.trim()).filter(Boolean),
           ltiReturnUrl: form.returnUrl.trim() || undefined,
+          schoolId: selectedSchool,
         };
 
         try {
@@ -422,8 +597,8 @@
       };
 
       const steps = [
-        { id: 1, title: 'Assignment Details', description: 'Title, description, and tasks' },
         { id: 2, title: 'AI Enhancement', description: 'Generate personalised content' },
+        { id: 1, title: 'Assignment Details', description: 'Title, description, and tasks' },
         { id: 3, title: 'Learner Selection', description: 'Choose recipients and publish' }
       ];
 
@@ -445,6 +620,18 @@
                   <a href="/" className="text-sm text-slate-600 hover:text-primary-600 transition-colors">Overview</a>
                   <a href="/student.html" className="text-sm text-slate-600 hover:text-primary-600 transition-colors">Student View</a>
                   <div className="px-3 py-1 bg-accent-100 text-accent-700 text-xs font-medium rounded-full">Live Demo</div>
+                  <div className="hidden md:flex items-center gap-2">
+                    <span className="text-xs text-slate-500">School</span>
+                    <select
+                      value={selectedSchool}
+                      onChange={(e) => changeSchool(e.target.value)}
+                      className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                      {schools.map((school) => (
+                        <option key={school.id} value={school.id}>{school.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -475,18 +662,47 @@
               </div>
             </div>
 
+            <div className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+              <ModernCard className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Teaching context</p>
+                  <h3 className="text-lg font-semibold text-slate-900">Select a school to load its learners and assignments</h3>
+                  <p className="text-sm text-slate-600">LTI links can pass <code>schoolId</code> to pre-select a school. Homework links will include this for student access control.</p>
+                  {schoolStatus && <p className="text-sm text-red-600 mt-2">{schoolStatus}</p>}
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-slate-700" htmlFor="school-selector">School</label>
+                  <select
+                    id="school-selector"
+                    value={selectedSchool}
+                    onChange={(e) => changeSchool(e.target.value)}
+                    className="px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent min-w-[240px]"
+                  >
+                    {schools.map((school) => (
+                      <option key={school.id} value={school.id}>{school.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </ModernCard>
+            </div>
+
             <div className="workflow-nav mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {steps.map((step) => (
-                  <StepIndicator
-                    key={step.id}
-                    step={step.id}
-                    currentStep={currentStep}
-                    title={step.title}
-                    isComplete={completedSteps.has(step.id)}
-                    onClick={() => setCurrentStep(step.id)}
-                  />
-                ))}
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                  {steps.map((step) => (
+                    <StepIndicator
+                      key={step.id}
+                      step={step.id}
+                      currentStep={currentStep}
+                      title={step.title}
+                      isComplete={completedSteps.has(step.id)}
+                      onClick={() => setCurrentStep(step.id)}
+                    />
+                  ))}
+                </div>
+                <FloatingActionButton onClick={submitAssignment}>
+                  Create Assignment
+                </FloatingActionButton>
               </div>
             </div>
 
@@ -584,16 +800,23 @@
                       <div className="space-y-6">
                         <div className="grid md:grid-cols-2 gap-6">
                           <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Select Learner</label>
+                            <label className="text-sm font-semibold text-slate-700">Quartile focus</label>
                             <select
-                              value={aiForm.learnerId}
-                              onChange={(e) => setAiForm(prev => ({ ...prev, learnerId: e.target.value }))}
+                              value={aiForm.quartile}
+                              onChange={(e) => setAiForm((prev) => {
+                                const quartile = e.target.value;
+                                return {
+                                  ...prev,
+                                  quartile,
+                                  learnerId: resolveQuartileLearnerId(quartile),
+                                };
+                              })}
                               className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                             >
-                              <option value="">Choose a learner for personalisation</option>
-                              {learners.map((learner) => (
-                                <option key={learner.id} value={learner.id}>
-                                  {learner.name} ({learner.cohort})
+                              <option value="">Choose a quartile for personalisation</option>
+                              {quartileGroups.map((group) => (
+                                <option key={group.key} value={group.key}>
+                                  {group.label} • {group.learners.length} learner{group.learners.length !== 1 ? 's' : ''}
                                 </option>
                               ))}
                             </select>
@@ -666,14 +889,9 @@
                             <span className="text-sm text-slate-700">Include explanation of AI choices</span>
                           </label>
 
-                          <div className="flex gap-3">
-                            <FloatingActionButton onClick={() => generateAI(false)} variant="secondary">
-                              Generate Tasks
-                            </FloatingActionButton>
-                            <FloatingActionButton onClick={() => generateAI(true)}>
-                              Calendar-Aware
-                            </FloatingActionButton>
-                          </div>
+                          <FloatingActionButton onClick={generateAI}>
+                            AI Recommendations
+                          </FloatingActionButton>
                         </div>
 
                         {aiStatus && (
@@ -745,12 +963,12 @@
                       </div>
 
                       <div className="grid md:grid-cols-2 gap-6 mb-8">
-                        {learners.map((learner) => (
-                          <LearnerCard
-                            key={learner.id}
-                            learner={learner}
-                            isSelected={selectedLearners.has(learner.email)}
-                            onToggle={toggleLearner}
+                        {quartileGroups.map((group) => (
+                          <QuartileCard
+                            key={group.key}
+                            group={group}
+                            isSelected={selectedQuartiles.has(group.key)}
+                            onToggle={toggleQuartile}
                           />
                         ))}
                       </div>
@@ -761,9 +979,7 @@
                             {selectedLearners.size} learner{selectedLearners.size !== 1 ? 's' : ''} selected
                             {form.students && ` + ${form.students.split(',').filter(Boolean).length} additional`}
                           </div>
-                          <FloatingActionButton onClick={submitAssignment}>
-                            Create Assignment
-                          </FloatingActionButton>
+                          <span className="text-sm text-slate-500">Use the top bar to create the assignment.</span>
                         </div>
 
                         {status && (
@@ -812,13 +1028,17 @@
                   </div>
                 </ModernCard>
 
-                <ModernCard className="p-6">
-                  <h4 className="font-semibold text-slate-900 mb-4">Quick Stats</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Available learners</span>
-                      <span className="font-medium">{learners.length}</span>
-                    </div>
+                  <ModernCard className="p-6">
+                    <h4 className="font-semibold text-slate-900 mb-4">Quick Stats</h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Selected school</span>
+                        <span className="font-medium">{selectedSchoolName || 'None'}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Available learners</span>
+                        <span className="font-medium">{learners.length}</span>
+                      </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Content resources</span>
                       <span className="font-medium">{resources.length}</span>
