@@ -156,7 +156,9 @@
     );
 
     const ModernCard = ({ children, className = '', hover = false }) => (
-      <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm ${hover ? 'hover:shadow-md' : ''} transition-all duration-200 ${className}`}>
+      <div
+        className={`bg-white rounded-2xl border border-slate-200 shadow-sm ${hover ? 'hover:shadow-md' : ''} transition-all duration-200 ${className}`}
+      >
         {children}
       </div>
     );
@@ -348,7 +350,10 @@
         return selected;
       }, [quartileGroups, selectedQuartiles]);
 
-      const selectedSchoolName = useMemo(() => schools.find((s) => s.id === selectedSchool)?.name || '', [schools, selectedSchool]);
+      const selectedSchoolName = useMemo(() => {
+        const match = schools.find((s) => s.id === selectedSchool);
+        return match ? match.name : '';
+      }, [schools, selectedSchool]);
 
       const filteredResources = useMemo(() => {
         return resources.filter(r => !selectedTopic || r.topic === selectedTopic);
@@ -399,7 +404,7 @@
             setSchools(list);
             const urlSchool = new URLSearchParams(window.location.search).get('schoolId');
             const hasUrlSchool = urlSchool && list.some((school) => school.id === urlSchool);
-            const defaultSchool = hasUrlSchool ? urlSchool : list[0]?.id || '';
+            const defaultSchool = hasUrlSchool ? urlSchool : (list[0] ? list[0].id : '');
             setSelectedSchool(defaultSchool);
           } catch (error) {
             setSchoolStatus('Unable to load schools');
@@ -468,7 +473,10 @@
 
       const resolveQuartileLearnerId = (quartileKey) => {
         const quartileGroup = quartileGroups.find((group) => group.key === quartileKey);
-        return quartileGroup?.learners?.[0]?.id || '';
+        if (quartileGroup && quartileGroup.learners && quartileGroup.learners[0]) {
+          return quartileGroup.learners[0].id || '';
+        }
+        return '';
       };
 
       const resolveDifficultyProfile = (value) => {
@@ -780,7 +788,6 @@
                           </div>
                         )}
                       </div>
-                    </ModernCard>
                         
                    
                           <div className="space-y-2">
