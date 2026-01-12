@@ -3,6 +3,8 @@ import { readFile, stat } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
+import { Pool } from 'pg';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +13,16 @@ const PORT = process.env.PORT || 3000;
 const ENV_BASE_URL = process.env.BASE_URL;
 const RECOMMENDER_API_URL = process.env.RECOMMENDER_API_URL || '';
 const RECOMMENDER_API_KEY = process.env.RECOMMENDER_API_KEY || '';
+const DATABASE_URL = process.env.DATABASE_URL || '';
+const ISAMS_BASE_URL = process.env.ISAMS_BASE_URL || '';
+const ISAMS_REPORT_CYCLES_PATH = process.env.ISAMS_REPORT_CYCLES_PATH || '/api/batch/schoolreports/reportcycles';
+const ISAMS_API_KEY = process.env.ISAMS_API_KEY || '';
+const ISAMS_AUTH_HEADER = process.env.ISAMS_AUTH_HEADER || 'Authorization';
+const ISAMS_AUTH_SCHEME = process.env.ISAMS_AUTH_SCHEME || 'Bearer';
+const S3_BUCKET = process.env.S3_BUCKET || '';
+const S3_REGION = process.env.S3_REGION || process.env.AWS_REGION || 'us-east-1';
+const S3_ENDPOINT = process.env.S3_ENDPOINT || '';
+const S3_FORCE_PATH_STYLE = process.env.S3_FORCE_PATH_STYLE === 'true';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const assignments = new Map();
@@ -154,6 +166,192 @@ const contentResources = [
     alignedOutcomes: ['maths.statistics.inference'],
   },
 ];
+
+let pgPool = null;
+let pgReady = false;
+let s3Client = null;
+
+function getPgPool() {
+  if (!DATABASE_URL) {
+    throw new Error('DATABASE_URL is not configured');
+  }
+  if (!pgPool) {
+    pgPool = new Pool({ connectionString: DATABASE_URL, ssl: DATABASE_URL.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined });
+  }
+  return pgPool;
+}
+
+async function ensureIsamsTables() {
+  if (pgReady) return;
+  const pool = getPgPool();
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS isams_report_cycles (
+      id text PRIMARY KEY,
+      name text,
+      start_date date,
+      end_date date,
+      academic_year text,
+      school_id text,
+      status text,
+      raw jsonb,
+      synced_at timestamptz NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS isams_report_cycle_batches (
+      id uuid PRIMARY KEY,
+      school_id text,
+      fetched_at timestamptz NOT NULL DEFAULT now(),
+      s3_bucket text,
+      s3_key text,
+      record_count integer,
+      request_url text
+    );
+  `);
+  pgReady = true;
+}
+
+function getS3Client() {
+  if (!s3Client) {
+    const config = { region: S3_REGION };
+    if (S3_ENDPOINT) {
+      config.endpoint = S3_ENDPOINT;
+    }
+    if (S3_FORCE_PATH_STYLE) {
+      config.forcePathStyle = true;
+    }
+    s3Client = new S3Client(config);
+  }
+  return s3Client;
+}
+
+function buildIsamsHeaders() {
+  const headers = { Accept: 'application/json' };
+  if (ISAMS_API_KEY) {
+    headers[ISAMS_AUTH_HEADER] = ISAMS_AUTH_SCHEME ? `${ISAMS_AUTH_SCHEME} ${ISAMS_API_KEY}` : ISAMS_API_KEY;
+  }
+  return headers;
+}
+
+function normalizeReportCycles(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload?.reportCycles && Array.isArray(payload.reportCycles)) return payload.reportCycles;
+  if (payload?.data && Array.isArray(payload.data)) return payload.data;
+  if (payload?.items && Array.isArray(payload.items)) return payload.items;
+  if (payload?.value && Array.isArray(payload.value)) return payload.value;
+  return [];
+}
+
+function coerceDate(value) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 10);
+}
+
+function mapReportCycle(cycle, fallbackId) {
+  const id =
+    cycle?.reportCycleId ??
+    cycle?.reportCycleID ??
+    cycle?.cycleId ??
+    cycle?.cycleID ??
+    cycle?.id ??
+    fallbackId;
+  return {
+    id: String(id),
+    name: cycle?.name ?? cycle?.title ?? cycle?.description ?? null,
+    startDate: coerceDate(cycle?.startDate ?? cycle?.start ?? cycle?.start_date ?? cycle?.openDate),
+    endDate: coerceDate(cycle?.endDate ?? cycle?.end ?? cycle?.end_date ?? cycle?.closeDate),
+    academicYear: cycle?.academicYear ?? cycle?.year ?? cycle?.schoolYear ?? null,
+    status: cycle?.status ?? cycle?.state ?? null,
+    raw: cycle,
+  };
+}
+
+async function fetchIsamsReportCycles() {
+  if (!ISAMS_BASE_URL) {
+    throw new Error('ISAMS_BASE_URL is not configured');
+  }
+  const requestUrl = new URL(ISAMS_REPORT_CYCLES_PATH, ISAMS_BASE_URL).toString();
+  const response = await fetch(requestUrl, { headers: buildIsamsHeaders() });
+  if (!response.ok) {
+    throw new Error(`iSAMS API error ${response.status}`);
+  }
+  const payload = await response.json();
+  const cycles = normalizeReportCycles(payload);
+  return { requestUrl, payload, cycles };
+}
+
+async function storeReportCycleSnapshot({ schoolId, cycles, payload, requestUrl }) {
+  if (!DATABASE_URL) {
+    throw new Error('DATABASE_URL is required to persist iSAMS report cycles');
+  }
+  if (!S3_BUCKET) {
+    throw new Error('S3_BUCKET is required to store raw iSAMS responses');
+  }
+
+  await ensureIsamsTables();
+  const pool = getPgPool();
+  const batchId = randomUUID();
+  const snapshotKey = `isams/report-cycles/${new Date().toISOString().replace(/[:.]/g, '-')}-${batchId}.json`;
+  const body = JSON.stringify(payload, null, 2);
+
+  const client = getS3Client();
+  await client.send(
+    new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: snapshotKey,
+      Body: body,
+      ContentType: 'application/json',
+    })
+  );
+
+  await pool.query(
+    `
+      INSERT INTO isams_report_cycle_batches (id, school_id, fetched_at, s3_bucket, s3_key, record_count, request_url)
+      VALUES ($1, $2, now(), $3, $4, $5, $6)
+    `,
+    [batchId, schoolId || null, S3_BUCKET, snapshotKey, cycles.length, requestUrl]
+  );
+
+  const upsertSql = `
+    INSERT INTO isams_report_cycles
+      (id, name, start_date, end_date, academic_year, school_id, status, raw, synced_at)
+    VALUES
+      ($1, $2, $3, $4, $5, $6, $7, $8, now())
+    ON CONFLICT (id)
+    DO UPDATE SET
+      name = EXCLUDED.name,
+      start_date = EXCLUDED.start_date,
+      end_date = EXCLUDED.end_date,
+      academic_year = EXCLUDED.academic_year,
+      school_id = EXCLUDED.school_id,
+      status = EXCLUDED.status,
+      raw = EXCLUDED.raw,
+      synced_at = EXCLUDED.synced_at;
+  `;
+
+  for (const cycle of cycles) {
+    const mapped = mapReportCycle(cycle, randomUUID());
+    await pool.query(upsertSql, [
+      mapped.id,
+      mapped.name,
+      mapped.startDate,
+      mapped.endDate,
+      mapped.academicYear,
+      schoolId || null,
+      mapped.status,
+      JSON.stringify(mapped.raw ?? {}),
+    ]);
+  }
+
+  return {
+    batchId,
+    s3Bucket: S3_BUCKET,
+    s3Key: snapshotKey,
+    recordCount: cycles.length,
+  };
+}
 
 function findTopicByWeek(weekNumber) {
   for (const semester of schemeOfWork.semesters) {
@@ -504,6 +702,53 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
     return res.end(JSON.stringify({ status: 'ok', timestamp: Date.now() }));
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/integrations/isams/report-cycles/sync') {
+    try {
+      const body = await parseBody(req);
+      const schoolId = body.schoolId || null;
+      const { requestUrl, payload, cycles } = await fetchIsamsReportCycles();
+      const stored = await storeReportCycleSnapshot({ schoolId, cycles, payload, requestUrl });
+      return sendJson(
+        res,
+        200,
+        {
+          syncedAt: new Date().toISOString(),
+          requestUrl,
+          schoolId,
+          recordCount: cycles.length,
+          storage: stored,
+        },
+        baseHeaders
+      );
+    } catch (err) {
+      console.error('Error syncing iSAMS report cycles:', err);
+      return sendJson(res, 500, { error: err.message }, baseHeaders);
+    }
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/integrations/isams/report-cycles') {
+    try {
+      const pool = getPgPool();
+      await ensureIsamsTables();
+      const schoolId = url.searchParams.get('schoolId');
+      const limit = Number(url.searchParams.get('limit') || 100);
+      const { rows } = await pool.query(
+        `
+          SELECT id, name, start_date, end_date, academic_year, school_id, status, synced_at
+          FROM isams_report_cycles
+          WHERE ($1::text IS NULL OR school_id = $1)
+          ORDER BY synced_at DESC
+          LIMIT $2
+        `,
+        [schoolId, limit]
+      );
+      return sendJson(res, 200, { reportCycles: rows }, baseHeaders);
+    } catch (err) {
+      console.error('Error loading iSAMS report cycles:', err);
+      return sendJson(res, 500, { error: err.message }, baseHeaders);
+    }
   }
 
   if (req.method === 'GET' && url.pathname === '/api/schools') {
