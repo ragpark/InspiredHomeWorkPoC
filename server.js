@@ -3,8 +3,6 @@ import { readFile, stat } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
-import { Pool } from 'pg';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
