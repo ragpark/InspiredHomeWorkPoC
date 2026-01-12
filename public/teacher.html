@@ -216,6 +216,10 @@
       const [status, setStatus] = useState('');
       const [aiStatus, setAiStatus] = useState('');
       const [aiExplanation, setAiExplanation] = useState('');
+      const [isamsCycles, setIsamsCycles] = useState([]);
+      const [isamsStatus, setIsamsStatus] = useState('');
+      const [isamsLoading, setIsamsLoading] = useState(false);
+      const [isamsSyncing, setIsamsSyncing] = useState(false);
 
       const [form, setForm] = useState({
         title: '',
@@ -397,6 +401,11 @@
         loadBySchool();
       }, [selectedSchool]);
 
+      useEffect(() => {
+        if (!selectedSchool) return;
+        loadIsamsCycles(selectedSchool);
+      }, [selectedSchool]);
+
       const updateForm = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
       const changeSchool = (schoolId) => {
@@ -405,6 +414,53 @@
         setAiForm((prev) => ({ ...prev, quartile: '', learnerId: '' }));
         setStatus('');
         setAiStatus('');
+        setIsamsStatus('');
+      };
+
+      const loadIsamsCycles = async (schoolId = selectedSchool) => {
+        if (!schoolId) return;
+        setIsamsLoading(true);
+        try {
+          const response = await fetch(`/api/integrations/isams/report-cycles?schoolId=${schoolId}&limit=6`);
+          const data = await response.json();
+          if (response.ok) {
+            setIsamsCycles(data.reportCycles || []);
+            setIsamsStatus('');
+          } else {
+            setIsamsStatus(data.error || 'Unable to load iSAMS report cycles');
+          }
+        } catch (error) {
+          setIsamsStatus('Unable to load iSAMS report cycles');
+        } finally {
+          setIsamsLoading(false);
+        }
+      };
+
+      const syncIsamsCycles = async () => {
+        if (!selectedSchool) {
+          setIsamsStatus('Select a school before syncing iSAMS data.');
+          return;
+        }
+        setIsamsSyncing(true);
+        setIsamsStatus('Syncing report cycles...');
+        try {
+          const response = await fetch('/api/integrations/isams/report-cycles/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ schoolId: selectedSchool }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            setIsamsStatus(`Synced ${data.recordCount || 0} cycles from iSAMS.`);
+            await loadIsamsCycles(selectedSchool);
+          } else {
+            setIsamsStatus(data.error || 'Unable to sync iSAMS report cycles');
+          }
+        } catch (error) {
+          setIsamsStatus('Unable to sync iSAMS report cycles');
+        } finally {
+          setIsamsSyncing(false);
+        }
       };
 
       const toggleQuartile = (quartileKey) => {
@@ -1010,6 +1066,62 @@
                       <span className="text-slate-600">Past assignments</span>
                       <span className="font-medium">{assignments.length}</span>
                     </div>
+                  </div>
+                </ModernCard>
+
+                <ModernCard className="p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h4 className="font-semibold text-slate-900">iSAMS Report Cycles</h4>
+                      <p className="text-xs text-slate-500">Sync and review report cycles for the active school.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => loadIsamsCycles(selectedSchool)}
+                        className="text-xs px-3 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                        disabled={isamsLoading}
+                      >
+                        {isamsLoading ? 'Refreshing...' : 'Refresh'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={syncIsamsCycles}
+                        className="text-xs px-3 py-1 rounded-lg bg-primary-500 text-white hover:bg-primary-600 disabled:bg-primary-300"
+                        disabled={isamsSyncing}
+                      >
+                        {isamsSyncing ? 'Syncing...' : 'Sync iSAMS'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {isamsStatus && (
+                    <div
+                      className={`mt-3 p-3 rounded-lg text-xs border ${
+                        isamsStatus.includes('Synced')
+                          ? 'bg-green-50 border-green-200 text-green-700'
+                          : 'bg-amber-50 border-amber-200 text-amber-700'
+                      }`}
+                    >
+                      {isamsStatus}
+                    </div>
+                  )}
+
+                  <div className="mt-4 space-y-3">
+                    {isamsLoading && <p className="text-xs text-slate-500">Loading report cycles…</p>}
+                    {!isamsLoading && isamsCycles.length === 0 && (
+                      <p className="text-xs text-slate-500">No report cycles found yet. Run a sync to fetch them.</p>
+                    )}
+                    {!isamsLoading &&
+                      isamsCycles.map((cycle) => (
+                        <div key={cycle.id} className="border border-slate-200 rounded-lg p-3">
+                          <div className="text-sm font-medium text-slate-900">{cycle.name || 'Unnamed cycle'}</div>
+                          <div className="text-xs text-slate-500">
+                            {cycle.start_date || 'TBD'} → {cycle.end_date || 'TBD'}
+                          </div>
+                          <div className="text-xs text-primary-700">{cycle.status || 'Status unknown'}</div>
+                        </div>
+                      ))}
                   </div>
                 </ModernCard>
 
