@@ -13,16 +13,17 @@ const PORT = process.env.PORT || 3000;
 const ENV_BASE_URL = process.env.BASE_URL;
 const RECOMMENDER_API_URL = process.env.RECOMMENDER_API_URL || '';
 const RECOMMENDER_API_KEY = process.env.RECOMMENDER_API_KEY || '';
-const DATABASE_URL = process.env.DATABASE_URL || '';
 const ISAMS_BASE_URL = process.env.ISAMS_BASE_URL || '';
 const ISAMS_REPORT_CYCLES_PATH = process.env.ISAMS_REPORT_CYCLES_PATH || '/api/batch/schoolreports/reportcycles';
 const ISAMS_API_KEY = process.env.ISAMS_API_KEY || '';
 const ISAMS_AUTH_HEADER = process.env.ISAMS_AUTH_HEADER || 'Authorization';
 const ISAMS_AUTH_SCHEME = process.env.ISAMS_AUTH_SCHEME || 'Bearer';
-const S3_BUCKET = process.env.S3_BUCKET || '';
-const S3_REGION = process.env.S3_REGION || process.env.AWS_REGION || 'us-east-1';
-const S3_ENDPOINT = process.env.S3_ENDPOINT || '';
-const S3_FORCE_PATH_STYLE = process.env.S3_FORCE_PATH_STYLE === 'true';
+const S3_PRESIGNED_URL = process.env.S3_PRESIGNED_URL || '';
+const S3_PRESIGNED_URL_TEMPLATE = process.env.S3_PRESIGNED_URL_TEMPLATE || '';
+const PG_REST_URL = process.env.PG_REST_URL || '';
+const PG_REST_AUTH_HEADER = process.env.PG_REST_AUTH_HEADER || 'apikey';
+const PG_REST_API_KEY = process.env.PG_REST_API_KEY || '';
+const PG_REST_AUTH_SCHEME = process.env.PG_REST_AUTH_SCHEME || '';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const assignments = new Map();
@@ -167,62 +168,37 @@ const contentResources = [
   },
 ];
 
-let pgPool = null;
-let pgReady = false;
-let s3Client = null;
-
-function getPgPool() {
-  if (!DATABASE_URL) {
-    throw new Error('DATABASE_URL is not configured');
+function buildPgRestHeaders() {
+  const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
+  if (PG_REST_API_KEY) {
+    headers[PG_REST_AUTH_HEADER] = PG_REST_AUTH_SCHEME ? `${PG_REST_AUTH_SCHEME} ${PG_REST_API_KEY}` : PG_REST_API_KEY;
   }
-  if (!pgPool) {
-    pgPool = new Pool({ connectionString: DATABASE_URL, ssl: DATABASE_URL.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined });
-  }
-  return pgPool;
+  return headers;
 }
 
-async function ensureIsamsTables() {
-  if (pgReady) return;
-  const pool = getPgPool();
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS isams_report_cycles (
-      id text PRIMARY KEY,
-      name text,
-      start_date date,
-      end_date date,
-      academic_year text,
-      school_id text,
-      status text,
-      raw jsonb,
-      synced_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS isams_report_cycle_batches (
-      id uuid PRIMARY KEY,
-      school_id text,
-      fetched_at timestamptz NOT NULL DEFAULT now(),
-      s3_bucket text,
-      s3_key text,
-      record_count integer,
-      request_url text
-    );
-  `);
-  pgReady = true;
+async function pgRestRequest(pathname, { method = 'GET', query = '', body } = {}) {
+  if (!PG_REST_URL) {
+    throw new Error('PG_REST_URL is required to persist iSAMS report cycles');
+  }
+  const url = `${PG_REST_URL.replace(/\/$/, '')}/${pathname}${query}`;
+  const options = { method, headers: buildPgRestHeaders() };
+  if (body !== undefined) {
+    options.body = JSON.stringify(body);
+  }
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`PostgREST error ${response.status}: ${text}`);
+  }
+  if (response.status === 204) return null;
+  return response.json();
 }
 
-function getS3Client() {
-  if (!s3Client) {
-    const config = { region: S3_REGION };
-    if (S3_ENDPOINT) {
-      config.endpoint = S3_ENDPOINT;
-    }
-    if (S3_FORCE_PATH_STYLE) {
-      config.forcePathStyle = true;
-    }
-    s3Client = new S3Client(config);
+function resolveS3UploadUrl(snapshotKey) {
+  if (S3_PRESIGNED_URL_TEMPLATE) {
+    return S3_PRESIGNED_URL_TEMPLATE.replace('{key}', encodeURIComponent(snapshotKey));
   }
-  return s3Client;
+  return S3_PRESIGNED_URL || null;
 }
 
 function buildIsamsHeaders() {
@@ -283,71 +259,70 @@ async function fetchIsamsReportCycles() {
 }
 
 async function storeReportCycleSnapshot({ schoolId, cycles, payload, requestUrl }) {
-  if (!DATABASE_URL) {
-    throw new Error('DATABASE_URL is required to persist iSAMS report cycles');
+  if (!PG_REST_URL) {
+    throw new Error('PG_REST_URL is required to persist iSAMS report cycles');
   }
-  if (!S3_BUCKET) {
-    throw new Error('S3_BUCKET is required to store raw iSAMS responses');
+  if (!resolveS3UploadUrl('sample')) {
+    throw new Error('S3_PRESIGNED_URL or S3_PRESIGNED_URL_TEMPLATE is required to store raw iSAMS responses');
   }
 
-  await ensureIsamsTables();
-  const pool = getPgPool();
   const batchId = randomUUID();
   const snapshotKey = `isams/report-cycles/${new Date().toISOString().replace(/[:.]/g, '-')}-${batchId}.json`;
   const body = JSON.stringify(payload, null, 2);
+  const uploadUrl = resolveS3UploadUrl(snapshotKey);
 
-  const client = getS3Client();
-  await client.send(
-    new PutObjectCommand({
-      Bucket: S3_BUCKET,
-      Key: snapshotKey,
-      Body: body,
-      ContentType: 'application/json',
-    })
-  );
+  const uploadResponse = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  });
 
-  await pool.query(
-    `
-      INSERT INTO isams_report_cycle_batches (id, school_id, fetched_at, s3_bucket, s3_key, record_count, request_url)
-      VALUES ($1, $2, now(), $3, $4, $5, $6)
-    `,
-    [batchId, schoolId || null, S3_BUCKET, snapshotKey, cycles.length, requestUrl]
-  );
+  if (!uploadResponse.ok) {
+    const text = await uploadResponse.text();
+    throw new Error(`S3 upload failed ${uploadResponse.status}: ${text}`);
+  }
 
-  const upsertSql = `
-    INSERT INTO isams_report_cycles
-      (id, name, start_date, end_date, academic_year, school_id, status, raw, synced_at)
-    VALUES
-      ($1, $2, $3, $4, $5, $6, $7, $8, now())
-    ON CONFLICT (id)
-    DO UPDATE SET
-      name = EXCLUDED.name,
-      start_date = EXCLUDED.start_date,
-      end_date = EXCLUDED.end_date,
-      academic_year = EXCLUDED.academic_year,
-      school_id = EXCLUDED.school_id,
-      status = EXCLUDED.status,
-      raw = EXCLUDED.raw,
-      synced_at = EXCLUDED.synced_at;
-  `;
+  await pgRestRequest('isams_report_cycle_batches', {
+    method: 'POST',
+    body: {
+      id: batchId,
+      school_id: schoolId || null,
+      fetched_at: new Date().toISOString(),
+      s3_key: snapshotKey,
+      record_count: cycles.length,
+      request_url: requestUrl,
+    },
+  });
 
-  for (const cycle of cycles) {
+  const mappedCycles = cycles.map((cycle) => {
     const mapped = mapReportCycle(cycle, randomUUID());
-    await pool.query(upsertSql, [
-      mapped.id,
-      mapped.name,
-      mapped.startDate,
-      mapped.endDate,
-      mapped.academicYear,
-      schoolId || null,
-      mapped.status,
-      JSON.stringify(mapped.raw ?? {}),
-    ]);
+    return {
+      id: mapped.id,
+      name: mapped.name,
+      start_date: mapped.startDate,
+      end_date: mapped.endDate,
+      academic_year: mapped.academicYear,
+      school_id: schoolId || null,
+      status: mapped.status,
+      raw: mapped.raw ?? {},
+      synced_at: new Date().toISOString(),
+    };
+  });
+
+  if (mappedCycles.length) {
+    const upsertResponse = await fetch(`${PG_REST_URL.replace(/\/$/, '')}/isams_report_cycles?on_conflict=id`, {
+      method: 'POST',
+      headers: { ...buildPgRestHeaders(), Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify(mappedCycles),
+    });
+    if (!upsertResponse.ok) {
+      const text = await upsertResponse.text();
+      throw new Error(`PostgREST upsert error ${upsertResponse.status}: ${text}`);
+    }
   }
 
   return {
     batchId,
-    s3Bucket: S3_BUCKET,
     s3Key: snapshotKey,
     recordCount: cycles.length,
   };
@@ -730,21 +705,17 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && url.pathname === '/api/integrations/isams/report-cycles') {
     try {
-      const pool = getPgPool();
-      await ensureIsamsTables();
       const schoolId = url.searchParams.get('schoolId');
       const limit = Number(url.searchParams.get('limit') || 100);
-      const { rows } = await pool.query(
-        `
-          SELECT id, name, start_date, end_date, academic_year, school_id, status, synced_at
-          FROM isams_report_cycles
-          WHERE ($1::text IS NULL OR school_id = $1)
-          ORDER BY synced_at DESC
-          LIMIT $2
-        `,
-        [schoolId, limit]
-      );
-      return sendJson(res, 200, { reportCycles: rows }, baseHeaders);
+      const query = new URLSearchParams();
+      query.set('select', 'id,name,start_date,end_date,academic_year,school_id,status,synced_at');
+      query.set('order', 'synced_at.desc');
+      query.set('limit', String(limit));
+      if (schoolId) {
+        query.set('school_id', `eq.${schoolId}`);
+      }
+      const data = await pgRestRequest(`isams_report_cycles?${query.toString()}`);
+      return sendJson(res, 200, { reportCycles: data || [] }, baseHeaders);
     } catch (err) {
       console.error('Error loading iSAMS report cycles:', err);
       return sendJson(res, 500, { error: err.message }, baseHeaders);
