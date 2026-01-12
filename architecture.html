@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inspired Homework PoC Architecture & Flows</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        line-height: 1.5;
+        background: #f6f7fb;
+        color: #1d1d1f;
+      }
+
+      body {
+        margin: 0;
+        padding: 32px 20px 64px;
+      }
+
+      header {
+        max-width: 980px;
+        margin: 0 auto 32px;
+        text-align: center;
+      }
+
+      header h1 {
+        margin-bottom: 8px;
+        font-size: 2.4rem;
+      }
+
+      header p {
+        margin: 0;
+        color: #4b5563;
+      }
+
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: grid;
+        gap: 24px;
+      }
+
+      section {
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+      }
+
+      section h2 {
+        margin-top: 0;
+        font-size: 1.4rem;
+      }
+
+      .meta {
+        color: #6b7280;
+        font-size: 0.95rem;
+        margin-bottom: 16px;
+      }
+
+      .legend {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        margin-top: 16px;
+      }
+
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.95rem;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+
+      .dot.core {
+        background: #1d4ed8;
+      }
+
+      .dot.data {
+        background: #059669;
+      }
+
+      .dot.integration {
+        background: #c2410c;
+      }
+
+      .dot.ui {
+        background: #7c3aed;
+      }
+
+      footer {
+        max-width: 980px;
+        margin: 40px auto 0;
+        text-align: center;
+        color: #6b7280;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Inspired Homework PoC</h1>
+      <p>High-level architecture and flow diagrams for the LTI 1.3 homework experience.</p>
+    </header>
+
+    <main>
+      <section>
+        <h2>Architecture Schematic</h2>
+        <p class="meta">
+          Core components, in-memory data sources, and optional integrations (external recommender + iSAMS sync).
+        </p>
+        <div class="mermaid">
+          flowchart LR
+            subgraph UI[Static UI (public/)]
+              Landing[index.html]
+              Teacher[teacher.html]
+              Student[student.html]
+              Styles[styles.css]
+            end
+
+            subgraph Server[Node.js HTTP Server (server.js)]
+              Static[Static file host]
+              APIs[REST-ish APIs]
+              LTI[LTI 1.3 stubs]
+              Recommend[Recommendation services]
+              Assignments[Assignment service]
+            end
+
+            subgraph Data[In-memory data stores]
+              Learners[Learners & performance]
+              Scheme[Scheme of work]
+              Resources[Content resources]
+              Schools[Schools]
+              AssignmentMap[Assignments Map]
+            end
+
+            subgraph Integrations[Optional integrations]
+              ExternalRec[External recommender API]
+              ISAMS[iSAMS API]
+              S3[S3 presigned uploads]
+              PG[PostgREST]
+            end
+
+            UI --> Static
+            UI --> APIs
+            APIs --> Assignments
+            APIs --> Recommend
+            APIs --> LTI
+            Assignments --> AssignmentMap
+            Recommend --> Learners
+            Recommend --> Scheme
+            Recommend --> Resources
+            APIs --> Schools
+            Learners --- Schools
+            APIs --> ISAMS
+            ISAMS --> S3
+            ISAMS --> PG
+            Recommend -. optional .-> ExternalRec
+
+            classDef ui fill:#ede9fe,stroke:#6d28d9,stroke-width:1px;
+            classDef server fill:#dbeafe,stroke:#1d4ed8,stroke-width:1px;
+            classDef data fill:#dcfce7,stroke:#16a34a,stroke-width:1px;
+            classDef integration fill:#ffedd5,stroke:#c2410c,stroke-width:1px;
+
+            class UI,Landing,Teacher,Student,Styles ui;
+            class Server,Static,APIs,LTI,Recommend,Assignments server;
+            class Data,Learners,Scheme,Resources,Schools,AssignmentMap data;
+            class Integrations,ExternalRec,ISAMS,S3,PG integration;
+        </div>
+        <div class="legend">
+          <span><span class="dot ui"></span>Static UI</span>
+          <span><span class="dot core"></span>Server runtime</span>
+          <span><span class="dot data"></span>In-memory data</span>
+          <span><span class="dot integration"></span>External integrations</span>
+        </div>
+      </section>
+
+      <section>
+        <h2>Sequence Diagram: LTI Launch → Assignment → Student Experience</h2>
+        <p class="meta">
+          The canonical PoC flow: LMS launches, teacher configures homework, students access via launch link.
+        </p>
+        <div class="mermaid">
+          sequenceDiagram
+            participant LMS as Canvas / LMS
+            participant Teacher as Teacher UI (teacher.html)
+            participant Server as Node Server (server.js)
+            participant Student as Student UI (student.html)
+
+            LMS->>Server: POST /api/lti/launch (role=Teacher)
+            Server-->>LMS: launchTarget → /teacher.html
+            LMS->>Teacher: Open teacher workspace
+            Teacher->>Server: GET /api/learners, /api/scheme-of-work, /api/content-resources
+            Teacher->>Server: POST /api/assignments (tasks, schoolId, optional deepLink return URL)
+            Server-->>Teacher: assignment + studentLaunchLink + deepLink
+            Teacher->>LMS: Provide launch URL (deep link)
+            LMS->>Student: Launch student URL
+            Student->>Server: GET /api/assignments/:id?schoolId=...
+            Server-->>Student: Assignment payload
+            Student-->>Student: Render tasks
+        </div>
+      </section>
+
+      <section>
+        <h2>Sequence Diagram: Calendar-aware Recommendations</h2>
+        <p class="meta">
+          Teacher requests a recommendation; the server builds a standard request and returns tasks.
+        </p>
+        <div class="mermaid">
+          sequenceDiagram
+            participant Teacher as Teacher UI (teacher.html)
+            participant Server as Node Server (server.js)
+            participant External as External Recommender (optional)
+
+            Teacher->>Server: POST /api/recommendations/calendar-aware
+            Server->>Server: Build request from learner + calendar + catalogue
+            alt External recommender configured
+              Server->>External: POST recommendation payload
+              External-->>Server: Recommendation response
+            else No external recommender
+              Server->>Server: Rule-based selection
+            end
+            Server-->>Teacher: Recommendation + explanation
+            Teacher-->>Teacher: Populate assignment form
+        </div>
+      </section>
+
+      <section>
+        <h2>Sequence Diagram: iSAMS Report Cycle Sync (Optional)</h2>
+        <p class="meta">
+          Sync workflow for report cycles, storing raw payloads in S3 and normalized records in PostgREST.
+        </p>
+        <div class="mermaid">
+          sequenceDiagram
+            participant Operator as Admin/Automation
+            participant Server as Node Server (server.js)
+            participant ISAMS as iSAMS API
+            participant S3 as S3 Presigned Upload
+            participant PG as PostgREST
+
+            Operator->>Server: POST /api/integrations/isams/report-cycles/sync
+            Server->>ISAMS: Fetch report cycles
+            ISAMS-->>Server: Report cycle payload
+            Server->>S3: Upload raw payload (PUT presigned URL)
+            Server->>PG: POST batch record
+            Server->>PG: POST report cycles (upsert)
+            Server-->>Operator: Sync result
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Generated for the Inspired Homework PoC architecture overview. Mermaid renders in-browser.
+    </footer>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "default" });
+    </script>
+  </body>
+</html>
