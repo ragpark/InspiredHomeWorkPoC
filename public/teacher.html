@@ -88,7 +88,7 @@
     .pulse-soft { animation: pulse-soft 2s infinite; }
   </style>
 </head>
-<body class="bg-gradient-to-br from-slate-25 via-slate-50 to-primary-50 min-h-screen">
+<body class="bg-gradient-to-br from-slate-25 via-slate-50 to-primary-50 min-h-screen antialiased">
   <div id="root"></div>
   <script type="text/babel">
     const { useEffect, useState, useMemo } = React;
@@ -96,30 +96,34 @@
     const StepIndicator = ({ step, currentStep, title, isComplete, onClick }) => (
       <button
         onClick={onClick}
-        className={`step-indicator flex items-center gap-3 p-3 rounded-xl text-left transition-all ${
+        className={`step-indicator flex items-center gap-4 p-4 rounded-xl text-left transition-all duration-200 ${
           currentStep === step
-            ? 'bg-primary-500 text-white shadow-lg'
+            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-xl scale-105'
             : isComplete
-            ? 'bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100'
-            : 'bg-white/60 text-slate-600 border border-slate-200 hover:bg-white/80'
+            ? 'bg-primary-50 text-primary-800 border-2 border-primary-200 hover:bg-primary-100 hover:border-primary-300 shadow-sm'
+            : 'bg-white text-slate-600 border-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm'
         }`}
       >
         <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-            currentStep === step ? 'bg-white/20' : isComplete ? 'bg-primary-500 text-white' : 'bg-slate-200'
+          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm transition-all duration-200 ${
+            currentStep === step
+              ? 'bg-white/25 backdrop-blur-sm'
+              : isComplete
+              ? 'bg-primary-500 text-white'
+              : 'bg-slate-100 text-slate-500'
           }`}
         >
-          {isComplete ? '✓' : step}
+          {isComplete && currentStep !== step ? '✓' : step}
         </div>
-        <div>
-          <div className="text-sm font-medium">{title}</div>
+        <div className="flex-1">
+          <div className={`font-semibold ${currentStep === step ? 'text-base' : 'text-sm'}`}>{title}</div>
         </div>
       </button>
     );
 
     const ModernCard = ({ children, className = '', hover = false }) => (
       <div
-        className={`bg-white rounded-2xl border border-slate-200 shadow-sm ${hover ? 'hover:shadow-md' : ''} transition-all duration-200 ${className}`}
+        className={`bg-white rounded-2xl border-2 border-slate-200 shadow-sm ${hover ? 'hover:shadow-lg hover:border-slate-300' : ''} transition-all duration-200 ${className}`}
       >
         {children}
       </div>
@@ -128,10 +132,10 @@
     const FloatingActionButton = ({ onClick, children, variant = 'primary' }) => (
       <button
         onClick={onClick}
-        className={`floating-action px-6 py-3 rounded-xl font-semibold text-sm transition-all ${
+        className={`floating-action px-6 py-3.5 rounded-xl font-bold text-sm transition-all duration-200 shadow-lg ${
           variant === 'primary'
-            ? 'bg-primary-500 text-white hover:bg-primary-600'
-            : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+            ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 hover:shadow-xl hover:-translate-y-0.5'
+            : 'bg-white text-slate-700 border-2 border-slate-300 hover:bg-slate-50 hover:border-slate-400 hover:shadow-xl'
         }`}
       >
         {children}
@@ -139,33 +143,43 @@
     );
 
     const ResourceCard = ({ resource, onAdd }) => (
-      <ModernCard className="resource-card p-4" hover>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <h4 className="font-medium text-slate-900 text-sm">{resource.title}</h4>
+      <ModernCard className="resource-card p-5" hover>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 space-y-2.5">
+            <div className="flex items-start gap-2 flex-wrap">
+              <h4 className="font-semibold text-slate-900 text-base flex-1">{resource.title}</h4>
               <span
-                className={`px-2 py-0.5 text-xs rounded-full ${
+                className={`px-2.5 py-1 text-xs rounded-lg font-semibold shadow-sm ${
                   resource.difficulty === 'Foundation'
-                    ? 'bg-green-100 text-green-700'
+                    ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300'
                     : resource.difficulty === 'Core'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-purple-100 text-purple-700'
+                    ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300'
+                    : 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border border-purple-300'
                 }`}
               >
                 {resource.difficulty}
               </span>
             </div>
-            <p className="text-xs text-slate-600">{resource.topic}</p>
+            <p className="text-sm text-slate-600 font-medium">{resource.topic}</p>
             <div className="flex items-center gap-3 text-xs text-slate-500">
-              <span>{resource.type}</span>
+              <span className="flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                {resource.type}
+              </span>
               <span>•</span>
-              <span>{resource.lengthMinutes} mins</span>
+              <span className="flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {resource.lengthMinutes} mins
+              </span>
             </div>
           </div>
           <button
             onClick={() => onAdd(resource)}
-            className="px-3 py-1.5 text-xs bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition-colors font-medium"
+            className="flex-shrink-0 px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-all font-semibold shadow-sm hover:shadow-md"
           >
             Add
           </button>
@@ -800,28 +814,28 @@
 
       return (
         <div className="min-h-screen">
-          <header className="bg-white/80 backdrop-blur-lg border-b border-white/20 sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-6 py-4">
+          <header className="bg-white/90 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-50 shadow-sm">
+            <div className="max-w-7xl mx-auto px-6 py-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center">
+                  <div className="w-11 h-11 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
                     <span className="text-white font-bold text-lg">IH</span>
                   </div>
                   <div>
-                    <h1 className="font-serif text-xl font-semibold text-slate-900">Inspired Assignments</h1>
-                    <p className="text-sm text-slate-600">Canvas LTI 1.3 • Teacher workspace</p>
+                    <h1 className="font-serif text-xl font-bold text-slate-900">Inspired Assignments</h1>
+                    <p className="text-sm text-slate-600 font-medium">Canvas LTI 1.3 • Teacher Workspace</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <a href="/" className="text-sm text-slate-600 hover:text-primary-600 transition-colors">Overview</a>
-                  <a href="/student.html" className="text-sm text-slate-600 hover:text-primary-600 transition-colors">Student View</a>
-                  <div className="px-3 py-1 bg-accent-100 text-accent-700 text-xs font-medium rounded-full">Live Demo</div>
-                  <div className="hidden md:flex items-center gap-2">
-                    <span className="text-xs text-slate-500">School</span>
+                  <a href="/" className="text-sm text-slate-600 hover:text-primary-600 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-primary-50 font-medium">Overview</a>
+                  <a href="/student.html" className="text-sm text-slate-600 hover:text-primary-600 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-primary-50 font-medium">Student View</a>
+                  <div className="px-3.5 py-1.5 bg-gradient-to-r from-accent-100 to-accent-200 text-accent-800 text-xs font-semibold rounded-full shadow-sm">Live Demo</div>
+                  <div className="hidden md:flex items-center gap-3">
+                    <span className="text-xs text-slate-500 font-semibold">School</span>
                     <select
                       value={selectedSchool}
                       onChange={(e) => changeSchool(e.target.value)}
-                      className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="px-4 py-2 text-sm border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium bg-white"
                     >
                       {schools.map((school) => (
                         <option key={school.id} value={school.id}>{school.name}</option>
@@ -833,22 +847,29 @@
             </div>
           </header>
 
-          <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="max-w-7xl mx-auto px-6 py-12">
             <div className="mb-12 animate-slide-up">
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-primary-900 to-slate-900 p-12 text-white">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-primary-900 to-primary-800 p-12 lg:p-16 text-white shadow-2xl">
                 <div className="relative z-10 max-w-4xl">
-                  <div className="mb-4">
-                    <span className="inline-block px-3 py-1 bg-white/15 rounded-full text-sm font-medium mb-4">Modern Assignment Creation</span>
+                  <div className="mb-6">
+                    <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full text-sm font-semibold border border-white/20 shadow-lg">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                      </svg>
+                      Modern Assignment Creation
+                    </span>
                   </div>
-                  <h2 className="font-serif text-4xl font-semibold mb-4 leading-tight">Task-oriented planning with AI intelligence and academic calendar context</h2>
-                  <p className="text-xl text-slate-200 mb-8 leading-relaxed">
+                  <h2 className="font-serif text-4xl lg:text-5xl font-bold mb-6 leading-tight tracking-tight">
+                    Task-oriented planning with AI intelligence and academic calendar context
+                  </h2>
+                  <p className="text-xl text-slate-100 mb-10 leading-relaxed">
                     Create personalised homework assignments with sophisticated AI recommendations, seamless Canvas integration, and Scheme of Work aware planning.
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    <span className="px-4 py-2 bg-white/10 backdrop-blur rounded-xl text-sm font-medium border border-white/20">Canvas LTI 1.3</span>
-                    <span className="px-4 py-2 bg-white/10 backdrop-blur rounded-xl text-sm font-medium border border-white/20">AI Supported</span>
-                    <span className="px-4 py-2 bg-white/10 backdrop-blur rounded-xl text-sm font-medium border border-white/20">Scheme of Work -Aware</span>
-                    <span className="px-4 py-2 bg-white/10 backdrop-blur rounded-xl text-sm font-medium border border-white/20">Personalised Learning Tutor</span>
+                    <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Canvas LTI 1.3</span>
+                    <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">AI Supported</span>
+                    <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Scheme of Work Aware</span>
+                    <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Personalised Learning Tutor</span>
                   </div>
                 </div>
                 <div className="absolute top-8 right-8 w-64 h-64 bg-gradient-to-br from-primary-400/20 to-accent-400/20 rounded-full blur-3xl"></div>

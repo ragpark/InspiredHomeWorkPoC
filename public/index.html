@@ -61,69 +61,103 @@
       }
     </style>
   </head>
-  <body class="bg-gradient-to-br from-slate-25 via-slate-50 to-primary-50 min-h-screen font-sans text-slate-900">
-    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-white/40">
-      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-semibold flex items-center justify-center">
+  <body class="bg-gradient-to-br from-slate-25 via-slate-50 to-primary-50 min-h-screen font-sans text-slate-900 antialiased">
+    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 shadow-sm">
+      <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white font-bold flex items-center justify-center shadow-lg shadow-primary-500/30">
             IH
           </div>
           <div>
-            <p class="text-xs uppercase tracking-wide text-primary-700">Canvas proxy</p>
-            <h1 class="text-lg font-semibold">Inspired Homework PoC</h1>
+            <p class="text-xs uppercase tracking-wider text-primary-600 font-semibold mb-0.5">Canvas Proxy</p>
+            <h1 class="text-lg font-bold text-slate-900">Inspired Homework</h1>
           </div>
         </div>
-        <nav class="flex items-center gap-3 text-sm font-medium">
-          <a class="text-slate-700 hover:text-primary-600" href="/teacher.html">Teacher Studio</a>
-          <a class="text-slate-700 hover:text-primary-600" href="/student.html">Student View</a>
-          <span class="px-3 py-1 rounded-full bg-accent-100 text-accent-700">LTI 1.3 Demo</span>
+        <nav class="flex items-center gap-4 text-sm font-medium">
+          <a class="text-slate-600 hover:text-primary-600 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-primary-50" href="/teacher.html">Teacher Studio</a>
+          <a class="text-slate-600 hover:text-primary-600 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-primary-50" href="/student.html">Student View</a>
+          <span class="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-accent-100 to-accent-200 text-accent-800 font-semibold text-xs shadow-sm">LTI 1.3 Demo</span>
         </nav>
       </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-6 py-12 space-y-10">
-      <section class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-primary-900 to-slate-900 text-white p-10 shadow-xl">
-        <div class="relative z-10 lg:flex lg:items-center lg:justify-between lg:gap-12">
-          <div class="max-w-2xl space-y-4">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-sm font-medium">
-              <span class="w-2 h-2 rounded-full bg-emerald-300"></span>
-              Ready for Canvas launch flows
+    <main class="max-w-7xl mx-auto px-6 py-16 space-y-12">
+      <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-primary-900 to-primary-800 text-white p-12 lg:p-16 shadow-2xl">
+        <div class="relative z-10 lg:flex lg:items-center lg:justify-between lg:gap-16">
+          <div class="max-w-2xl space-y-6">
+            <span class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/15 backdrop-blur-sm text-sm font-semibold border border-white/20 shadow-lg">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Ready for Canvas Launch Flows
             </span>
-            <h2 class="font-serif text-4xl font-semibold leading-tight">Welcome to Inspired Homework</h2>
-            <p class="text-lg text-slate-100 leading-relaxed">
+            <h2 class="font-serif text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
+              Welcome to Inspired Homework
+            </h2>
+            <p class="text-xl text-slate-100 leading-relaxed">
               This landing page acts as a proxy for GSP/Canvas LMS. Use it to kick off teacher and student
               journeys, verify LTI-style deep linking, and explore PRIZM + Berlin + Faculty AI-assisted assignment planning.
             </p>
-            <div class="flex flex-wrap gap-3">
-              <a href="/teacher.html" class="px-5 py-3 rounded-xl bg-white text-slate-900 font-semibold shadow-lg hover:-translate-y-0.5 transition">
+            <div class="flex flex-wrap gap-4 pt-2">
+              <a href="/teacher.html" class="group px-6 py-3.5 rounded-xl bg-white text-slate-900 font-bold shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-200 flex items-center gap-2">
                 Open Teacher Studio
+                <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
               </a>
-              <a href="/student.html" class="px-5 py-3 rounded-xl border border-white/40 text-white font-semibold hover:bg-white/10 transition">
+              <a href="/student.html" class="px-6 py-3.5 rounded-xl border-2 border-white/50 text-white font-bold hover:bg-white/15 hover:border-white transition-all duration-200 backdrop-blur-sm">
                 Preview Student View
               </a>
             </div>
           </div>
-          <div class="mt-8 lg:mt-0 lg:w-80 space-y-3">
-            <div class="glass-card rounded-2xl p-4 text-slate-900 shadow-lg">
-              <p class="text-sm font-semibold text-primary-700 mb-2">Purpose of this PoC</p>
-              <ul class="text-sm text-slate-700 space-y-2 list-disc list-inside">
-                <li>Behave like a GSP Canvas LMS launch point for local demos.</li>
-                <li>Route teachers to the Assignment Studio React experience.</li>
-                <li>Route learners to the modern Homework Tutor student view.</li>
-                <li>Keep assignments in memory for rapid iteration.</li>
+          <div class="mt-10 lg:mt-0 lg:w-96 space-y-4">
+            <div class="glass-card rounded-2xl p-6 text-slate-900 shadow-xl border border-white/60 hover:shadow-2xl transition-shadow duration-300">
+              <div class="flex items-center gap-2 mb-4">
+                <div class="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <p class="text-base font-bold text-slate-900">Purpose of this PoC</p>
+              </div>
+              <ul class="text-sm text-slate-700 space-y-2.5 leading-relaxed">
+                <li class="flex items-start gap-2">
+                  <span class="text-primary-500 mt-0.5">•</span>
+                  <span>Behave like a GSP Canvas LMS launch point for local demos</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-primary-500 mt-0.5">•</span>
+                  <span>Route teachers to the Assignment Studio React experience</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-primary-500 mt-0.5">•</span>
+                  <span>Route learners to the modern Homework Tutor student view</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-primary-500 mt-0.5">•</span>
+                  <span>Keep assignments in memory for rapid iteration</span>
+                </li>
               </ul>
             </div>
-            <div class="glass-card rounded-2xl p-4 text-slate-900 shadow-lg">
-              <p class="text-sm font-semibold text-primary-700 mb-2">Quick links</p>
-              <div class="flex flex-col gap-2 text-sm">
-                <a class="flex items-center gap-2 text-primary-700 hover:text-primary-900" href="/teacher.html">
-                  <span class="w-2 h-2 rounded-full bg-primary-500"></span> Teacher assignment flow
+            <div class="glass-card rounded-2xl p-6 text-slate-900 shadow-xl border border-white/60 hover:shadow-2xl transition-shadow duration-300">
+              <div class="flex items-center gap-2 mb-4">
+                <div class="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+                <p class="text-base font-bold text-slate-900">Quick Links</p>
+              </div>
+              <div class="flex flex-col gap-3 text-sm">
+                <a class="group flex items-center gap-3 text-slate-700 hover:text-primary-700 transition-colors p-2 rounded-lg hover:bg-primary-50/50" href="/teacher.html">
+                  <span class="w-2 h-2 rounded-full bg-primary-500 group-hover:scale-125 transition-transform"></span>
+                  <span class="font-medium">Teacher assignment flow</span>
                 </a>
-                <a class="flex items-center gap-2 text-primary-700 hover:text-primary-900" href="/student.html">
-                  <span class="w-2 h-2 rounded-full bg-primary-500"></span> Student launch + Homework Tutor
+                <a class="group flex items-center gap-3 text-slate-700 hover:text-primary-700 transition-colors p-2 rounded-lg hover:bg-primary-50/50" href="/student.html">
+                  <span class="w-2 h-2 rounded-full bg-primary-500 group-hover:scale-125 transition-transform"></span>
+                  <span class="font-medium">Student launch + Homework Tutor</span>
                 </a>
-                <a class="flex items-center gap-2 text-primary-700 hover:text-primary-900" href="/README.md" target="_blank">
-                  <span class="w-2 h-2 rounded-full bg-primary-500"></span> Architecture & deployment notes
+                <a class="group flex items-center gap-3 text-slate-700 hover:text-primary-700 transition-colors p-2 rounded-lg hover:bg-primary-50/50" href="/README.md" target="_blank">
+                  <span class="w-2 h-2 rounded-full bg-primary-500 group-hover:scale-125 transition-transform"></span>
+                  <span class="font-medium">Architecture & deployment notes</span>
                 </a>
               </div>
             </div>
@@ -135,62 +169,100 @@
         </div>
       </section>
 
-      <section class="grid lg:grid-cols-3 gap-6">
-        <div class="glass-card rounded-2xl p-6 shadow-md border border-white/60">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center font-semibold">1</div>
-            <h3 class="font-semibold text-lg">Launch like Canvas</h3>
+      <section class="grid lg:grid-cols-3 gap-8">
+        <div class="group glass-card rounded-2xl p-8 shadow-lg border border-white/60 hover:shadow-xl hover:border-primary-200 transition-all duration-300">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-100 to-primary-200 text-primary-700 flex items-center justify-center font-bold text-lg shadow-sm group-hover:scale-110 transition-transform duration-300">
+              1
+            </div>
+            <h3 class="font-bold text-xl text-slate-900">Launch like Canvas</h3>
           </div>
           <p class="text-sm text-slate-700 leading-relaxed">
             Treat this page as the Inspired LMS surface. In production, Canvas would deep-link into the PRIZM tool; here, the
             buttons above let you jump into the same flows without LMS setup.
           </p>
         </div>
-        <div class="glass-card rounded-2xl p-6 shadow-md border border-white/60">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center font-semibold">2</div>
-            <h3 class="font-semibold text-lg">Plan & assign</h3>
+        <div class="group glass-card rounded-2xl p-8 shadow-lg border border-white/60 hover:shadow-xl hover:border-primary-200 transition-all duration-300">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-100 to-primary-200 text-primary-700 flex items-center justify-center font-bold text-lg shadow-sm group-hover:scale-110 transition-transform duration-300">
+              2
+            </div>
+            <h3 class="font-bold text-xl text-slate-900">Plan & Assign</h3>
           </div>
           <p class="text-sm text-slate-700 leading-relaxed">
             Use the Teacher Studio to craft assignments, apply AI or scheme of work aware and AI enabled recommendations, and capture
             the launch link you would normally hand back to Canvas.
           </p>
         </div>
-        <div class="glass-card rounded-2xl p-6 shadow-md border border-white/60">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center font-semibold">3</div>
-            <h3 class="font-semibold text-lg">Preview the learner view</h3>
+        <div class="group glass-card rounded-2xl p-8 shadow-lg border border-white/60 hover:shadow-xl hover:border-primary-200 transition-all duration-300">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-100 to-primary-200 text-primary-700 flex items-center justify-center font-bold text-lg shadow-sm group-hover:scale-110 transition-transform duration-300">
+              3
+            </div>
+            <h3 class="font-bold text-xl text-slate-900">Preview Learner View</h3>
           </div>
           <p class="text-sm text-slate-700 leading-relaxed">
-            Open the Student View to see the Homework Tutor modal, new-tab launch link, and task walkthrough the Homework using a PRIZM player with Berlin AI Chatbot and Faculty Agentic AI 
+            Open the Student View to see the Homework Tutor modal, new-tab launch link, and task walkthrough the Homework using a PRIZM player with Berlin AI Chatbot and Faculty Agentic AI
             way an Inspired/GSP Canvas learner would experience it.
           </p>
         </div>
       </section>
 
-      <section class="grid lg:grid-cols-2 gap-6">
-        <div class="glass-card rounded-2xl p-6 shadow-md border border-white/60">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="font-semibold text-lg">Testing checklist</h3>
-            <span class="text-xs px-3 py-1 rounded-full bg-primary-100 text-primary-700">LTI-style</span>
+      <section class="grid lg:grid-cols-2 gap-8">
+        <div class="glass-card rounded-2xl p-8 shadow-lg border border-white/60 hover:shadow-xl transition-shadow duration-300">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="font-bold text-xl text-slate-900">Testing Checklist</h3>
+            <span class="text-xs px-3.5 py-1.5 rounded-full bg-gradient-to-r from-primary-100 to-primary-200 text-primary-800 font-semibold border border-primary-300 shadow-sm">LTI-Style</span>
           </div>
-          <ol class="list-decimal list-inside space-y-2 text-sm text-slate-700">
-            <li>Create an assignment in Teacher Studio and copy the student launch URL.</li>
-            <li>Optional: simulate deep linking with the Canvas return URL field.</li>
-            <li>Open the launch URL (or click Student View) to validate the learner flow.</li>
-            <li>Use AI recommendations to populate tasks, then manually adjust before assigning to learners (No PII, learners grouped by Quartile performance).</li>
+          <ol class="space-y-3 text-sm text-slate-700 leading-relaxed">
+            <li class="flex items-start gap-3">
+              <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-white flex items-center justify-center text-xs font-bold mt-0.5">1</span>
+              <span>Create an assignment in Teacher Studio and copy the student launch URL</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-white flex items-center justify-center text-xs font-bold mt-0.5">2</span>
+              <span>Optional: simulate deep linking with the Canvas return URL field</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-white flex items-center justify-center text-xs font-bold mt-0.5">3</span>
+              <span>Open the launch URL (or click Student View) to validate the learner flow</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 text-white flex items-center justify-center text-xs font-bold mt-0.5">4</span>
+              <span>Use AI recommendations to populate tasks, then manually adjust before assigning to learners (No PII, learners grouped by Quartile performance)</span>
+            </li>
           </ol>
         </div>
-        <div class="glass-card rounded-2xl p-6 shadow-md border border-white/60">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="font-semibold text-lg">What to expect</h3>
-            <span class="text-xs px-3 py-1 rounded-full bg-accent-100 text-accent-700">PoC scope</span>
+        <div class="glass-card rounded-2xl p-8 shadow-lg border border-white/60 hover:shadow-xl transition-shadow duration-300">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="font-bold text-xl text-slate-900">What to Expect</h3>
+            <span class="text-xs px-3.5 py-1.5 rounded-full bg-gradient-to-r from-accent-100 to-accent-200 text-accent-800 font-semibold border border-accent-300 shadow-sm">PoC Scope</span>
           </div>
-          <ul class="space-y-2 text-sm text-slate-700">
-            <li><strong>In-memory storage</strong> to keep iteration fast; restart clears assignments.</li>
-            <li><strong>AI hooks</strong> ready for external recommender endpoints or local fallback.</li>
-            <li><strong>Canvas-friendly links</strong> surfaced on creation for LMS insertion.</li>
-            <li><strong>No auth</strong> in this PoC—replace with full LTI 1.3 OIDC + JWT validation later.</li>
+          <ul class="space-y-3 text-sm text-slate-700 leading-relaxed">
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <div><strong class="font-semibold">In-memory storage</strong> to keep iteration fast; restart clears assignments</div>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <div><strong class="font-semibold">AI hooks</strong> ready for external recommender endpoints or local fallback</div>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <div><strong class="font-semibold">Canvas-friendly links</strong> surfaced on creation for LMS insertion</div>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <div><strong class="font-semibold">No auth</strong> in this PoC—replace with full LTI 1.3 OIDC + JWT validation later</div>
+            </li>
           </ul>
         </div>
       </section>
