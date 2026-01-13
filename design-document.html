@@ -419,6 +419,7 @@
                 <li><a href="#flows">User Flows</a></li>
                 <li><a href="#sequences">Sequences</a></li>
                 <li><a href="#api">API Reference</a></li>
+                <li><a href="#prizm">PRIZM Repository</a></li>
                 <li><a href="#integrations">Integrations</a></li>
             </ul>
         </nav>
@@ -459,6 +460,10 @@
                     <div class="feature-card">
                         <h4>🔄 iSAMS Integration</h4>
                         <p>Sync report cycles from school information systems to align assignments with academic schedules.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🎬 PRIZM Content Repository</h4>
+                        <p>Rich multimedia content library with videos, interactives, documents, images, and audio aligned to curriculum standards.</p>
                     </div>
                 </div>
 
@@ -522,6 +527,7 @@ graph TB
         SchemeDB[(Scheme of Work)]
         ContentDB[(Content Resources)]
         PerfDB[(Learner Performance)]
+        PRIZMDB[(PRIZM Content Repository)]
     end
 
     subgraph "External Integrations"
@@ -542,10 +548,13 @@ graph TB
     Teacher -->|Create Assignment| Assignment
     Teacher -->|Get Recommendations| Recommend
     Teacher -->|Sync Cycles| iSAMS
+    Teacher -->|Browse Content| PRIZMDB
 
     Student -->|Load Assignment| Assignment
+    Student -->|View Content| PRIZMDB
 
     Assignment --> AssignDB
+    Assignment --> PRIZMDB
     Recommend --> LearnerDB
     Recommend --> PerfDB
     Recommend --> SchemeDB
@@ -922,6 +931,10 @@ flowchart TD
                                 <span class="field-type">Array&lt;String&gt;</span>
                             </div>
                             <div class="model-field">
+                                <span class="field-name">prizmContent</span>
+                                <span class="field-type">Array&lt;Object&gt;</span>
+                            </div>
+                            <div class="model-field">
                                 <span class="field-name">createdAt</span>
                                 <span class="field-type">ISO8601</span>
                             </div>
@@ -1017,6 +1030,76 @@ flowchart TD
                             </div>
                         </div>
                     </div>
+
+                    <div class="model-card">
+                        <div class="model-header">PRIZM Content</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">id</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">title</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">description</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">topic</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">category</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">mediaType</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">difficulty</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">duration</span>
+                                <span class="field-type">Number (seconds)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">fileSize</span>
+                                <span class="field-type">Number (bytes)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">contentUrl</span>
+                                <span class="field-type">String (URL)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">thumbnailUrl</span>
+                                <span class="field-type">String (URL)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">tags</span>
+                                <span class="field-type">Array&lt;String&gt;</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">alignedStandards</span>
+                                <span class="field-type">Array&lt;String&gt;</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">alignedOutcomes</span>
+                                <span class="field-type">Array&lt;String&gt;</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">rating</span>
+                                <span class="field-type">Number</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">viewCount</span>
+                                <span class="field-type">Number</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <h3>Entity Relationship Diagram</h3>
@@ -1030,7 +1113,9 @@ erDiagram
     Learner ||--|| LearnerPerformance : has
     Learner }o--o{ Assignment : assigned
     ContentResource }o--o{ Assignment : includes
+    PRIZMContent }o--o{ Assignment : attached
     Topic }o--o{ ContentResource : aligned
+    Topic }o--o{ PRIZMContent : aligned
     SchemeOfWork ||--o{ Topic : defines
 
     School {
@@ -1055,6 +1140,7 @@ erDiagram
         array tasks
         array students
         array groups
+        array prizmContent
         datetime createdAt
         string schoolId FK
         string schoolName
@@ -1074,6 +1160,25 @@ erDiagram
         string type
         string title
         array alignedOutcomes
+    }
+
+    PRIZMContent {
+        string id PK
+        string title
+        string description
+        string topic
+        string category
+        string mediaType
+        string difficulty
+        number duration
+        number fileSize
+        string contentUrl
+        string thumbnailUrl
+        array tags
+        array alignedStandards
+        array alignedOutcomes
+        number rating
+        number viewCount
     }
 
     SchemeOfWork {
@@ -1666,6 +1771,32 @@ sequenceDiagram
                     </div>
                 </div>
 
+                <h3>PRIZM Content Repository</h3>
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/prizm/content?topic={topic}&category={category}&difficulty={difficulty}&search={query}</code>
+                    <div class="api-description">
+                        Browse and filter PRIZM digital content assets. Supports filtering by topic, category (Video/Interactive/Document/Image/Audio), difficulty level, and text search.<br/>
+                        <strong>Response:</strong> {content: Array&lt;PRIZMContent&gt;, total: Number}
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/prizm/content/{id}</code>
+                    <div class="api-description">
+                        Get a single PRIZM content item by ID with full metadata including thumbnails, content URLs, tags, and aligned standards.
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/prizm/categories</code>
+                    <div class="api-description">
+                        Get available PRIZM content categories: Video, Interactive, Document, Image, Audio.
+                    </div>
+                </div>
+
                 <h3>iSAMS Integration</h3>
                 <div class="api-endpoint">
                     <span class="api-method post">POST</span>
@@ -1747,6 +1878,361 @@ Response:
   }
 }
                     </pre>
+                </div>
+            </section>
+
+            <!-- PRIZM CONTENT REPOSITORY SECTION -->
+            <section id="prizm">
+                <h2>🎬 PRIZM Content Repository</h2>
+
+                <p>
+                    The <strong>PRIZM Content Repository</strong> is a digital asset management system that stores and serves
+                    multimedia learning content including videos, interactive activities, documents, images, and audio files.
+                    It enables teachers to enrich homework assignments with engaging multimedia resources aligned to curriculum standards.
+                </p>
+
+                <h3>🎯 Key Features</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>📚 Rich Content Library</h4>
+                        <p>12+ digital assets spanning multiple topics with varied difficulty levels (Foundation, Core, Stretch) and content types.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔍 Advanced Filtering</h4>
+                        <p>Filter content by topic, category, difficulty level, or free-text search across titles, descriptions, and tags.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🎓 Standards Alignment</h4>
+                        <p>Each content item aligns to Common Core State Standards (CCSS) and learning outcomes for curriculum integration.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📊 Usage Analytics</h4>
+                        <p>Track view counts and ratings to identify popular content and make data-driven content recommendations.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔗 Assignment Integration</h4>
+                        <p>Seamlessly attach PRIZM content to assignments with full metadata preservation for student access.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🎭 Content Player</h4>
+                        <p>Dedicated player modal in student view provides immersive experience for videos, interactives, and documents.</p>
+                    </div>
+                </div>
+
+                <h3>Content Categories & Types</h3>
+                <div class="tech-stack">
+                    <span class="tech-badge frontend">📹 Video (MP4)</span>
+                    <span class="tech-badge backend">🎮 Interactive (HTML/JS)</span>
+                    <span class="tech-badge storage">📄 Document (PDF)</span>
+                    <span class="tech-badge integration">🖼️ Image (JPEG/PNG)</span>
+                    <span class="tech-badge">🎵 Audio (MP3)</span>
+                </div>
+
+                <h3>PRIZM Content Data Flow</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">Content Discovery to Student Access</div>
+                    <div class="mermaid">
+flowchart LR
+    subgraph "Teacher Discovery"
+        Browse[Teacher Browses<br/>PRIZM Repository]
+        Filter[Apply Filters:<br/>Topic, Category, Difficulty]
+        Preview[Preview Content<br/>Thumbnails & Metadata]
+        Select[Select Content Items]
+    end
+
+    subgraph "PRIZM Repository"
+        Database[(12 Content Items)]
+        Metadata[Rich Metadata:<br/>Title, Tags, Standards,<br/>Duration, Rating]
+        URLs[Content URLs &<br/>Thumbnails]
+    end
+
+    subgraph "Assignment Creation"
+        AddToAssignment[Add to Assignment]
+        StoreRefs[Store PRIZM<br/>Content References]
+        AssignmentObj[Assignment Object<br/>with prizmContent array]
+    end
+
+    subgraph "Student Experience"
+        LoadAssignment[Student Loads<br/>Assignment]
+        ViewContent[View PRIZM<br/>Content Cards]
+        PlayContent[Click Content →<br/>Open Player Modal]
+        Access[Stream from<br/>PRIZM Repository]
+    end
+
+    Browse --> Database
+    Filter --> Metadata
+    Preview --> URLs
+    Select --> AddToAssignment
+    AddToAssignment --> StoreRefs
+    Database --> StoreRefs
+    StoreRefs --> AssignmentObj
+    AssignmentObj --> LoadAssignment
+    LoadAssignment --> ViewContent
+    ViewContent --> PlayContent
+    PlayContent --> Access
+    Database --> Access
+
+    style Database fill:#059669,color:#fff
+    style AssignmentObj fill:#4f46e5,color:#fff
+    style PlayContent fill:#3b82f6,color:#fff
+                    </div>
+                </div>
+
+                <h3>PRIZM Integration Architecture</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">Multi-Layer PRIZM Integration</div>
+                    <div class="mermaid">
+graph TB
+    subgraph "Presentation Layer"
+        TeacherUI[Teacher Studio<br/>PRIZM Browser Panel]
+        StudentUI[Student View<br/>PRIZM Content Player]
+    end
+
+    subgraph "API Layer"
+        PRIZMAPI[PRIZM API Endpoints<br/>/api/prizm/*]
+        FilterService[Filter Service]
+        MetadataService[Metadata Service]
+    end
+
+    subgraph "Data Layer"
+        PRIZMRepo[(PRIZM Repository<br/>In-Memory Array)]
+        Categories[Categories Index]
+        TopicIndex[Topic Index]
+    end
+
+    subgraph "Integration Points"
+        AssignmentService[Assignment Service]
+        TeacherWorkflow[Teacher Workflow]
+        StudentWorkflow[Student Workflow]
+    end
+
+    TeacherUI --> PRIZMAPI
+    StudentUI --> PRIZMAPI
+    PRIZMAPI --> FilterService
+    PRIZMAPI --> MetadataService
+    FilterService --> PRIZMRepo
+    MetadataService --> PRIZMRepo
+    PRIZMRepo --> Categories
+    PRIZMRepo --> TopicIndex
+    TeacherUI --> TeacherWorkflow
+    TeacherWorkflow --> AssignmentService
+    AssignmentService --> PRIZMRepo
+    StudentWorkflow --> PRIZMRepo
+
+    style PRIZMRepo fill:#059669,color:#fff
+    style PRIZMAPI fill:#3b82f6,color:#fff
+    style AssignmentService fill:#4f46e5,color:#fff
+                    </div>
+                </div>
+
+                <h3>Sample PRIZM Content Items</h3>
+                <div class="data-model-grid">
+                    <div class="model-card">
+                        <div class="model-header">PRIZM-001 (Video)</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">Title</span>
+                                <span class="field-type">Introduction to Fractions</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Category</span>
+                                <span class="field-type">Video</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Duration</span>
+                                <span class="field-type">8 minutes</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Difficulty</span>
+                                <span class="field-type">Foundation</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Rating</span>
+                                <span class="field-type">4.7 ⭐</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <div class="model-header">PRIZM-004 (Document)</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">Title</span>
+                                <span class="field-type">Linear Equations Workbook</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Category</span>
+                                <span class="field-type">Document (PDF)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Duration</span>
+                                <span class="field-type">30 minutes</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Difficulty</span>
+                                <span class="field-type">Core</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Rating</span>
+                                <span class="field-type">4.8 ⭐</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <div class="model-header">PRIZM-007 (Interactive)</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">Title</span>
+                                <span class="field-type">Parabola Transformations</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Category</span>
+                                <span class="field-type">Interactive</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Duration</span>
+                                <span class="field-type">20 minutes</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Difficulty</span>
+                                <span class="field-type">Stretch</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Rating</span>
+                                <span class="field-type">4.9 ⭐</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <strong>🎓 Standards-Aligned Learning</strong>
+                    All PRIZM content is aligned to Common Core State Standards (CCSS) and curriculum learning outcomes.
+                    Each item includes:
+                    <ul style="margin: 0.5rem 0 0 2rem;">
+                        <li><strong>alignedStandards:</strong> CCSS codes (e.g., CCSS.MATH.CONTENT.8.EE.C.7)</li>
+                        <li><strong>alignedOutcomes:</strong> Internal outcome IDs matching learner performance data</li>
+                        <li><strong>tags:</strong> Searchable keywords for content discovery</li>
+                        <li><strong>topic:</strong> Curriculum topic from Scheme of Work alignment</li>
+                    </ul>
+                    This ensures content recommendations are pedagogically sound and curriculum-relevant.
+                </div>
+
+                <h3>Teacher Workflow: Adding PRIZM Content</h3>
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <h4>Access PRIZM Repository Panel</h4>
+                        <p>Teacher opens the "PRIZM Content Repository" section in Teacher Studio (Step 2: Assignment Details).</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Filter Content by Topic</h4>
+                        <p>Select curriculum topic from dropdown (e.g., "Linear equations and inequalities") to filter relevant content.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Apply Additional Filters</h4>
+                        <p>Optionally filter by category (Video/Interactive/Document), difficulty (Foundation/Core/Stretch), or search by keywords.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Preview Content Cards</h4>
+                        <p>Browse content cards showing thumbnails, titles, categories, durations, and ratings.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Select Content Items</h4>
+                        <p>Click "Add to Assignment" on desired content items. Selected items show visual confirmation.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Review Selected Content</h4>
+                        <p>View selected PRIZM content count and list in assignment preview panel.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Create Assignment</h4>
+                        <p>When assignment is created, PRIZM content IDs and metadata are stored in assignment.prizmContent array.</p>
+                    </div>
+                </div>
+
+                <h3>Student Workflow: Accessing PRIZM Content</h3>
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <h4>Load Assignment with PRIZM Content</h4>
+                        <p>Student opens assignment and sees PRIZM content cards below task list.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>View Content Card Grid</h4>
+                        <p>PRIZM content displays as visual cards with thumbnails, titles, categories, and durations.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Click Content to Play</h4>
+                        <p>Student clicks PRIZM content card to open fullscreen player modal.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Experience Content in Player</h4>
+                        <p>Modal displays content icon, title, description, duration, and category-specific details.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Access Content URL</h4>
+                        <p>Student clicks "Open in PRIZM Repository" to launch content in new tab from CDN URL.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Return to Assignment</h4>
+                        <p>Close modal to return to assignment task list and access additional PRIZM content items.</p>
+                    </div>
+                </div>
+
+                <h3>PRIZM Content Sequence Diagram</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">End-to-End PRIZM Content Flow</div>
+                    <div class="mermaid">
+sequenceDiagram
+    actor Teacher
+    participant TeacherUI as Teacher Studio
+    participant API as PRIZM API
+    participant Repo as PRIZM Repository
+    participant Assignment as Assignment Service
+    actor Student
+    participant StudentUI as Student View
+
+    Teacher->>TeacherUI: Open PRIZM Content Panel
+    TeacherUI->>API: GET /api/prizm/content?topic=Linear+Equations
+
+    API->>Repo: Filter content by topic
+    Repo-->>API: Return matching content items
+    API-->>TeacherUI: {content: [PRIZM-004, PRIZM-005], total: 2}
+
+    TeacherUI->>Teacher: Display content cards with thumbnails
+
+    Teacher->>TeacherUI: Select PRIZM-004 (Linear Equations PDF)
+    Teacher->>TeacherUI: Select PRIZM-005 (Desmos Tutorial Video)
+    TeacherUI->>TeacherUI: Store selected IDs: [PRIZM-004, PRIZM-005]
+
+    Teacher->>TeacherUI: Click "Create Assignment"
+    TeacherUI->>API: POST /api/assignments<br/>{prizmContent: [PRIZM-004, PRIZM-005]}
+
+    API->>Repo: Resolve content details for IDs
+    Repo-->>API: Return full metadata for each item
+    API->>Assignment: Store assignment with prizmContent array
+    Assignment-->>API: Assignment created with ID: abc-123
+
+    API-->>TeacherUI: {assignment, studentLaunchLink}
+    TeacherUI->>Teacher: Display success + launch link
+
+    Note over Student: Student clicks launch link
+
+    Student->>StudentUI: Open /student.html?assignmentId=abc-123
+    StudentUI->>API: GET /api/assignments/abc-123
+    API->>Assignment: Fetch assignment
+    Assignment-->>API: Return assignment with prizmContent metadata
+    API-->>StudentUI: {assignment: {prizmContent: [{id, title, thumbnailUrl,...}]}}
+
+    StudentUI->>Student: Display assignment with PRIZM content cards
+
+    Student->>StudentUI: Click PRIZM-004 card
+    StudentUI->>Student: Open PRIZM Content Player modal
+    StudentUI->>Student: Show content details and thumbnail
+
+    Student->>StudentUI: Click "Open in PRIZM Repository"
+    StudentUI->>Student: Open new tab → contentUrl (mock CDN)
+                    </div>
                 </div>
             </section>
 

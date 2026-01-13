@@ -138,6 +138,7 @@
               Learners[Learners & performance]
               Scheme[Scheme of work]
               Resources[Content resources]
+              PRIZM[PRIZM content repository]
               Schools[Schools]
               AssignmentMap[Assignments Map]
             end
@@ -154,10 +155,14 @@
             APIs --> Assignments
             APIs --> Recommend
             APIs --> LTI
+            APIs --> PRIZM
             Assignments --> AssignmentMap
+            Assignments --> PRIZM
             Recommend --> Learners
             Recommend --> Scheme
             Recommend --> Resources
+            Teacher --> PRIZM
+            Student --> PRIZM
             APIs --> Schools
             Learners --- Schools
             APIs --> ISAMS
@@ -253,6 +258,103 @@
             Server->>PG: POST batch record
             Server->>PG: POST report cycles (upsert)
             Server-->>Operator: Sync result
+        </div>
+      </section>
+
+      <section>
+        <h2>PRIZM Content Repository Extension</h2>
+        <p class="meta">
+          Digital asset management system for multimedia learning content with filtering, categorization, and assignment integration.
+        </p>
+        <div class="mermaid">
+          flowchart TB
+            subgraph Teacher[Teacher Workflow]
+              BrowsePRIZM[Browse PRIZM Repository]
+              FilterContent[Filter by Topic/Category/Difficulty]
+              PreviewContent[Preview Content Items]
+              SelectContent[Select Content for Assignment]
+            end
+
+            subgraph PRIZM[PRIZM Content Repository]
+              ContentDB[(12+ Digital Assets)]
+              Categories[Video, Interactive, Document, Image, Audio]
+              Metadata[Title, Description, Topic, Difficulty, Duration, Tags]
+            end
+
+            subgraph Assignment[Assignment Integration]
+              AssignmentData[Assignment Object]
+              ContentRefs[PRIZM Content References]
+            end
+
+            subgraph Student[Student Experience]
+              ViewAssignment[View Assignment]
+              AccessContent[Access PRIZM Content]
+              PlayContent[PRIZM Content Player]
+            end
+
+            BrowsePRIZM --> ContentDB
+            FilterContent --> Categories
+            FilterContent --> Metadata
+            PreviewContent --> ContentDB
+            SelectContent --> ContentRefs
+            ContentRefs --> AssignmentData
+            ViewAssignment --> ContentRefs
+            AccessContent --> ContentDB
+            PlayContent --> ContentDB
+
+            classDef teacher fill:#6d28d9,stroke:#4c1d95,stroke-width:2px,color:#fff;
+            classDef prizm fill:#059669,stroke:#047857,stroke-width:2px,color:#fff;
+            classDef assignment fill:#1d4ed8,stroke:#1e40af,stroke-width:2px,color:#fff;
+            classDef student fill:#c2410c,stroke:#9a3412,stroke-width:2px,color:#fff;
+
+            class BrowsePRIZM,FilterContent,PreviewContent,SelectContent teacher;
+            class ContentDB,Categories,Metadata prizm;
+            class AssignmentData,ContentRefs assignment;
+            class ViewAssignment,AccessContent,PlayContent student;
+        </div>
+        <div class="legend">
+          <span><span class="dot ui"></span>Teacher Actions</span>
+          <span><span class="dot data"></span>PRIZM Repository</span>
+          <span><span class="dot core"></span>Assignment Layer</span>
+          <span><span class="dot integration"></span>Student Actions</span>
+        </div>
+      </section>
+
+      <section>
+        <h2>Sequence Diagram: PRIZM Content Integration</h2>
+        <p class="meta">
+          Teacher selects PRIZM content for assignment, student accesses multimedia resources during homework.
+        </p>
+        <div class="mermaid">
+          sequenceDiagram
+            participant Teacher as Teacher UI (teacher.html)
+            participant Server as Node Server (server.js)
+            participant PRIZM as PRIZM Repository
+            participant Assignment as Assignment Store
+            participant Student as Student UI (student.html)
+
+            Teacher->>Server: GET /api/prizm/content?topic=Linear+Equations
+            Server->>PRIZM: Filter content by topic
+            PRIZM-->>Server: Return matching content items
+            Server-->>Teacher: Display PRIZM content cards
+            Teacher->>Teacher: Preview content thumbnails & metadata
+            Teacher->>Teacher: Select 3 PRIZM items (video, PDF, interactive)
+            Teacher->>Server: POST /api/assignments (with prizmContent IDs)
+            Server->>PRIZM: Resolve content details by IDs
+            PRIZM-->>Server: Return full content metadata
+            Server->>Assignment: Store assignment with PRIZM content references
+            Assignment-->>Server: Assignment created
+            Server-->>Teacher: Return assignment + launch link
+
+            Note over Student: Student clicks assignment link
+            Student->>Server: GET /api/assignments/:id
+            Server->>Assignment: Fetch assignment
+            Assignment-->>Server: Return assignment with PRIZM content
+            Server-->>Student: Display assignment + PRIZM content items
+            Student->>Student: Click PRIZM content item
+            Student->>Student: Open PRIZM Content Player modal
+            Student->>Server: Access content URL (video/PDF/interactive)
+            Server-->>Student: Stream content from PRIZM repository
         </div>
       </section>
     </main>
