@@ -320,6 +320,113 @@
       </label>
     );
 
+    const StudentLinkModal = ({ isOpen, onClose, studentLink }) => {
+      const [copied, setCopied] = useState(false);
+
+      const copyToClipboard = async () => {
+        try {
+          await navigator.clipboard.writeText(studentLink);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+          console.error('Failed to copy:', err);
+        }
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full animate-scale-in border-2 border-slate-200">
+            <div className="p-8">
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-2xl font-semibold text-slate-900">Assignment Created!</h3>
+                    <p className="text-sm text-slate-600 mt-1">Share this link with your students</p>
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-slate-100 rounded-lg"
+                  aria-label="Close modal"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-semibold text-slate-700 mb-2 block">Student Launch URL</label>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 text-sm font-mono overflow-x-auto">
+                      {studentLink}
+                    </div>
+                    <button
+                      onClick={copyToClipboard}
+                      className={`px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-200 shadow-md ${
+                        copied
+                          ? 'bg-green-500 text-white'
+                          : 'bg-primary-500 text-white hover:bg-primary-600 hover:shadow-lg'
+                      }`}
+                    >
+                      {copied ? (
+                        <span className="flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Copied!
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Copy Link
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-blue-900 mb-1">Next Steps</p>
+                      <p className="text-sm text-blue-800">Copy this link and share it with students via Canvas, email, or your preferred communication method. Students will access their personalized assignment through this URL.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={onClose}
+                  className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold text-sm hover:bg-slate-200 transition-all duration-200 border-2 border-slate-200"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     function TeacherApp() {
       const [currentStep, setCurrentStep] = useState(1);
       const [completedSteps, setCompletedSteps] = useState(new Set());
@@ -339,6 +446,8 @@
       const [isamsStatus, setIsamsStatus] = useState('');
       const [isamsLoading, setIsamsLoading] = useState(false);
       const [isamsSyncing, setIsamsSyncing] = useState(false);
+      const [showStudentLinkModal, setShowStudentLinkModal] = useState(false);
+      const [studentLaunchLink, setStudentLaunchLink] = useState('');
 
       // PRIZM Content Repository state
       const [prizmContent, setPrizmContent] = useState([]);
@@ -796,7 +905,9 @@
 
           const data = await response.json();
           if (response.ok) {
-            setStatus(`Assignment created! Launch URL: ${data.studentLaunchLink}`);
+            setStudentLaunchLink(data.studentLaunchLink);
+            setShowStudentLinkModal(true);
+            setStatus('');
             setAssignments((prev) => [...prev, data.assignment]);
           } else {
             setStatus(data.error || 'Failed to create assignment');
@@ -1427,6 +1538,12 @@
               </div>
             </div>
           </div>
+
+          <StudentLinkModal
+            isOpen={showStudentLinkModal}
+            onClose={() => setShowStudentLinkModal(false)}
+            studentLink={studentLaunchLink}
+          />
         </div>
       );
     }
