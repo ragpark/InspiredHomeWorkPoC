@@ -1471,287 +1471,125 @@
                 </div>
 
                 <div className="grid lg:grid-cols-4 gap-8">
-              <div className="lg:col-span-3 space-y-8">
-                <ModernCard className="p-4 flex flex-col gap-4">
-                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm text-slate-500">School selection</p>
-                      <h3 className="text-lg font-semibold text-slate-900">Choose school to scope learners & assignments</h3>
-                    </div>
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                      <select
-                        value={selectedSchool}
-                        onChange={(e) => changeSchool(e.target.value)}
-                        className="px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                      >
-                        <option value="">Select school</option>
-                        {schools.map((school) => (
-                          <option key={school.id} value={school.id}>{school.name}</option>
-                        ))}
-                      </select>
-                      {schoolStatus && <span className="text-sm text-red-600">{schoolStatus}</span>}
-                      {!schoolStatus && selectedSchoolName && (
-                        <span className="text-sm text-slate-600">Active: {selectedSchoolName}</span>
-                      )}
-                    </div>
-                  </div>
-                </ModernCard>
-
-                <ModernCard className="p-8">
-                  <div className="mb-6">
-                    <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Assignment Details</h3>
-                    <p className="text-slate-600">Create the foundation of your assignment with clear objectives and structured tasks.</p>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700">Assignment Title</label>
-                        <input
-                          type="text"
-                          value={form.title}
-                          onChange={(e) => updateForm('title', e.target.value)}
-                          placeholder="e.g., Fractions and Decimals Practice"
-                          className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700">Student Instructions</label>
-                        <input
-                          type="text"
-                          value={form.description}
-                          onChange={(e) => updateForm('description', e.target.value)}
-                          placeholder="Key reminders or context for students"
-                          className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700">Assignment Tasks</label>
-                      <p className="text-xs text-slate-500">Enter each task on a new line. Be specific about expectations and deliverables.</p>
-                      <textarea
-                        value={form.tasks}
-                        onChange={(e) => updateForm('tasks', e.target.value)}
-                        placeholder={`Read Chapter 5: Introduction to Fractions\nComplete Practice Problems 1-15\nSubmit photo of your work\nWrite one paragraph reflection on what you learned`}
-                        rows={6}
-                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700">Additional Students</label>
-                        <input
-                          type="text"
-                          value={form.students}
-                          onChange={(e) => updateForm('students', e.target.value)}
-                          placeholder="student1@school.edu, student2@school.edu"
-                          className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700">Groups</label>
-                        <input
-                          type="text"
-                          value={form.groups}
-                          onChange={(e) => updateForm('groups', e.target.value)}
-                          placeholder="Period 2, Algebra Club"
-                          className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700">Canvas Return URL</label>
-                        <input
-                          type="text"
-                          value={form.returnUrl}
-                          onChange={(e) => updateForm('returnUrl', e.target.value)}
-                          placeholder="https://canvas.example.com/courses/123"
-                          className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </ModernCard>
-
-                {currentStep === 2 && (
-                  <ModernCard className="p-8">
-                    <div className="mb-6">
-                      <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Resource Library</h3>
-                      <p className="text-slate-600">Browse and add curated content to your assignment tasks.</p>
-                    </div>
-
-                    <div className="mb-6">
-                      <div className="flex items-center gap-4">
-                        <label className="text-sm font-semibold text-slate-700">Filter by topic:</label>
-                        <select
-                          value={selectedTopic}
-                          onChange={(e) => setSelectedTopic(e.target.value)}
-                          className="px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                        >
-                          <option value="">All topics</option>
-                          {topics.map((topic) => (
-                            <option key={topic} value={topic}>{topic}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {filteredResources.length > 0 ? (
-                        filteredResources.map((resource) => (
-                          <ResourceCard key={resource.id} resource={resource} onAdd={addResource} />
-                        ))
-                      ) : (
-                        <div className="col-span-2 text-center py-12 text-slate-500">No resources available for the selected topic.</div>
-                      )}
-                    </div>
-                  </ModernCard>
-                )}
-
-                {currentStep === 2 && (
-                  <ModernCard className="p-8 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200">
-                    <div className="mb-6">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-indigo-600 rounded-lg">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                          </svg>
+                  <div className="lg:col-span-3 space-y-8">
+                    <ModernCard className="p-4 flex flex-col gap-4">
+                      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm text-slate-500">School selection</p>
+                          <h3 className="text-lg font-semibold text-slate-900">Choose school to scope learners & assignments</h3>
                         </div>
-                        <h3 className="font-serif text-2xl font-semibold text-slate-900">PRIZM Content Repository</h3>
-                      </div>
-                      <p className="text-slate-700">Browse and attach digital assets that students will experience during their homework.</p>
-                    </div>
-
-                    <div className="mb-6 space-y-4">
-                      <div className="grid md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold text-slate-700">Category</label>
+                        <div className="flex flex-col gap-2 md:flex-row md:items-center">
                           <select
-                            value={prizmFilters.category}
-                            onChange={(e) => setPrizmFilters((prev) => ({ ...prev, category: e.target.value }))}
-                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white"
+                            value={selectedSchool}
+                            onChange={(e) => changeSchool(e.target.value)}
+                            className="px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                           >
-                            <option value="All">All Categories</option>
-                            <option value="Video">Video</option>
-                            <option value="Interactive">Interactive</option>
-                            <option value="Document">Document</option>
-                            <option value="Image">Image</option>
-                            <option value="Audio">Audio</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold text-slate-700">Topic</label>
-                          <select
-                            value={prizmFilters.topic}
-                            onChange={(e) => setPrizmFilters((prev) => ({ ...prev, topic: e.target.value }))}
-                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white"
-                          >
-                            <option value="All">All Topics</option>
-                            {topics.map((topic) => (
-                              <option key={topic} value={topic}>{topic}</option>
+                            <option value="">Select school</option>
+                            {schools.map((school) => (
+                              <option key={school.id} value={school.id}>{school.name}</option>
                             ))}
                           </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold text-slate-700">Search</label>
-                          <input
-                            type="text"
-                            value={prizmFilters.search}
-                            onChange={(e) => setPrizmFilters((prev) => ({ ...prev, search: e.target.value }))}
-                            placeholder="Search content..."
-                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                          />
+                          {schoolStatus && <span className="text-sm text-red-600">{schoolStatus}</span>}
+                          {!schoolStatus && selectedSchoolName && (
+                            <span className="text-sm text-slate-600">Active: {selectedSchoolName}</span>
+                          )}
                         </div>
                       </div>
-                    </div>
+                    </ModernCard>
 
-                    {selectedPrizmContent.length > 0 && (
-                      <div className="mb-6 p-4 bg-white rounded-lg border-2 border-indigo-300">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-slate-900">Selected Content ({selectedPrizmContent.length})</h4>
-                          <button
-                            onClick={() => setSelectedPrizmContent([])}
-                            className="text-sm text-red-600 hover:text-red-700 font-medium"
-                          >
-                            Clear All
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedPrizmContent.map((id) => {
-                            const content = prizmContent.find(c => c.id === id);
-                            return content ? (
-                              <div key={id} className="flex items-center gap-2 px-3 py-1 bg-indigo-100 text-indigo-900 rounded-full text-sm">
-                                <span>{content.title}</span>
-                                <button
-                                  onClick={() => setSelectedPrizmContent(prev => prev.filter(cId => cId !== id))}
-                                  className="hover:text-red-600"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ) : null;
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto">
-                      {filteredPrizmContent.length > 0 ? (
-                        filteredPrizmContent.map((content) => (
-                          <PrizmContentCard
-                            key={content.id}
-                            content={content}
-                            isSelected={selectedPrizmContent.includes(content.id)}
-                            onToggle={togglePrizmContent}
-                          />
-                        ))
-                      ) : (
-                        <div className="col-span-3 text-center py-12 text-slate-500">
-                          No content found matching your filters.
-                        </div>
-                      )}
-                    </div>
-                  </ModernCard>
-                )}
-
-                {currentStep === 1 && (
-                  <div className="animate-scale-in space-y-8">
                     <ModernCard className="p-8">
                       <div className="mb-6">
-                        <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">AI-Enhanced Planning</h3>
-                        <p className="text-slate-600">Generate personalised content recommendations based on quartiles and curriculum context.</p>
+                        <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Assignment Details</h3>
+                        <p className="text-slate-600">Create the foundation of your assignment with clear objectives and structured tasks.</p>
                       </div>
 
                       <div className="space-y-6">
                         <div className="grid md:grid-cols-2 gap-6">
                           <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Select Quartile</label>
-                            <select
-                              value={aiForm.quartile}
-                              onChange={(e) => setAiForm((prev) => ({
-                                ...prev,
-                                quartile: e.target.value,
-                                learnerId: resolveQuartileLearnerId(e.target.value),
-                              }))}
+                            <label className="text-sm font-semibold text-slate-700">Assignment Title</label>
+                            <input
+                              type="text"
+                              value={form.title}
+                              onChange={(e) => updateForm('title', e.target.value)}
+                              placeholder="e.g., Fractions and Decimals Practice"
                               className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                            >
-                              <option value="">Choose quartile for personalisation</option>
-                              {quartileGroups.map((group) => (
-                                <option key={group.key} value={group.key}>
-                                  {group.label} ({group.learners.length} learners)
-                                </option>
-                              ))}
-                            </select>
+                            />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Topic Focus</label>
-                            <select
-                              value={aiForm.topic}
-                              onChange={(e) => setAiForm((prev) => ({ ...prev, topic: e.target.value }))}
+                            <label className="text-sm font-semibold text-slate-700">Student Instructions</label>
+                            <input
+                              type="text"
+                              value={form.description}
+                              onChange={(e) => updateForm('description', e.target.value)}
+                              placeholder="Key reminders or context for students"
                               className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700">Assignment Tasks</label>
+                          <p className="text-xs text-slate-500">Enter each task on a new line. Be specific about expectations and deliverables.</p>
+                          <textarea
+                            value={form.tasks}
+                            onChange={(e) => updateForm('tasks', e.target.value)}
+                            placeholder={`Read Chapter 5: Introduction to Fractions\nComplete Practice Problems 1-15\nSubmit photo of your work\nWrite one paragraph reflection on what you learned`}
+                            rows={6}
+                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
+                          />
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-slate-700">Additional Students</label>
+                            <input
+                              type="text"
+                              value={form.students}
+                              onChange={(e) => updateForm('students', e.target.value)}
+                              placeholder="student1@school.edu, student2@school.edu"
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-slate-700">Groups</label>
+                            <input
+                              type="text"
+                              value={form.groups}
+                              onChange={(e) => updateForm('groups', e.target.value)}
+                              placeholder="Period 2, Algebra Club"
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-slate-700">Canvas Return URL</label>
+                            <input
+                              type="text"
+                              value={form.returnUrl}
+                              onChange={(e) => updateForm('returnUrl', e.target.value)}
+                              placeholder="https://canvas.example.com/courses/123"
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </ModernCard>
+
+                    {currentStep === 2 && (
+                      <ModernCard className="p-8">
+                        <div className="mb-6">
+                          <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Resource Library</h3>
+                          <p className="text-slate-600">Browse and add curated content to your assignment tasks.</p>
+                        </div>
+
+                        <div className="mb-6">
+                          <div className="flex items-center gap-4">
+                            <label className="text-sm font-semibold text-slate-700">Filter by topic:</label>
+                            <select
+                              value={selectedTopic}
+                              onChange={(e) => setSelectedTopic(e.target.value)}
+                              className="px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                             >
-                              <option value="">Select topic area</option>
+                              <option value="">All topics</option>
                               {topics.map((topic) => (
                                 <option key={topic} value={topic}>{topic}</option>
                               ))}
@@ -1759,249 +1597,410 @@
                           </div>
                         </div>
 
-                        <div className="grid md:grid-cols-3 gap-6">
-                          <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Time Budget</label>
-                            <div className="relative">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {filteredResources.length > 0 ? (
+                            filteredResources.map((resource) => (
+                              <ResourceCard key={resource.id} resource={resource} onAdd={addResource} />
+                            ))
+                          ) : (
+                            <div className="col-span-2 text-center py-12 text-slate-500">No resources available for the selected topic.</div>
+                          )}
+                        </div>
+                      </ModernCard>
+                    )}
+
+                    {currentStep === 2 && (
+                      <ModernCard className="p-8 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200">
+                        <div className="mb-6">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-indigo-600 rounded-lg">
+                              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                              </svg>
+                            </div>
+                            <h3 className="font-serif text-2xl font-semibold text-slate-900">PRIZM Content Repository</h3>
+                          </div>
+                          <p className="text-slate-700">Browse and attach digital assets that students will experience during their homework.</p>
+                        </div>
+
+                        <div className="mb-6 space-y-4">
+                          <div className="grid md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-sm font-semibold text-slate-700">Category</label>
+                              <select
+                                value={prizmFilters.category}
+                                onChange={(e) => setPrizmFilters((prev) => ({ ...prev, category: e.target.value }))}
+                                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white"
+                              >
+                                <option value="All">All Categories</option>
+                                <option value="Video">Video</option>
+                                <option value="Interactive">Interactive</option>
+                                <option value="Document">Document</option>
+                                <option value="Image">Image</option>
+                                <option value="Audio">Audio</option>
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-semibold text-slate-700">Topic</label>
+                              <select
+                                value={prizmFilters.topic}
+                                onChange={(e) => setPrizmFilters((prev) => ({ ...prev, topic: e.target.value }))}
+                                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white"
+                              >
+                                <option value="All">All Topics</option>
+                                {topics.map((topic) => (
+                                  <option key={topic} value={topic}>{topic}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-semibold text-slate-700">Search</label>
                               <input
-                                type="number"
-                                value={aiForm.time}
-                                onChange={(e) => setAiForm((prev) => ({ ...prev, time: e.target.value }))}
-                                min="5"
-                                step="5"
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                                type="text"
+                                value={prizmFilters.search}
+                                onChange={(e) => setPrizmFilters((prev) => ({ ...prev, search: e.target.value }))}
+                                placeholder="Search content..."
+                                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                               />
-                              <span className="absolute right-4 top-3 text-sm text-slate-500">minutes</span>
                             </div>
                           </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Difficulty Mix</label>
-                            <select
-                              value={aiForm.profile}
-                              onChange={(e) => setAiForm((prev) => ({ ...prev, profile: e.target.value }))}
-                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                            >
-                              <option value="balanced">Balanced Mix</option>
-                              <option value="core">Focus on Core</option>
-                              <option value="stretch">Stretch Challenges</option>
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Academic Week</label>
-                            <input
-                              type="number"
-                              value={aiForm.week}
-                              onChange={(e) => setAiForm((prev) => ({ ...prev, week: e.target.value }))}
-                              min="1"
-                              max="18"
-                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                            />
-                          </div>
                         </div>
 
-                        <div className="flex items-center justify-between">
-                          <label className="flex items-center gap-3">
-                            <input
-                              type="checkbox"
-                              checked={aiForm.explain}
-                              onChange={(e) => setAiForm((prev) => ({ ...prev, explain: e.target.checked }))}
-                              className="rounded text-primary-500 focus:ring-primary-500"
-                            />
-                            <span className="text-sm text-slate-700">Include explanation of AI choices</span>
-                          </label>
-                          <FloatingActionButton onClick={generateAI}>AI Recommendations</FloatingActionButton>
-                        </div>
-
-                        {aiStatus && (
-                          <div
-                            className={`p-4 rounded-xl border ${
-                              aiStatus.includes('success')
-                                ? 'bg-green-50 border-green-200 text-green-700'
-                                : 'bg-blue-50 border-blue-200 text-blue-700'
-                            }`}
-                          >
-                            {aiStatus}
+                        {selectedPrizmContent.length > 0 && (
+                          <div className="mb-6 p-4 bg-white rounded-lg border-2 border-indigo-300">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-semibold text-slate-900">Selected Content ({selectedPrizmContent.length})</h4>
+                              <button
+                                onClick={() => setSelectedPrizmContent([])}
+                                className="text-sm text-red-600 hover:text-red-700 font-medium"
+                              >
+                                Clear All
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedPrizmContent.map((id) => {
+                                const content = prizmContent.find(c => c.id === id);
+                                return content ? (
+                                  <div key={id} className="flex items-center gap-2 px-3 py-1 bg-indigo-100 text-indigo-900 rounded-full text-sm">
+                                    <span>{content.title}</span>
+                                    <button
+                                      onClick={() => setSelectedPrizmContent(prev => prev.filter(cId => cId !== id))}
+                                      className="hover:text-red-600"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ) : null;
+                              })}
+                            </div>
                           </div>
                         )}
 
-                        {aiExplanation && (
-                          <ModernCard className="p-6 bg-slate-50">
-                            <h4 className="font-semibold text-slate-900 mb-3">AI Explanation</h4>
-                            <pre className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{aiExplanation}</pre>
-                          </ModernCard>
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto">
+                          {filteredPrizmContent.length > 0 ? (
+                            filteredPrizmContent.map((content) => (
+                              <PrizmContentCard
+                                key={content.id}
+                                content={content}
+                                isSelected={selectedPrizmContent.includes(content.id)}
+                                onToggle={togglePrizmContent}
+                              />
+                            ))
+                          ) : (
+                            <div className="col-span-3 text-center py-12 text-slate-500">
+                              No content found matching your filters.
+                            </div>
+                          )}
+                        </div>
+                      </ModernCard>
+                    )}
+
+                    {currentStep === 1 && (
+                      <div className="animate-scale-in space-y-8">
+                        <ModernCard className="p-8">
+                          <div className="mb-6">
+                            <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">AI-Enhanced Planning</h3>
+                            <p className="text-slate-600">Generate personalised content recommendations based on quartiles and curriculum context.</p>
+                          </div>
+
+                          <div className="space-y-6">
+                            <div className="grid md:grid-cols-2 gap-6">
+                              <div className="space-y-2">
+                                <label className="text-sm font-semibold text-slate-700">Select Quartile</label>
+                                <select
+                                  value={aiForm.quartile}
+                                  onChange={(e) => setAiForm((prev) => ({
+                                    ...prev,
+                                    quartile: e.target.value,
+                                    learnerId: resolveQuartileLearnerId(e.target.value),
+                                  }))}
+                                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                                >
+                                  <option value="">Choose quartile for personalisation</option>
+                                  {quartileGroups.map((group) => (
+                                    <option key={group.key} value={group.key}>
+                                      {group.label} ({group.learners.length} learners)
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-semibold text-slate-700">Topic Focus</label>
+                                <select
+                                  value={aiForm.topic}
+                                  onChange={(e) => setAiForm((prev) => ({ ...prev, topic: e.target.value }))}
+                                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                                >
+                                  <option value="">Select topic area</option>
+                                  {topics.map((topic) => (
+                                    <option key={topic} value={topic}>{topic}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="grid md:grid-cols-3 gap-6">
+                              <div className="space-y-2">
+                                <label className="text-sm font-semibold text-slate-700">Time Budget</label>
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    value={aiForm.time}
+                                    onChange={(e) => setAiForm((prev) => ({ ...prev, time: e.target.value }))}
+                                    min="5"
+                                    step="5"
+                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                                  />
+                                  <span className="absolute right-4 top-3 text-sm text-slate-500">minutes</span>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-semibold text-slate-700">Difficulty Mix</label>
+                                <select
+                                  value={aiForm.profile}
+                                  onChange={(e) => setAiForm((prev) => ({ ...prev, profile: e.target.value }))}
+                                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                                >
+                                  <option value="balanced">Balanced Mix</option>
+                                  <option value="core">Focus on Core</option>
+                                  <option value="stretch">Stretch Challenges</option>
+                                </select>
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-semibold text-slate-700">Academic Week</label>
+                                <input
+                                  type="number"
+                                  value={aiForm.week}
+                                  onChange={(e) => setAiForm((prev) => ({ ...prev, week: e.target.value }))}
+                                  min="1"
+                                  max="18"
+                                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <label className="flex items-center gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={aiForm.explain}
+                                  onChange={(e) => setAiForm((prev) => ({ ...prev, explain: e.target.checked }))}
+                                  className="rounded text-primary-500 focus:ring-primary-500"
+                                />
+                                <span className="text-sm text-slate-700">Include explanation of AI choices</span>
+                              </label>
+                              <FloatingActionButton onClick={generateAI}>AI Recommendations</FloatingActionButton>
+                            </div>
+
+                            {aiStatus && (
+                              <div
+                                className={`p-4 rounded-xl border ${
+                                  aiStatus.includes('success')
+                                    ? 'bg-green-50 border-green-200 text-green-700'
+                                    : 'bg-blue-50 border-blue-200 text-blue-700'
+                                }`}
+                              >
+                                {aiStatus}
+                              </div>
+                            )}
+
+                            {aiExplanation && (
+                              <ModernCard className="p-6 bg-slate-50">
+                                <h4 className="font-semibold text-slate-900 mb-3">AI Explanation</h4>
+                                <pre className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{aiExplanation}</pre>
+                              </ModernCard>
+                            )}
+                          </div>
+                        </ModernCard>
+                      </div>
+                    )}
+
+                    {currentStep === 3 && (
+                      <div className="animate-scale-in space-y-8">
+                        <ModernCard className="p-8">
+                          <div className="mb-6">
+                            <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Learner Selection</h3>
+                            <p className="text-slate-600">Choose which quartiles will receive this assignment.</p>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-6 mb-8">
+                            {quartileGroups.map((group) => (
+                              <QuartileCard
+                                key={group.key}
+                                group={group}
+                                isSelected={selectedQuartiles.has(group.key)}
+                                onToggle={toggleQuartile}
+                              />
+                            ))}
+                          </div>
+
+                          <div className="border-t border-slate-200 pt-6">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm text-slate-600">
+                                {selectedQuartiles.size} quartile{selectedQuartiles.size !== 1 ? 's' : ''} selected • {selectedLearners.size} learner{selectedLearners.size !== 1 ? 's' : ''}
+                              </div>
+                              <FloatingActionButton onClick={() => setCurrentStep(2)} variant="secondary">Return to details</FloatingActionButton>
+                            </div>
+
+                            {status && (
+                              <div
+                                className={`mt-4 p-4 rounded-xl border ${
+                                  status.includes('created')
+                                    ? 'bg-green-50 border-green-200 text-green-700'
+                                    : 'bg-blue-50 border-blue-200 text-blue-700'
+                                }`}
+                              >
+                                {status}
+                              </div>
+                            )}
+                          </div>
+                        </ModernCard>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-6">
+                    <ModernCard className="p-6">
+                      <h4 className="font-semibold text-slate-900 mb-4">Assignment Progress</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">AI Enhancement</span>
+                          <span className={completedSteps.has(1) ? 'text-green-600' : 'text-slate-400'}>{completedSteps.has(1) ? '✓' : '○'}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Title & Tasks</span>
+                          <span className={completedSteps.has(2) ? 'text-green-600' : 'text-slate-400'}>{completedSteps.has(2) ? '✓' : '○'}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Learner Selection</span>
+                          <span className={completedSteps.has(3) ? 'text-green-600' : 'text-slate-400'}>{completedSteps.has(3) ? '✓' : '○'}</span>
+                        </div>
+                      </div>
+                      <div className="mt-4 h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-500" style={{ width: `${(completedSteps.size / 3) * 100}%` }}></div>
+                      </div>
+                    </ModernCard>
+
+                    <ModernCard className="p-6">
+                      <h4 className="font-semibold text-slate-900 mb-4">Quick Stats</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Active school</span>
+                          <span className="font-medium">{selectedSchoolName || 'None selected'}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Available learners</span>
+                          <span className="font-medium">{learners.length}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Content resources</span>
+                          <span className="font-medium">{resources.length}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Topics covered</span>
+                          <span className="font-medium">{topics.length}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Past assignments</span>
+                          <span className="font-medium">{assignments.length}</span>
+                        </div>
+                      </div>
+                    </ModernCard>
+
+                    <ModernCard className="p-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <h4 className="font-semibold text-slate-900">iSAMS Report Cycles</h4>
+                          <p className="text-xs text-slate-500">Sync and review report cycles for the active school.</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => loadIsamsCycles(selectedSchool)}
+                            className="text-xs px-3 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                            disabled={isamsLoading}
+                          >
+                            {isamsLoading ? 'Refreshing...' : 'Refresh'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={syncIsamsCycles}
+                            className="text-xs px-3 py-1 rounded-lg bg-primary-500 text-white hover:bg-primary-600 disabled:bg-primary-300"
+                            disabled={isamsSyncing}
+                          >
+                            {isamsSyncing ? 'Syncing...' : 'Sync iSAMS'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {isamsStatus && (
+                        <div
+                          className={`mt-3 p-3 rounded-lg text-xs border ${
+                            isamsStatus.includes('Synced')
+                              ? 'bg-green-50 border-green-200 text-green-700'
+                              : 'bg-amber-50 border-amber-200 text-amber-700'
+                          }`}
+                        >
+                          {isamsStatus}
+                        </div>
+                      )}
+
+                      <div className="mt-4 space-y-3">
+                        {isamsLoading && <p className="text-xs text-slate-500">Loading report cycles…</p>}
+                        {!isamsLoading && isamsCycles.length === 0 && (
+                          <p className="text-xs text-slate-500">No report cycles found yet. Run a sync to fetch them.</p>
+                        )}
+                        {!isamsLoading &&
+                          isamsCycles.map((cycle) => (
+                            <div key={cycle.id} className="border border-slate-200 rounded-lg p-3">
+                              <div className="text-sm font-medium text-slate-900">{cycle.name || 'Unnamed cycle'}</div>
+                              <div className="text-xs text-slate-500">
+                                {cycle.start_date || 'TBD'} → {cycle.end_date || 'TBD'}
+                              </div>
+                              <div className="text-xs text-primary-700">{cycle.status || 'Status unknown'}</div>
+                            </div>
+                          ))}
+                      </div>
+                    </ModernCard>
+
+                    <ModernCard className="p-6">
+                      <h4 className="font-semibold text-slate-900 mb-4">Recent Assignments</h4>
+                      <div className="space-y-3">
+                        {assignments.length === 0 ? (
+                          <p className="text-sm text-slate-500">No assignments yet</p>
+                        ) : (
+                          assignments.slice(-3).map((assignment) => (
+                            <div key={assignment.id} className="p-3 border border-slate-200 rounded-lg">
+                              <div className="font-medium text-sm text-slate-900 mb-1">{assignment.title}</div>
+                              <div className="text-xs text-slate-500">{new Date(assignment.createdAt).toLocaleDateString()}</div>
+                              <div className="text-xs text-primary-700">{assignment.schoolName}</div>
+                            </div>
+                          ))
                         )}
                       </div>
                     </ModernCard>
                   </div>
-                )}
-
-                {currentStep === 3 && (
-                  <div className="animate-scale-in space-y-8">
-                    <ModernCard className="p-8">
-                      <div className="mb-6">
-                        <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Learner Selection</h3>
-                        <p className="text-slate-600">Choose which quartiles will receive this assignment.</p>
-                      </div>
-
-                      <div className="grid md:grid-cols-2 gap-6 mb-8">
-                        {quartileGroups.map((group) => (
-                          <QuartileCard
-                            key={group.key}
-                            group={group}
-                            isSelected={selectedQuartiles.has(group.key)}
-                            onToggle={toggleQuartile}
-                          />
-                        ))}
-                      </div>
-
-                      <div className="border-t border-slate-200 pt-6">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm text-slate-600">
-                            {selectedQuartiles.size} quartile{selectedQuartiles.size !== 1 ? 's' : ''} selected • {selectedLearners.size} learner{selectedLearners.size !== 1 ? 's' : ''}
-                          </div>
-                          <FloatingActionButton onClick={() => setCurrentStep(2)} variant="secondary">Return to details</FloatingActionButton>
-                        </div>
-
-                        {status && (
-                          <div
-                            className={`mt-4 p-4 rounded-xl border ${
-                              status.includes('created')
-                                ? 'bg-green-50 border-green-200 text-green-700'
-                                : 'bg-blue-50 border-blue-200 text-blue-700'
-                            }`}
-                          >
-                            {status}
-                          </div>
-                        )}
-                      </div>
-                    </ModernCard>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-6">
-                <ModernCard className="p-6">
-                  <h4 className="font-semibold text-slate-900 mb-4">Assignment Progress</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">AI Enhancement</span>
-                      <span className={completedSteps.has(1) ? 'text-green-600' : 'text-slate-400'}>{completedSteps.has(1) ? '✓' : '○'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Title & Tasks</span>
-                      <span className={completedSteps.has(2) ? 'text-green-600' : 'text-slate-400'}>{completedSteps.has(2) ? '✓' : '○'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Learner Selection</span>
-                      <span className={completedSteps.has(3) ? 'text-green-600' : 'text-slate-400'}>{completedSteps.has(3) ? '✓' : '○'}</span>
-                    </div>
-                  </div>
-                  <div className="mt-4 h-2 bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-500" style={{ width: `${(completedSteps.size / 3) * 100}%` }}></div>
-                  </div>
-                </ModernCard>
-
-                <ModernCard className="p-6">
-                  <h4 className="font-semibold text-slate-900 mb-4">Quick Stats</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Active school</span>
-                      <span className="font-medium">{selectedSchoolName || 'None selected'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Available learners</span>
-                      <span className="font-medium">{learners.length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Content resources</span>
-                      <span className="font-medium">{resources.length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Topics covered</span>
-                      <span className="font-medium">{topics.length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Past assignments</span>
-                      <span className="font-medium">{assignments.length}</span>
-                    </div>
-                  </div>
-                </ModernCard>
-
-                <ModernCard className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h4 className="font-semibold text-slate-900">iSAMS Report Cycles</h4>
-                      <p className="text-xs text-slate-500">Sync and review report cycles for the active school.</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => loadIsamsCycles(selectedSchool)}
-                        className="text-xs px-3 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
-                        disabled={isamsLoading}
-                      >
-                        {isamsLoading ? 'Refreshing...' : 'Refresh'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={syncIsamsCycles}
-                        className="text-xs px-3 py-1 rounded-lg bg-primary-500 text-white hover:bg-primary-600 disabled:bg-primary-300"
-                        disabled={isamsSyncing}
-                      >
-                        {isamsSyncing ? 'Syncing...' : 'Sync iSAMS'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {isamsStatus && (
-                    <div
-                      className={`mt-3 p-3 rounded-lg text-xs border ${
-                        isamsStatus.includes('Synced')
-                          ? 'bg-green-50 border-green-200 text-green-700'
-                          : 'bg-amber-50 border-amber-200 text-amber-700'
-                      }`}
-                    >
-                      {isamsStatus}
-                    </div>
-                  )}
-
-                  <div className="mt-4 space-y-3">
-                    {isamsLoading && <p className="text-xs text-slate-500">Loading report cycles…</p>}
-                    {!isamsLoading && isamsCycles.length === 0 && (
-                      <p className="text-xs text-slate-500">No report cycles found yet. Run a sync to fetch them.</p>
-                    )}
-                    {!isamsLoading &&
-                      isamsCycles.map((cycle) => (
-                        <div key={cycle.id} className="border border-slate-200 rounded-lg p-3">
-                          <div className="text-sm font-medium text-slate-900">{cycle.name || 'Unnamed cycle'}</div>
-                          <div className="text-xs text-slate-500">
-                            {cycle.start_date || 'TBD'} → {cycle.end_date || 'TBD'}
-                          </div>
-                          <div className="text-xs text-primary-700">{cycle.status || 'Status unknown'}</div>
-                        </div>
-                      ))}
-                  </div>
-                </ModernCard>
-
-                <ModernCard className="p-6">
-                  <h4 className="font-semibold text-slate-900 mb-4">Recent Assignments</h4>
-                  <div className="space-y-3">
-                    {assignments.length === 0 ? (
-                      <p className="text-sm text-slate-500">No assignments yet</p>
-                    ) : (
-                      assignments.slice(-3).map((assignment) => (
-                        <div key={assignment.id} className="p-3 border border-slate-200 rounded-lg">
-                          <div className="font-medium text-sm text-slate-900 mb-1">{assignment.title}</div>
-                          <div className="text-xs text-slate-500">{new Date(assignment.createdAt).toLocaleDateString()}</div>
-                          <div className="text-xs text-primary-700">{assignment.schoolName}</div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </ModernCard>
                 </div>
-              </div>
-            </div>
               </>
             )}
 
