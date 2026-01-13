@@ -166,6 +166,285 @@ const contentResources = [
   },
 ];
 
+// PRIZM Content Repository - Mock digital asset storage
+const prizmContentRepository = [
+  {
+    id: 'PRIZM-001',
+    title: 'Introduction to Fractions - Video Lesson',
+    description: 'Animated video explaining fraction basics with real-world examples',
+    topic: 'Fractions and mixed numbers',
+    category: 'Video',
+    mediaType: 'video/mp4',
+    difficulty: 'Foundation',
+    duration: 480, // seconds
+    fileSize: 125000000, // bytes
+    thumbnailUrl: 'https://via.placeholder.com/400x225/4F46E5/FFFFFF?text=Fractions+Video',
+    contentUrl: 'https://mock-prizm-cdn.example.com/videos/fractions-intro.mp4',
+    tags: ['visual-learning', 'foundational-concepts', 'animations'],
+    alignedStandards: ['CCSS.MATH.CONTENT.3.NF.A.1', 'CCSS.MATH.CONTENT.4.NF.A.1'],
+    alignedOutcomes: ['maths.fractions.equivalence', 'maths.fractions.basics'],
+    uploadedBy: 'admin@school.edu',
+    uploadedAt: '2025-09-15T10:30:00Z',
+    viewCount: 342,
+    rating: 4.7,
+  },
+  {
+    id: 'PRIZM-002',
+    title: 'Fraction Strips Interactive Activity',
+    description: 'Interactive digital manipulative for exploring fraction equivalence',
+    topic: 'Fractions and mixed numbers',
+    category: 'Interactive',
+    mediaType: 'application/html',
+    difficulty: 'Foundation',
+    duration: 900, // seconds
+    fileSize: 2500000, // bytes
+    thumbnailUrl: 'https://via.placeholder.com/400x225/059669/FFFFFF?text=Interactive+Fractions',
+    contentUrl: 'https://mock-prizm-cdn.example.com/interactive/fraction-strips/index.html',
+    tags: ['interactive', 'manipulatives', 'hands-on'],
+    alignedStandards: ['CCSS.MATH.CONTENT.3.NF.A.3'],
+    alignedOutcomes: ['maths.fractions.equivalence'],
+    uploadedBy: 'teacher1@school.edu',
+    uploadedAt: '2025-10-02T14:20:00Z',
+    viewCount: 189,
+    rating: 4.9,
+  },
+  {
+    id: 'PRIZM-003',
+    title: 'Ratios in Real Life - Photo Gallery',
+    description: 'High-quality images showing ratio applications in architecture, cooking, and sports',
+    topic: 'Ratios and rates',
+    category: 'Image',
+    mediaType: 'image/jpeg',
+    difficulty: 'Core',
+    duration: 300, // seconds
+    fileSize: 45000000, // bytes (gallery of images)
+    thumbnailUrl: 'https://via.placeholder.com/400x225/DC2626/FFFFFF?text=Ratio+Photos',
+    contentUrl: 'https://mock-prizm-cdn.example.com/galleries/ratios-real-life.zip',
+    tags: ['real-world', 'visual', 'applications'],
+    alignedStandards: ['CCSS.MATH.CONTENT.6.RP.A.1'],
+    alignedOutcomes: ['maths.number.ratios'],
+    uploadedBy: 'teacher2@school.edu',
+    uploadedAt: '2025-10-12T09:15:00Z',
+    viewCount: 156,
+    rating: 4.5,
+  },
+  {
+    id: 'PRIZM-004',
+    title: 'Linear Equations Workbook PDF',
+    description: 'Comprehensive practice workbook with worked examples and exercises',
+    topic: 'Linear equations and inequalities',
+    category: 'Document',
+    mediaType: 'application/pdf',
+    difficulty: 'Core',
+    duration: 1800, // seconds
+    fileSize: 8500000, // bytes
+    thumbnailUrl: 'https://via.placeholder.com/400x225/7C3AED/FFFFFF?text=Linear+Equations+PDF',
+    contentUrl: 'https://mock-prizm-cdn.example.com/documents/linear-equations-workbook.pdf',
+    tags: ['practice', 'worksheets', 'step-by-step'],
+    alignedStandards: ['CCSS.MATH.CONTENT.8.EE.C.7'],
+    alignedOutcomes: ['maths.algebra.linear-two-step', 'maths.algebra.solving'],
+    uploadedBy: 'admin@school.edu',
+    uploadedAt: '2025-09-20T16:45:00Z',
+    viewCount: 421,
+    rating: 4.8,
+  },
+  {
+    id: 'PRIZM-005',
+    title: 'Desmos Graphing Tutorial - Screencast',
+    description: 'Step-by-step video tutorial for using Desmos to explore linear equations',
+    topic: 'Linear equations and inequalities',
+    category: 'Video',
+    mediaType: 'video/mp4',
+    difficulty: 'Core',
+    duration: 720, // seconds
+    fileSize: 180000000, // bytes
+    thumbnailUrl: 'https://via.placeholder.com/400x225/EA580C/FFFFFF?text=Desmos+Tutorial',
+    contentUrl: 'https://mock-prizm-cdn.example.com/videos/desmos-linear-equations.mp4',
+    tags: ['technology', 'graphing', 'tutorial'],
+    alignedStandards: ['CCSS.MATH.CONTENT.8.F.A.3'],
+    alignedOutcomes: ['maths.algebra.linear-two-step', 'maths.algebra.graphing'],
+    uploadedBy: 'tech-coach@school.edu',
+    uploadedAt: '2025-10-05T11:30:00Z',
+    viewCount: 278,
+    rating: 4.6,
+  },
+  {
+    id: 'PRIZM-006',
+    title: 'Quadratic Functions Podcast Episode',
+    description: 'Audio lesson exploring the history and applications of quadratic functions',
+    topic: 'Quadratic functions',
+    category: 'Audio',
+    mediaType: 'audio/mpeg',
+    difficulty: 'Stretch',
+    duration: 1200, // seconds
+    fileSize: 28000000, // bytes
+    thumbnailUrl: 'https://via.placeholder.com/400x225/0891B2/FFFFFF?text=Quadratics+Podcast',
+    contentUrl: 'https://mock-prizm-cdn.example.com/audio/quadratic-functions-ep12.mp3',
+    tags: ['audio', 'history', 'applications'],
+    alignedStandards: ['CCSS.MATH.CONTENT.HSF.IF.C.8'],
+    alignedOutcomes: ['maths.algebra.quadratic-forms'],
+    uploadedBy: 'teacher3@school.edu',
+    uploadedAt: '2025-09-28T08:00:00Z',
+    viewCount: 94,
+    rating: 4.3,
+  },
+  {
+    id: 'PRIZM-007',
+    title: 'Parabola Transformations - Interactive Simulator',
+    description: 'Interactive tool for exploring vertex form transformations of parabolas',
+    topic: 'Quadratic functions',
+    category: 'Interactive',
+    mediaType: 'application/html',
+    difficulty: 'Stretch',
+    duration: 1200, // seconds
+    fileSize: 3200000, // bytes
+    thumbnailUrl: 'https://via.placeholder.com/400x225/DB2777/FFFFFF?text=Parabola+Simulator',
+    contentUrl: 'https://mock-prizm-cdn.example.com/interactive/parabola-transformations/index.html',
+    tags: ['interactive', 'transformations', 'graphing'],
+    alignedStandards: ['CCSS.MATH.CONTENT.HSF.BF.B.3'],
+    alignedOutcomes: ['maths.algebra.quadratic-forms', 'maths.algebra.transformations'],
+    uploadedBy: 'math-dept@school.edu',
+    uploadedAt: '2025-10-08T13:20:00Z',
+    viewCount: 203,
+    rating: 4.9,
+  },
+  {
+    id: 'PRIZM-008',
+    title: 'Geometric Transformations Animation Series',
+    description: 'Series of short animations demonstrating rotations, reflections, and translations',
+    topic: 'Transformations and congruence',
+    category: 'Video',
+    mediaType: 'video/mp4',
+    difficulty: 'Core',
+    duration: 600, // seconds
+    fileSize: 150000000, // bytes
+    thumbnailUrl: 'https://via.placeholder.com/400x225/16A34A/FFFFFF?text=Transformations+Video',
+    contentUrl: 'https://mock-prizm-cdn.example.com/videos/geometric-transformations-series.mp4',
+    tags: ['animations', 'geometry', 'visual'],
+    alignedStandards: ['CCSS.MATH.CONTENT.8.G.A.1'],
+    alignedOutcomes: ['maths.geometry.transformations', 'maths.geometry.congruence'],
+    uploadedBy: 'admin@school.edu',
+    uploadedAt: '2025-09-25T10:00:00Z',
+    viewCount: 312,
+    rating: 4.7,
+  },
+  {
+    id: 'PRIZM-009',
+    title: 'Coordinate Plane Practice - Interactive Grid',
+    description: 'Interactive coordinate plane for practicing transformations with immediate feedback',
+    topic: 'Transformations and congruence',
+    category: 'Interactive',
+    mediaType: 'application/html',
+    difficulty: 'Core',
+    duration: 900, // seconds
+    fileSize: 1800000, // bytes
+    thumbnailUrl: 'https://via.placeholder.com/400x225/65A30D/FFFFFF?text=Coordinate+Grid',
+    contentUrl: 'https://mock-prizm-cdn.example.com/interactive/coordinate-transformations/index.html',
+    tags: ['interactive', 'practice', 'feedback'],
+    alignedStandards: ['CCSS.MATH.CONTENT.8.G.A.3'],
+    alignedOutcomes: ['maths.geometry.transformations', 'maths.geometry.coordinates'],
+    uploadedBy: 'teacher1@school.edu',
+    uploadedAt: '2025-10-01T15:30:00Z',
+    viewCount: 267,
+    rating: 4.8,
+  },
+  {
+    id: 'PRIZM-010',
+    title: 'Probability Simulation Lab',
+    description: 'Interactive probability simulator for running experiments and analyzing outcomes',
+    topic: 'Probability and inference',
+    category: 'Interactive',
+    mediaType: 'application/html',
+    difficulty: 'Stretch',
+    duration: 1500, // seconds
+    fileSize: 4200000, // bytes
+    thumbnailUrl: 'https://via.placeholder.com/400x225/C026D3/FFFFFF?text=Probability+Lab',
+    contentUrl: 'https://mock-prizm-cdn.example.com/interactive/probability-simulator/index.html',
+    tags: ['simulation', 'statistics', 'experiments'],
+    alignedStandards: ['CCSS.MATH.CONTENT.7.SP.C.8'],
+    alignedOutcomes: ['maths.statistics.inference', 'maths.statistics.probability'],
+    uploadedBy: 'teacher2@school.edu',
+    uploadedAt: '2025-10-10T09:45:00Z',
+    viewCount: 178,
+    rating: 4.6,
+  },
+  {
+    id: 'PRIZM-011',
+    title: 'Statistical Inference Case Studies PDF',
+    description: 'Collection of real-world case studies with statistical analysis',
+    topic: 'Probability and inference',
+    category: 'Document',
+    mediaType: 'application/pdf',
+    difficulty: 'Stretch',
+    duration: 2100, // seconds
+    fileSize: 12000000, // bytes
+    thumbnailUrl: 'https://via.placeholder.com/400x225/0D9488/FFFFFF?text=Case+Studies+PDF',
+    contentUrl: 'https://mock-prizm-cdn.example.com/documents/inference-case-studies.pdf',
+    tags: ['case-studies', 'real-world', 'analysis'],
+    alignedStandards: ['CCSS.MATH.CONTENT.HSS.IC.A.1'],
+    alignedOutcomes: ['maths.statistics.inference', 'maths.statistics.analysis'],
+    uploadedBy: 'admin@school.edu',
+    uploadedAt: '2025-09-18T14:00:00Z',
+    viewCount: 145,
+    rating: 4.5,
+  },
+  {
+    id: 'PRIZM-012',
+    title: 'Math Mindset - Growth and Challenge',
+    description: 'Motivational video about developing a growth mindset in mathematics',
+    topic: 'General',
+    category: 'Video',
+    mediaType: 'video/mp4',
+    difficulty: 'Foundation',
+    duration: 360, // seconds
+    fileSize: 90000000, // bytes
+    thumbnailUrl: 'https://via.placeholder.com/400x225/F59E0B/FFFFFF?text=Growth+Mindset',
+    contentUrl: 'https://mock-prizm-cdn.example.com/videos/math-mindset.mp4',
+    tags: ['mindset', 'motivation', 'growth'],
+    alignedStandards: [],
+    alignedOutcomes: ['maths.general.mindset'],
+    uploadedBy: 'counselor@school.edu',
+    uploadedAt: '2025-09-10T12:00:00Z',
+    viewCount: 567,
+    rating: 4.9,
+  },
+];
+
+// PRIZM content categories for filtering
+const prizmCategories = ['All', 'Video', 'Interactive', 'Document', 'Image', 'Audio'];
+
+// Helper functions for PRIZM repository
+function getPrizmContent(filters = {}) {
+  let filtered = [...prizmContentRepository];
+
+  if (filters.topic && filters.topic !== 'All') {
+    filtered = filtered.filter(item => item.topic === filters.topic);
+  }
+
+  if (filters.category && filters.category !== 'All') {
+    filtered = filtered.filter(item => item.category === filters.category);
+  }
+
+  if (filters.difficulty && filters.difficulty !== 'All') {
+    filtered = filtered.filter(item => item.difficulty === filters.difficulty);
+  }
+
+  if (filters.search) {
+    const searchLower = filters.search.toLowerCase();
+    filtered = filtered.filter(item =>
+      item.title.toLowerCase().includes(searchLower) ||
+      item.description.toLowerCase().includes(searchLower) ||
+      item.tags.some(tag => tag.toLowerCase().includes(searchLower))
+    );
+  }
+
+  return filtered;
+}
+
+function getPrizmContentById(id) {
+  return prizmContentRepository.find(item => item.id === id);
+}
+
 function buildPgRestHeaders() {
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
   if (PG_REST_API_KEY) {
@@ -626,12 +905,32 @@ function resolveBaseUrl(req) {
 
 function createAssignment(payload, baseUrl) {
   const id = randomUUID();
-  const { title, description, tasks = [], students = [], groups = [], ltiReturnUrl, schoolId } = payload;
+  const { title, description, tasks = [], students = [], groups = [], ltiReturnUrl, schoolId, prizmContent = [] } = payload;
   const school = getSchoolById(schoolId);
   if (!school) {
     throw new Error('schoolId is required and must match a configured school');
   }
   const normalizedTasks = tasks.filter(Boolean).map(task => task.trim()).filter(Boolean);
+
+  // Process PRIZM content - store references with full metadata
+  const prizmContentItems = prizmContent
+    .map(contentId => {
+      const content = getPrizmContentById(contentId);
+      if (content) {
+        return {
+          id: content.id,
+          title: content.title,
+          category: content.category,
+          mediaType: content.mediaType,
+          thumbnailUrl: content.thumbnailUrl,
+          contentUrl: content.contentUrl,
+          duration: content.duration,
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
+
   const assignment = {
     id,
     title: title || 'Untitled assignment',
@@ -639,6 +938,7 @@ function createAssignment(payload, baseUrl) {
     tasks: normalizedTasks,
     students: students.map(String),
     groups: groups.map(String),
+    prizmContent: prizmContentItems, // Include PRIZM content in assignment
     createdAt: new Date().toISOString(),
     schoolId: school.id,
     schoolName: school.name,
@@ -744,6 +1044,34 @@ const server = http.createServer(async (req, res) => {
       : contentResources;
     res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
     return res.end(JSON.stringify({ resources: filtered }));
+  }
+
+  // PRIZM Content Repository API endpoints
+  if (req.method === 'GET' && url.pathname === '/api/prizm/content') {
+    const filters = {
+      topic: url.searchParams.get('topic'),
+      category: url.searchParams.get('category'),
+      difficulty: url.searchParams.get('difficulty'),
+      search: url.searchParams.get('search'),
+    };
+    const content = getPrizmContent(filters);
+    res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
+    return res.end(JSON.stringify({ content, total: content.length }));
+  }
+
+  if (req.method === 'GET' && url.pathname.startsWith('/api/prizm/content/')) {
+    const id = url.pathname.split('/').pop();
+    const content = getPrizmContentById(id);
+    if (!content) {
+      return sendJson(res, 404, { error: 'Content not found' }, baseHeaders);
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
+    return res.end(JSON.stringify({ content }));
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/prizm/categories') {
+    res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
+    return res.end(JSON.stringify({ categories: prizmCategories }));
   }
 
   if (req.method === 'POST' && url.pathname === '/api/recommend-homework') {

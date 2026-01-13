@@ -173,6 +173,111 @@
       </ModernCard>
     );
 
+    const PrizmContentCard = ({ content, isSelected, onToggle }) => {
+      const getCategoryIcon = (category) => {
+        switch (category) {
+          case 'Video':
+            return (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            );
+          case 'Interactive':
+            return (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            );
+          case 'Document':
+            return (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            );
+          case 'Image':
+            return (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            );
+          case 'Audio':
+            return (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            );
+          default:
+            return null;
+        }
+      };
+
+      const getCategoryColor = (category) => {
+        switch (category) {
+          case 'Video': return 'bg-red-100 text-red-700';
+          case 'Interactive': return 'bg-green-100 text-green-700';
+          case 'Document': return 'bg-blue-100 text-blue-700';
+          case 'Image': return 'bg-purple-100 text-purple-700';
+          case 'Audio': return 'bg-yellow-100 text-yellow-700';
+          default: return 'bg-gray-100 text-gray-700';
+        }
+      };
+
+      const formatDuration = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+      };
+
+      const formatFileSize = (bytes) => {
+        const mb = bytes / 1000000;
+        return mb < 1000 ? `${mb.toFixed(1)} MB` : `${(mb / 1000).toFixed(1)} GB`;
+      };
+
+      return (
+        <div
+          onClick={() => onToggle(content.id)}
+          className={`cursor-pointer rounded-lg border-2 transition-all hover:shadow-lg ${
+            isSelected
+              ? 'border-indigo-500 bg-indigo-50 shadow-md'
+              : 'border-slate-200 bg-white hover:border-indigo-300'
+          }`}
+        >
+          <div className="relative">
+            <img
+              src={content.thumbnailUrl}
+              alt={content.title}
+              className="w-full h-32 object-cover rounded-t-lg"
+            />
+            <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getCategoryColor(content.category)}`}>
+              {getCategoryIcon(content.category)}
+              {content.category}
+            </div>
+            {isSelected && (
+              <div className="absolute top-2 left-2 bg-indigo-600 text-white rounded-full p-1">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+            )}
+          </div>
+          <div className="p-3 space-y-2">
+            <h4 className="font-semibold text-slate-900 text-sm leading-tight line-clamp-2">{content.title}</h4>
+            <p className="text-xs text-slate-600 line-clamp-2">{content.description}</p>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span>{formatDuration(content.duration)}</span>
+              <span>•</span>
+              <span>{formatFileSize(content.fileSize)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-yellow-500">★</span>
+              <span className="text-xs text-slate-600">{content.rating}</span>
+              <span className="text-xs text-slate-400 ml-1">({content.viewCount} views)</span>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     const QuartileCard = ({ group, isSelected, onToggle }) => (
       <label
         className={`block p-4 rounded-xl border transition-all cursor-pointer ${
@@ -220,6 +325,16 @@
       const [isamsStatus, setIsamsStatus] = useState('');
       const [isamsLoading, setIsamsLoading] = useState(false);
       const [isamsSyncing, setIsamsSyncing] = useState(false);
+
+      // PRIZM Content Repository state
+      const [prizmContent, setPrizmContent] = useState([]);
+      const [selectedPrizmContent, setSelectedPrizmContent] = useState([]);
+      const [prizmFilters, setPrizmFilters] = useState({
+        category: 'All',
+        topic: 'All',
+        difficulty: 'All',
+        search: '',
+      });
 
       const [form, setForm] = useState({
         title: '',
@@ -327,6 +442,43 @@
         return resources.filter((r) => !selectedTopic || r.topic === selectedTopic);
       }, [resources, selectedTopic]);
 
+      const filteredPrizmContent = useMemo(() => {
+        let filtered = [...prizmContent];
+
+        if (prizmFilters.category !== 'All') {
+          filtered = filtered.filter(c => c.category === prizmFilters.category);
+        }
+
+        if (prizmFilters.topic !== 'All') {
+          filtered = filtered.filter(c => c.topic === prizmFilters.topic);
+        }
+
+        if (prizmFilters.difficulty !== 'All') {
+          filtered = filtered.filter(c => c.difficulty === prizmFilters.difficulty);
+        }
+
+        if (prizmFilters.search) {
+          const searchLower = prizmFilters.search.toLowerCase();
+          filtered = filtered.filter(c =>
+            c.title.toLowerCase().includes(searchLower) ||
+            c.description.toLowerCase().includes(searchLower) ||
+            c.tags.some(tag => tag.toLowerCase().includes(searchLower))
+          );
+        }
+
+        return filtered;
+      }, [prizmContent, prizmFilters]);
+
+      const togglePrizmContent = (contentId) => {
+        setSelectedPrizmContent(prev => {
+          if (prev.includes(contentId)) {
+            return prev.filter(id => id !== contentId);
+          } else {
+            return [...prev, contentId];
+          }
+        });
+      };
+
       const isStepComplete = (step) => {
         if (step === 1) return true; // AI step optional
         if (step === 2) return form.title && form.tasks;
@@ -345,15 +497,18 @@
       useEffect(() => {
         async function loadStatic() {
           try {
-            const [schemeRes, resourceRes] = await Promise.all([
+            const [schemeRes, resourceRes, prizmRes] = await Promise.all([
               fetch('/api/scheme-of-work'),
               fetch('/api/content-resources'),
+              fetch('/api/prizm/content'),
             ]);
 
             const schemeData = await schemeRes.json();
             const resourceData = await resourceRes.json();
+            const prizmData = await prizmRes.json();
             setScheme(schemeData.schemeOfWork || null);
             setResources(resourceData.resources || []);
+            setPrizmContent(prizmData.content || []);
           } catch (error) {
             console.error('Failed to load static data:', error);
           }
@@ -615,6 +770,7 @@
           ltiReturnUrl: form.returnUrl.trim() || undefined,
           schoolId: selectedSchool,
           schoolName: selectedSchoolName,
+          prizmContent: selectedPrizmContent, // Include selected PRIZM content
         };
 
         try {
@@ -852,6 +1008,112 @@
                         ))
                       ) : (
                         <div className="col-span-2 text-center py-12 text-slate-500">No resources available for the selected topic.</div>
+                      )}
+                    </div>
+                  </ModernCard>
+                )}
+
+                {currentStep === 2 && (
+                  <ModernCard className="p-8 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200">
+                    <div className="mb-6">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-indigo-600 rounded-lg">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
+                        </div>
+                        <h3 className="font-serif text-2xl font-semibold text-slate-900">PRIZM Content Repository</h3>
+                      </div>
+                      <p className="text-slate-700">Browse and attach digital assets that students will experience during their homework.</p>
+                    </div>
+
+                    <div className="mb-6 space-y-4">
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700">Category</label>
+                          <select
+                            value={prizmFilters.category}
+                            onChange={(e) => setPrizmFilters((prev) => ({ ...prev, category: e.target.value }))}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white"
+                          >
+                            <option value="All">All Categories</option>
+                            <option value="Video">Video</option>
+                            <option value="Interactive">Interactive</option>
+                            <option value="Document">Document</option>
+                            <option value="Image">Image</option>
+                            <option value="Audio">Audio</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700">Topic</label>
+                          <select
+                            value={prizmFilters.topic}
+                            onChange={(e) => setPrizmFilters((prev) => ({ ...prev, topic: e.target.value }))}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white"
+                          >
+                            <option value="All">All Topics</option>
+                            {topics.map((topic) => (
+                              <option key={topic} value={topic}>{topic}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700">Search</label>
+                          <input
+                            type="text"
+                            value={prizmFilters.search}
+                            onChange={(e) => setPrizmFilters((prev) => ({ ...prev, search: e.target.value }))}
+                            placeholder="Search content..."
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {selectedPrizmContent.length > 0 && (
+                      <div className="mb-6 p-4 bg-white rounded-lg border-2 border-indigo-300">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-slate-900">Selected Content ({selectedPrizmContent.length})</h4>
+                          <button
+                            onClick={() => setSelectedPrizmContent([])}
+                            className="text-sm text-red-600 hover:text-red-700 font-medium"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedPrizmContent.map((id) => {
+                            const content = prizmContent.find(c => c.id === id);
+                            return content ? (
+                              <div key={id} className="flex items-center gap-2 px-3 py-1 bg-indigo-100 text-indigo-900 rounded-full text-sm">
+                                <span>{content.title}</span>
+                                <button
+                                  onClick={() => setSelectedPrizmContent(prev => prev.filter(cId => cId !== id))}
+                                  className="hover:text-red-600"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto">
+                      {filteredPrizmContent.length > 0 ? (
+                        filteredPrizmContent.map((content) => (
+                          <PrizmContentCard
+                            key={content.id}
+                            content={content}
+                            isSelected={selectedPrizmContent.includes(content.id)}
+                            onToggle={togglePrizmContent}
+                          />
+                        ))
+                      ) : (
+                        <div className="col-span-3 text-center py-12 text-slate-500">
+                          No content found matching your filters.
+                        </div>
                       )}
                     </div>
                   </ModernCard>
