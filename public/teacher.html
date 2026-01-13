@@ -428,6 +428,7 @@
     };
 
     function TeacherApp() {
+      const [viewMode, setViewMode] = useState('assignment'); // 'assignment' or 'dashboard'
       const [currentStep, setCurrentStep] = useState(1);
       const [completedSteps, setCompletedSteps] = useState(new Set());
       const [learners, setLearners] = useState([]);
@@ -923,6 +924,400 @@
         { id: 3, title: 'Learner Selection', description: 'Choose recipients and publish' },
       ];
 
+      // Mock dashboard data
+      const mockDashboardData = useMemo(() => ({
+        overview: {
+          totalAssignments: 47,
+          completedAssignments: 38,
+          averageCompletionRate: 81,
+          averageScore: 76,
+          activeStudents: learners.length,
+        },
+        recentAssignments: [
+          {
+            id: 'A001',
+            title: 'Fractions and Decimals Practice',
+            dueDate: '2026-01-15',
+            assigned: 24,
+            completed: 20,
+            avgScore: 82,
+            avgTimeMinutes: 28,
+            completionRate: 83,
+            topic: 'Fractions and mixed numbers',
+          },
+          {
+            id: 'A002',
+            title: 'Linear Equations Mastery',
+            dueDate: '2026-01-12',
+            assigned: 24,
+            completed: 24,
+            avgScore: 74,
+            avgTimeMinutes: 35,
+            completionRate: 100,
+            topic: 'Linear equations and inequalities',
+          },
+          {
+            id: 'A003',
+            title: 'Geometry Transformations',
+            dueDate: '2026-01-10',
+            assigned: 22,
+            completed: 19,
+            avgScore: 79,
+            avgTimeMinutes: 22,
+            completionRate: 86,
+            topic: 'Transformations and congruence',
+          },
+          {
+            id: 'A004',
+            title: 'Ratios and Proportions',
+            dueDate: '2026-01-08',
+            assigned: 24,
+            completed: 22,
+            avgScore: 88,
+            avgTimeMinutes: 25,
+            completionRate: 92,
+            topic: 'Ratios and rates',
+          },
+          {
+            id: 'A005',
+            title: 'Quadratic Functions',
+            dueDate: '2026-01-05',
+            assigned: 20,
+            completed: 18,
+            avgScore: 71,
+            avgTimeMinutes: 42,
+            completionRate: 90,
+            topic: 'Quadratic functions',
+          },
+        ],
+        quartilePerformance: [
+          {
+            quartile: 'Q1',
+            label: 'Quartile 1',
+            students: 6,
+            avgCompletionRate: 95,
+            avgScore: 89,
+            avgTimeMinutes: 32,
+            improvement: '+8%',
+          },
+          {
+            quartile: 'Q2',
+            label: 'Quartile 2',
+            students: 7,
+            avgCompletionRate: 87,
+            avgScore: 78,
+            avgTimeMinutes: 28,
+            improvement: '+5%',
+          },
+          {
+            quartile: 'Q3',
+            label: 'Quartile 3',
+            students: 6,
+            avgCompletionRate: 79,
+            avgScore: 71,
+            avgTimeMinutes: 26,
+            improvement: '+12%',
+          },
+          {
+            quartile: 'Q4',
+            label: 'Quartile 4',
+            students: 5,
+            avgCompletionRate: 72,
+            avgScore: 64,
+            avgTimeMinutes: 22,
+            improvement: '+15%',
+          },
+        ],
+        performanceImpact: {
+          beforeHomework: { avgScore: 68, mastery: 0.62 },
+          afterHomework: { avgScore: 76, mastery: 0.71 },
+          topicsImproved: ['Fractions and mixed numbers', 'Ratios and rates', 'Linear equations'],
+          strugglingTopics: ['Quadratic functions', 'Systems of equations'],
+        },
+        weeklyActivity: [
+          { week: 'Week 1', assigned: 3, completed: 3, avgScore: 74 },
+          { week: 'Week 2', assigned: 4, completed: 4, avgScore: 78 },
+          { week: 'Week 3', assigned: 3, completed: 3, avgScore: 72 },
+          { week: 'Week 4', assigned: 5, completed: 4, avgScore: 80 },
+          { week: 'This Week', assigned: 2, completed: 1, avgScore: 82 },
+        ],
+      }), [learners]);
+
+      const DashboardView = () => (
+        <div className="space-y-8">
+          {/* Overview Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <ModernCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-primary-100 rounded-xl">
+                  <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <span className="text-2xl font-bold text-slate-900">{mockDashboardData.overview.totalAssignments}</span>
+              </div>
+              <h4 className="text-sm font-semibold text-slate-600 mb-1">Total Assignments</h4>
+              <p className="text-xs text-slate-500">Created this term</p>
+            </ModernCard>
+
+            <ModernCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-green-100 rounded-xl">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <span className="text-2xl font-bold text-slate-900">{mockDashboardData.overview.averageCompletionRate}%</span>
+              </div>
+              <h4 className="text-sm font-semibold text-slate-600 mb-1">Avg Completion Rate</h4>
+              <p className="text-xs text-green-600">+3% vs last month</p>
+            </ModernCard>
+
+            <ModernCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-blue-100 rounded-xl">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+                <span className="text-2xl font-bold text-slate-900">{mockDashboardData.overview.averageScore}%</span>
+              </div>
+              <h4 className="text-sm font-semibold text-slate-600 mb-1">Average Score</h4>
+              <p className="text-xs text-blue-600">+8% improvement</p>
+            </ModernCard>
+
+            <ModernCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-purple-100 rounded-xl">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <span className="text-2xl font-bold text-slate-900">{mockDashboardData.overview.activeStudents}</span>
+              </div>
+              <h4 className="text-sm font-semibold text-slate-600 mb-1">Active Students</h4>
+              <p className="text-xs text-slate-500">Across all quartiles</p>
+            </ModernCard>
+          </div>
+
+          {/* Performance Impact Section */}
+          <ModernCard className="p-8">
+            <div className="mb-6">
+              <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Homework Impact on Performance</h3>
+              <p className="text-slate-600">Measuring the effectiveness of assigned homework on learner outcomes</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <div className="text-center p-6 bg-gradient-to-br from-red-50 to-orange-50 rounded-xl border-2 border-red-100">
+                <div className="text-sm font-semibold text-slate-600 mb-2">Before Homework</div>
+                <div className="text-4xl font-bold text-red-600 mb-2">{mockDashboardData.performanceImpact.beforeHomework.avgScore}%</div>
+                <div className="text-xs text-slate-500">Average Score</div>
+                <div className="mt-3 text-sm text-slate-600">Mastery: {(mockDashboardData.performanceImpact.beforeHomework.mastery * 100).toFixed(0)}%</div>
+              </div>
+
+              <div className="flex items-center justify-center">
+                <div className="text-center">
+                  <svg className="w-16 h-16 text-primary-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                  <div className="text-2xl font-bold text-green-600">+{mockDashboardData.performanceImpact.afterHomework.avgScore - mockDashboardData.performanceImpact.beforeHomework.avgScore}%</div>
+                  <div className="text-sm text-slate-600">Improvement</div>
+                </div>
+              </div>
+
+              <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+                <div className="text-sm font-semibold text-slate-600 mb-2">After Homework</div>
+                <div className="text-4xl font-bold text-green-600 mb-2">{mockDashboardData.performanceImpact.afterHomework.avgScore}%</div>
+                <div className="text-xs text-slate-500">Average Score</div>
+                <div className="mt-3 text-sm text-slate-600">Mastery: {(mockDashboardData.performanceImpact.afterHomework.mastery * 100).toFixed(0)}%</div>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="p-6 bg-green-50 rounded-xl border border-green-200">
+                <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Top Performing Topics
+                </h4>
+                <ul className="space-y-2">
+                  {mockDashboardData.performanceImpact.topicsImproved.map((topic, idx) => (
+                    <li key={idx} className="text-sm text-green-800 flex items-start gap-2">
+                      <span className="text-green-600">•</span>
+                      <span>{topic}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="p-6 bg-amber-50 rounded-xl border border-amber-200">
+                <h4 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  Needs Attention
+                </h4>
+                <ul className="space-y-2">
+                  {mockDashboardData.performanceImpact.strugglingTopics.map((topic, idx) => (
+                    <li key={idx} className="text-sm text-amber-800 flex items-start gap-2">
+                      <span className="text-amber-600">•</span>
+                      <span>{topic}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </ModernCard>
+
+          {/* Recent Assignments Table */}
+          <ModernCard className="p-8">
+            <div className="mb-6">
+              <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Recent Assignments</h3>
+              <p className="text-slate-600">Overview of recently assigned homework and completion metrics</p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-slate-200">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Assignment</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Due Date</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Completion</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Avg Score</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Avg Time</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Topic</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mockDashboardData.recentAssignments.map((assignment) => (
+                    <tr key={assignment.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-4">
+                        <div className="font-semibold text-slate-900 text-sm">{assignment.title}</div>
+                      </td>
+                      <td className="py-4 px-4 text-sm text-slate-600">{new Date(assignment.dueDate).toLocaleDateString()}</td>
+                      <td className="py-4 px-4 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`text-sm font-semibold ${assignment.completionRate >= 90 ? 'text-green-600' : assignment.completionRate >= 70 ? 'text-blue-600' : 'text-amber-600'}`}>
+                            {assignment.completionRate}%
+                          </span>
+                          <span className="text-xs text-slate-500">{assignment.completed}/{assignment.assigned}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-center">
+                        <span className={`text-sm font-semibold ${assignment.avgScore >= 80 ? 'text-green-600' : assignment.avgScore >= 70 ? 'text-blue-600' : 'text-amber-600'}`}>
+                          {assignment.avgScore}%
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-center text-sm text-slate-600">{assignment.avgTimeMinutes}m</td>
+                      <td className="py-4 px-4 text-sm text-slate-600">{assignment.topic}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </ModernCard>
+
+          {/* Quartile Performance */}
+          <ModernCard className="p-8">
+            <div className="mb-6">
+              <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Performance by Quartile</h3>
+              <p className="text-slate-600">How different learner groups are responding to homework assignments</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {mockDashboardData.quartilePerformance.map((quartile) => (
+                <div key={quartile.quartile} className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border-2 border-slate-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+                      quartile.quartile === 'Q1' ? 'bg-green-100 text-green-800' :
+                      quartile.quartile === 'Q2' ? 'bg-emerald-50 text-emerald-700' :
+                      quartile.quartile === 'Q3' ? 'bg-amber-50 text-amber-700' :
+                      'bg-orange-50 text-orange-700'
+                    }`}>
+                      {quartile.label}
+                    </span>
+                    <span className="text-xs text-green-600 font-semibold">{quartile.improvement}</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-slate-600">Completion Rate</span>
+                        <span className="text-sm font-bold text-slate-900">{quartile.avgCompletionRate}%</span>
+                      </div>
+                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-primary-500 to-primary-600" style={{ width: `${quartile.avgCompletionRate}%` }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-slate-600">Avg Score</span>
+                        <span className="text-sm font-bold text-slate-900">{quartile.avgScore}%</span>
+                      </div>
+                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-green-500 to-emerald-600" style={{ width: `${quartile.avgScore}%` }}></div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-300">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-600">Avg Time</span>
+                        <span className="font-semibold text-slate-900">{quartile.avgTimeMinutes}m</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs mt-1">
+                        <span className="text-slate-600">Students</span>
+                        <span className="font-semibold text-slate-900">{quartile.students}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ModernCard>
+
+          {/* Weekly Activity Chart */}
+          <ModernCard className="p-8">
+            <div className="mb-6">
+              <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Weekly Activity</h3>
+              <p className="text-slate-600">Assignment activity and performance trends over the past 5 weeks</p>
+            </div>
+
+            <div className="space-y-4">
+              {mockDashboardData.weeklyActivity.map((week, idx) => (
+                <div key={idx} className="flex items-center gap-4">
+                  <div className="w-24 text-sm font-semibold text-slate-700">{week.week}</div>
+                  <div className="flex-1 grid grid-cols-3 gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="text-xs text-slate-600 w-20">Assigned:</div>
+                      <div className="flex-1 h-8 bg-slate-100 rounded-lg overflow-hidden relative">
+                        <div className="h-full bg-gradient-to-r from-blue-400 to-blue-500" style={{ width: `${(week.assigned / 5) * 100}%` }}></div>
+                        <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-slate-900">{week.assigned}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-xs text-slate-600 w-20">Completed:</div>
+                      <div className="flex-1 h-8 bg-slate-100 rounded-lg overflow-hidden relative">
+                        <div className="h-full bg-gradient-to-r from-green-400 to-green-500" style={{ width: `${(week.completed / 5) * 100}%` }}></div>
+                        <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-slate-900">{week.completed}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-xs text-slate-600 w-20">Avg Score:</div>
+                      <div className="flex-1 h-8 bg-slate-100 rounded-lg overflow-hidden relative">
+                        <div className="h-full bg-gradient-to-r from-purple-400 to-purple-500" style={{ width: `${week.avgScore}%` }}></div>
+                        <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-slate-900">{week.avgScore}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ModernCard>
+        </div>
+      );
+
       return (
         <div className="min-h-screen">
           <header className="bg-white/90 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-50 shadow-sm">
@@ -938,6 +1333,38 @@
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+                    <button
+                      onClick={() => setViewMode('assignment')}
+                      className={`px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 ${
+                        viewMode === 'assignment'
+                          ? 'bg-white text-primary-600 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Create
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setViewMode('dashboard')}
+                      className={`px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 ${
+                        viewMode === 'dashboard'
+                          ? 'bg-white text-primary-600 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Dashboard
+                      </span>
+                    </button>
+                  </div>
                   <a href="/" className="text-sm text-slate-600 hover:text-primary-600 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-primary-50 font-medium">Overview</a>
                   <a href="/student.html" className="text-sm text-slate-600 hover:text-primary-600 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-primary-50 font-medium">Student View</a>
                   <div className="px-3.5 py-1.5 bg-gradient-to-r from-accent-100 to-accent-200 text-accent-800 text-xs font-semibold rounded-full shadow-sm">Live Demo</div>
@@ -959,54 +1386,91 @@
           </header>
 
           <div className="max-w-7xl mx-auto px-6 py-12">
-            <div className="mb-12 animate-slide-up">
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-primary-900 to-primary-800 p-12 lg:p-16 text-white shadow-2xl">
-                <div className="relative z-10 max-w-4xl">
-                  <div className="mb-6">
-                    <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full text-sm font-semibold border border-white/20 shadow-lg">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
-                      </svg>
-                      Modern Assignment Creation
-                    </span>
+            {/* Hero Section - Different for each view */}
+            {viewMode === 'assignment' && (
+              <div className="mb-12 animate-slide-up">
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-primary-900 to-primary-800 p-12 lg:p-16 text-white shadow-2xl">
+                  <div className="relative z-10 max-w-4xl">
+                    <div className="mb-6">
+                      <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full text-sm font-semibold border border-white/20 shadow-lg">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                        </svg>
+                        Modern Assignment Creation
+                      </span>
+                    </div>
+                    <h2 className="font-serif text-4xl lg:text-5xl font-bold mb-6 leading-tight tracking-tight">
+                      Task-oriented planning with AI intelligence and academic calendar context
+                    </h2>
+                    <p className="text-xl text-slate-100 mb-10 leading-relaxed">
+                      Create personalised homework assignments with sophisticated AI recommendations, seamless Canvas integration, and Scheme of Work aware planning.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Canvas LTI 1.3</span>
+                      <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">AI Supported</span>
+                      <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Scheme of Work Aware</span>
+                      <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Personalised Learning Tutor</span>
+                    </div>
                   </div>
-                  <h2 className="font-serif text-4xl lg:text-5xl font-bold mb-6 leading-tight tracking-tight">
-                    Task-oriented planning with AI intelligence and academic calendar context
-                  </h2>
-                  <p className="text-xl text-slate-100 mb-10 leading-relaxed">
-                    Create personalised homework assignments with sophisticated AI recommendations, seamless Canvas integration, and Scheme of Work aware planning.
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Canvas LTI 1.3</span>
-                    <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">AI Supported</span>
-                    <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Scheme of Work Aware</span>
-                    <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Personalised Learning Tutor</span>
+                  <div className="absolute top-8 right-8 w-64 h-64 bg-gradient-to-br from-primary-400/20 to-accent-400/20 rounded-full blur-3xl"></div>
+                  <div className="absolute bottom-8 right-16 w-48 h-48 bg-gradient-to-tl from-accent-400/10 to-primary-400/10 rounded-full blur-2xl"></div>
+                </div>
+              </div>
+            )}
+
+            {viewMode === 'dashboard' && (
+              <div className="mb-12 animate-slide-up">
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900 via-teal-900 to-cyan-800 p-12 lg:p-16 text-white shadow-2xl">
+                  <div className="relative z-10 max-w-4xl">
+                    <div className="mb-6">
+                      <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full text-sm font-semibold border border-white/20 shadow-lg">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                        </svg>
+                        Performance Analytics Dashboard
+                      </span>
+                    </div>
+                    <h2 className="font-serif text-4xl lg:text-5xl font-bold mb-6 leading-tight tracking-tight">
+                      Track homework impact on learner performance
+                    </h2>
+                    <p className="text-xl text-slate-100 mb-10 leading-relaxed">
+                      Visualize completion rates, scores, and performance improvements across quartiles. Data-driven insights to optimize your teaching strategy.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Real-time Metrics</span>
+                      <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Quartile Analysis</span>
+                      <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Impact Tracking</span>
+                      <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">Performance Trends</span>
+                    </div>
+                  </div>
+                  <div className="absolute top-8 right-8 w-64 h-64 bg-gradient-to-br from-cyan-400/20 to-teal-400/20 rounded-full blur-3xl"></div>
+                  <div className="absolute bottom-8 right-16 w-48 h-48 bg-gradient-to-tl from-teal-400/10 to-emerald-400/10 rounded-full blur-2xl"></div>
+                </div>
+              </div>
+            )}
+
+            {/* Assignment Creation View */}
+            {viewMode === 'assignment' && (
+              <>
+                <div className="mb-8 animate-fade-in workflow-nav" style={{ animationDelay: '0.2s' }}>
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                      {steps.map((step) => (
+                        <StepIndicator
+                          key={step.id}
+                          step={step.id}
+                          currentStep={currentStep}
+                          title={step.title}
+                          isComplete={completedSteps.has(step.id)}
+                          onClick={() => setCurrentStep(step.id)}
+                        />
+                      ))}
+                    </div>
+                    <FloatingActionButton onClick={submitAssignment}>Create Assignment</FloatingActionButton>
                   </div>
                 </div>
-                <div className="absolute top-8 right-8 w-64 h-64 bg-gradient-to-br from-primary-400/20 to-accent-400/20 rounded-full blur-3xl"></div>
-                <div className="absolute bottom-8 right-16 w-48 h-48 bg-gradient-to-tl from-accent-400/10 to-primary-400/10 rounded-full blur-2xl"></div>
-              </div>
-            </div>
 
-            <div className="mb-8 animate-fade-in workflow-nav" style={{ animationDelay: '0.2s' }}>
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
-                  {steps.map((step) => (
-                    <StepIndicator
-                      key={step.id}
-                      step={step.id}
-                      currentStep={currentStep}
-                      title={step.title}
-                      isComplete={completedSteps.has(step.id)}
-                      onClick={() => setCurrentStep(step.id)}
-                    />
-                  ))}
-                </div>
-                <FloatingActionButton onClick={submitAssignment}>Create Assignment</FloatingActionButton>
-              </div>
-            </div>
-
-            <div className="grid lg:grid-cols-4 gap-8">
+                <div className="grid lg:grid-cols-4 gap-8">
               <div className="lg:col-span-3 space-y-8">
                 <ModernCard className="p-4 flex flex-col gap-4">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -1535,8 +1999,16 @@
                     )}
                   </div>
                 </ModernCard>
+                </div>
               </div>
             </div>
+              </>
+            )}
+
+            {/* Dashboard View */}
+            {viewMode === 'dashboard' && (
+              <DashboardView />
+            )}
           </div>
 
           <StudentLinkModal
