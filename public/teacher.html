@@ -770,6 +770,57 @@
         }
       };
 
+      const exportIsamsCyclesToCSV = () => {
+        if (isamsCycles.length === 0) {
+          setIsamsStatus('No report cycles to export.');
+          return;
+        }
+
+        // Define CSV headers
+        const headers = ['Name', 'Start Date', 'End Date', 'Academic Year', 'Status', 'School ID', 'Synced At'];
+
+        // Convert data to CSV rows
+        const rows = isamsCycles.map(cycle => [
+          cycle.name || '',
+          cycle.start_date || '',
+          cycle.end_date || '',
+          cycle.academic_year || '',
+          cycle.status || '',
+          cycle.school_id || '',
+          cycle.synced_at || ''
+        ]);
+
+        // Escape CSV values (handle commas, quotes, newlines)
+        const escapeCSVValue = (value) => {
+          if (value === null || value === undefined) return '';
+          const stringValue = String(value);
+          if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+          }
+          return stringValue;
+        };
+
+        // Build CSV content
+        const csvContent = [
+          headers.map(escapeCSVValue).join(','),
+          ...rows.map(row => row.map(escapeCSVValue).join(','))
+        ].join('\n');
+
+        // Create blob and download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `isams-report-cycles-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        setIsamsStatus(`Exported ${isamsCycles.length} report cycle${isamsCycles.length !== 1 ? 's' : ''} to CSV.`);
+      };
+
       const toggleQuartile = (quartileKey) => {
         setSelectedQuartiles((prev) => {
           const next = new Set(prev);
@@ -1871,6 +1922,15 @@
                           <p className="text-xs text-slate-500">Sync and review report cycles for the active school.</p>
                         </div>
                         <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={exportIsamsCyclesToCSV}
+                            className="text-xs px-3 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={isamsCycles.length === 0}
+                            title={isamsCycles.length === 0 ? 'No data to export' : 'Export as CSV'}
+                          >
+                            Export CSV
+                          </button>
                           <button
                             type="button"
                             onClick={() => loadIsamsCycles(selectedSchool)}
