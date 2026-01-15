@@ -1547,41 +1547,6 @@
                     </ModernCard>
 
                     {currentStep === 2 && (
-                      <ModernCard className="p-8">
-                        <div className="mb-6">
-                          <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Resource Library</h3>
-                          <p className="text-slate-600">Browse and add curated content to your assignment tasks.</p>
-                        </div>
-
-                        <div className="mb-6">
-                          <div className="flex items-center gap-4">
-                            <label className="text-sm font-semibold text-slate-700">Filter by topic:</label>
-                            <select
-                              value={selectedTopic}
-                              onChange={(e) => setSelectedTopic(e.target.value)}
-                              className="px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                            >
-                              <option value="">All topics</option>
-                              {topics.map((topic) => (
-                                <option key={topic} value={topic}>{topic}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-
-                        <div className="grid md:grid-cols-2 gap-4">
-                          {filteredResources.length > 0 ? (
-                            filteredResources.map((resource) => (
-                              <ResourceCard key={resource.id} resource={resource} onAdd={addResource} />
-                            ))
-                          ) : (
-                            <div className="col-span-2 text-center py-12 text-slate-500">No resources available for the selected topic.</div>
-                          )}
-                        </div>
-                      </ModernCard>
-                    )}
-
-                    {currentStep === 2 && (
                       <ModernCard className="p-8 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200">
                         <div className="mb-6">
                           <div className="flex items-center gap-3 mb-2">
