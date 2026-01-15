@@ -1472,31 +1472,6 @@
 
                 <div className="grid lg:grid-cols-4 gap-8">
                   <div className="lg:col-span-3 space-y-8">
-                    <ModernCard className="p-4 flex flex-col gap-4">
-                      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div className="space-y-1">
-                          <p className="text-sm text-slate-500">School selection</p>
-                          <h3 className="text-lg font-semibold text-slate-900">Choose school to scope learners & assignments</h3>
-                        </div>
-                        <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                          <select
-                            value={selectedSchool}
-                            onChange={(e) => changeSchool(e.target.value)}
-                            className="px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                          >
-                            <option value="">Select school</option>
-                            {schools.map((school) => (
-                              <option key={school.id} value={school.id}>{school.name}</option>
-                            ))}
-                          </select>
-                          {schoolStatus && <span className="text-sm text-red-600">{schoolStatus}</span>}
-                          {!schoolStatus && selectedSchoolName && (
-                            <span className="text-sm text-slate-600">Active: {selectedSchoolName}</span>
-                          )}
-                        </div>
-                      </div>
-                    </ModernCard>
-
                     <ModernCard className="p-8">
                       <div className="mb-6">
                         <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Assignment Details</h3>
