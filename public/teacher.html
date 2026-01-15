@@ -428,6 +428,7 @@
     };
 
     function TeacherApp() {
+      const PRIZM_TASK_PREFIX = '[PRIZM]';
       const [viewMode, setViewMode] = useState('assignment'); // 'assignment' or 'dashboard'
       const [currentStep, setCurrentStep] = useState(1);
       const [completedSteps, setCompletedSteps] = useState(new Set());
@@ -593,6 +594,25 @@
         return filtered;
       }, [prizmContent, prizmFilters]);
 
+      const buildPrizmTaskLines = (contentIds) => {
+        return contentIds
+          .map((contentId) => prizmContent.find((content) => content.id === contentId))
+          .filter(Boolean)
+          .map((content) => {
+            const durationMinutes = content.duration ? Math.round(content.duration / 60) : null;
+            const durationText = durationMinutes ? `${durationMinutes} mins` : null;
+            const meta = [content.category, durationText, content.topic].filter(Boolean).join(', ');
+            return `${PRIZM_TASK_PREFIX} ${content.title}${meta ? ` (${meta})` : ''}`;
+          });
+      };
+
+      const mergePrizmTasks = (taskText, contentIds) => {
+        const currentLines = taskText.split('\n').map((line) => line.trim());
+        const manualLines = currentLines.filter((line) => line && !line.startsWith(PRIZM_TASK_PREFIX));
+        const prizmLines = buildPrizmTaskLines(contentIds);
+        return [...manualLines, ...prizmLines].join('\n');
+      };
+
       const togglePrizmContent = (contentId) => {
         setSelectedPrizmContent(prev => {
           if (prev.includes(contentId)) {
@@ -609,6 +629,14 @@
         if (step === 3) return selectedLearners.size > 0 || form.students;
         return false;
       };
+
+      useEffect(() => {
+        setForm((prev) => {
+          const mergedTasks = mergePrizmTasks(prev.tasks, selectedPrizmContent);
+          if (mergedTasks === prev.tasks) return prev;
+          return { ...prev, tasks: mergedTasks };
+        });
+      }, [selectedPrizmContent, prizmContent]);
 
       useEffect(() => {
         const newCompleted = new Set();
