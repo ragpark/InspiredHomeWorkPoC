@@ -919,8 +919,8 @@
       };
 
       const steps = [
-        { id: 1, title: 'AI Enhancement', description: 'Generate personalised content' },
-        { id: 2, title: 'Assignment Details', description: 'Title, description, and tasks' },
+        { id: 1, title: 'AI Recommendations', description: 'Generate personalised content' },
+        { id: 2, title: 'Teacher-Led Refinement', description: 'Title, description, and tasks' },
         { id: 3, title: 'Learner Selection', description: 'Choose recipients and publish' },
       ];
 
@@ -1466,7 +1466,7 @@
                         />
                       ))}
                     </div>
-                    <FloatingActionButton onClick={submitAssignment}>Create Assignment</FloatingActionButton>
+                    <FloatingActionButton onClick={submitAssignment}>Create Homework</FloatingActionButton>
                   </div>
                 </div>
 
@@ -1514,38 +1514,7 @@
                           />
                         </div>
 
-                        <div className="grid md:grid-cols-3 gap-6">
-                          <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Additional Students</label>
-                            <input
-                              type="text"
-                              value={form.students}
-                              onChange={(e) => updateForm('students', e.target.value)}
-                              placeholder="student1@school.edu, student2@school.edu"
-                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Groups</label>
-                            <input
-                              type="text"
-                              value={form.groups}
-                              onChange={(e) => updateForm('groups', e.target.value)}
-                              placeholder="Period 2, Algebra Club"
-                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Canvas Return URL</label>
-                            <input
-                              type="text"
-                              value={form.returnUrl}
-                              onChange={(e) => updateForm('returnUrl', e.target.value)}
-                              placeholder="https://canvas.example.com/courses/123"
-                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                            />
-                          </div>
-                        </div>
+
                       </div>
                     </ModernCard>
 
@@ -1694,7 +1663,7 @@
                       <div className="animate-scale-in space-y-8">
                         <ModernCard className="p-8">
                           <div className="mb-6">
-                            <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">AI-Enhanced Planning</h3>
+                            <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">AI recommendations (Faculty 'backbox')</h3>
                             <p className="text-slate-600">Generate personalised content recommendations based on quartiles and curriculum context.</p>
                           </div>
 
