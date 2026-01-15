@@ -903,6 +903,25 @@ function resolveBaseUrl(req) {
   }
 }
 
+const PRIZM_TASK_PREFIX = '[PRIZM]';
+
+function buildPrizmTaskLines(prizmContentItems) {
+  if (!Array.isArray(prizmContentItems)) return [];
+  return prizmContentItems.map((content) => {
+    if (!content || !content.title) return '';
+    const durationMinutes = content.duration ? Math.round(content.duration / 60) : null;
+    const durationText = durationMinutes ? `${durationMinutes} mins` : null;
+    const meta = [content.category, durationText].filter(Boolean).join(', ');
+    return `${PRIZM_TASK_PREFIX} ${content.title}${meta ? ` (${meta})` : ''}`.trim();
+  }).filter(Boolean);
+}
+
+function mergePrizmTasks(tasks, prizmContentItems) {
+  const manualTasks = (tasks || []).filter((task) => !String(task).trim().startsWith(PRIZM_TASK_PREFIX));
+  const prizmTasks = buildPrizmTaskLines(prizmContentItems);
+  return [...manualTasks, ...prizmTasks].filter(Boolean);
+}
+
 function createAssignment(payload, baseUrl) {
   const id = randomUUID();
   const { title, description, tasks = [], students = [], groups = [], ltiReturnUrl, schoolId, prizmContent = [] } = payload;
@@ -935,7 +954,7 @@ function createAssignment(payload, baseUrl) {
     id,
     title: title || 'Untitled assignment',
     description: description || '',
-    tasks: normalizedTasks,
+    tasks: mergePrizmTasks(normalizedTasks, prizmContentItems),
     students: students.map(String),
     groups: groups.map(String),
     prizmContent: prizmContentItems, // Include PRIZM content in assignment
