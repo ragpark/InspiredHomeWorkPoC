@@ -1,0 +1,2606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspired Homework PoC - Design Document</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --accent: #fbbf24;
+            --dark: #1e293b;
+            --light: #f1f5f9;
+            --success: #10b981;
+            --info: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        header p {
+            font-size: 1.25rem;
+            opacity: 0.95;
+        }
+
+        .meta {
+            background: var(--light);
+            padding: 1.5rem 2rem;
+            border-bottom: 3px solid var(--accent);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-item strong {
+            color: var(--primary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        nav {
+            background: var(--dark);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        main {
+            padding: 3rem 2rem;
+        }
+
+        section {
+            margin-bottom: 4rem;
+            scroll-margin-top: 80px;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            border-bottom: 4px solid var(--accent);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        h3 {
+            font-size: 1.75rem;
+            margin: 2rem 0 1rem;
+            color: var(--dark);
+        }
+
+        h4 {
+            font-size: 1.25rem;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--primary-light);
+        }
+
+        p {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .diagram-container {
+            background: var(--light);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .diagram-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .mermaid {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, var(--light) 0%, white 100%);
+            border-left: 4px solid var(--primary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        }
+
+        .feature-card h4 {
+            margin-top: 0;
+            font-size: 1.25rem;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+
+        .tech-badge {
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tech-badge.backend { background: #10b981; }
+        .tech-badge.frontend { background: #3b82f6; }
+        .tech-badge.storage { background: #f59e0b; }
+        .tech-badge.integration { background: #8b5cf6; }
+
+        .data-model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .model-card {
+            background: white;
+            border: 2px solid var(--primary-light);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .model-header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .model-body {
+            padding: 1rem;
+        }
+
+        .model-field {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--light);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .model-field:last-child {
+            border-bottom: none;
+        }
+
+        .field-name {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .field-type {
+            color: var(--primary-light);
+        }
+
+        .api-endpoint {
+            background: var(--dark);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .api-method {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-right: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .api-method.get { background: var(--success); }
+        .api-method.post { background: var(--info); }
+        .api-method.put { background: var(--accent); color: var(--dark); }
+        .api-method.delete { background: #ef4444; }
+
+        .api-description {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid var(--accent);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+        }
+
+        .highlight-box strong {
+            color: var(--dark);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .flow-steps {
+            counter-reset: step;
+            margin: 2rem 0;
+        }
+
+        .flow-step {
+            position: relative;
+            padding-left: 3rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .flow-step::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 2rem;
+            height: 2rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .flow-step h4 {
+            margin-top: 0;
+        }
+
+        footer {
+            background: var(--dark);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+            }
+
+            nav {
+                display: none;
+            }
+
+            section {
+                page-break-inside: avoid;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+            }
+
+            .meta {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎓 Inspired Homework PoC</h1>
+            <p>Comprehensive Design & Architecture Document</p>
+        </header>
+
+        <div class="meta">
+            <div class="meta-item">
+                <strong>Project Type</strong>
+                <span>LTI 1.3 Homework Assignment Platform</span>
+            </div>
+            <div class="meta-item">
+                <strong>Integration</strong>
+                <span>Canvas LMS via LTI 1.3</span>
+            </div>
+            <div class="meta-item">
+                <strong>Primary Use Case</strong>
+                <span>AI-Enhanced Personalized Assignments</span>
+            </div>
+            <div class="meta-item">
+                <strong>Document Version</strong>
+                <span>1.0 - January 2026</span>
+            </div>
+        </div>
+
+        <nav>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#architecture">Architecture</a></li>
+                <li><a href="#components">Components</a></li>
+                <li><a href="#data-models">Data Models</a></li>
+                <li><a href="#flows">User Flows</a></li>
+                <li><a href="#sequences">Sequences</a></li>
+                <li><a href="#api">API Reference</a></li>
+                <li><a href="#prizm">PRIZM Repository</a></li>
+                <li><a href="#integrations">Integrations</a></li>
+            </ul>
+        </nav>
+
+        <main>
+            <!-- OVERVIEW SECTION -->
+            <section id="overview">
+                <h2>📋 Executive Overview</h2>
+
+                <p>
+                    The <strong>Inspired Homework PoC</strong> is a proof-of-concept LTI 1.3-compatible platform that enables
+                    teachers to create AI-enhanced, personalized homework assignments for students through Canvas LMS.
+                    The application demonstrates a modern, zero-dependency architecture optimized for rapid iteration and deployment.
+                </p>
+
+                <h3>🎯 Core Value Proposition</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>🤖 AI-Powered Recommendations</h4>
+                        <p>Calendar-aware recommendation engine that considers learner performance, academic calendar, and curriculum alignment to generate personalized homework assignments.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📊 Quartile-Based Differentiation</h4>
+                        <p>Learners grouped into four performance quartiles (Q1-Q4) enabling targeted instruction without exposing individual PII to teachers.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔗 Seamless LMS Integration</h4>
+                        <p>LTI 1.3 stubs ready for production implementation, enabling single sign-on and deep-linking workflows with Canvas.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🏫 Multi-School Architecture</h4>
+                        <p>Supports multiple schools with data scoping and access control, demonstrating multi-tenancy patterns.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📚 Content Library</h4>
+                        <p>Curriculum-aligned resource catalog with difficulty levels and topic alignment for easy content discovery.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔄 iSAMS Integration</h4>
+                        <p>Sync report cycles from school information systems to align assignments with academic schedules.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🎬 PRIZM Content Repository</h4>
+                        <p>Rich multimedia content library with videos, interactives, documents, images, and audio aligned to curriculum standards.</p>
+                    </div>
+                </div>
+
+                <h3>🛠️ Technology Stack</h3>
+                <div class="tech-stack">
+                    <span class="tech-badge backend">Node.js (ES Modules)</span>
+                    <span class="tech-badge backend">Native HTTP Server</span>
+                    <span class="tech-badge frontend">React 18 (CDN)</span>
+                    <span class="tech-badge frontend">Tailwind CSS (CDN)</span>
+                    <span class="tech-badge frontend">Babel Standalone</span>
+                    <span class="tech-badge storage">In-Memory Storage</span>
+                    <span class="tech-badge integration">External AI Recommender</span>
+                    <span class="tech-badge integration">iSAMS API</span>
+                    <span class="tech-badge integration">AWS S3</span>
+                    <span class="tech-badge integration">PostgREST</span>
+                </div>
+
+                <div class="highlight-box">
+                    <strong>🚀 Zero-Dependency Philosophy</strong>
+                    This application is designed with zero production dependencies, loading all frontend libraries via CDN
+                    and using native Node.js capabilities. This enables deployment in restricted environments and
+                    eliminates build steps for rapid iteration.
+                </div>
+            </section>
+
+            <!-- ARCHITECTURE SECTION -->
+            <section id="architecture">
+                <h2>🏗️ System Architecture</h2>
+
+                <h3>High-Level Architecture</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">System Components & Data Flow</div>
+                    <div class="mermaid">
+graph TB
+    subgraph "Canvas LMS"
+        Canvas[Canvas Platform]
+    end
+
+    subgraph "Application Layer"
+        Server[Node.js Server<br/>server.js]
+        Static[Static File Server]
+
+        subgraph "UI Layer"
+            Landing[Landing Page<br/>index.html]
+            Teacher[Teacher Studio<br/>teacher.html]
+            Student[Student View<br/>student.html]
+        end
+    end
+
+    subgraph "Core Services"
+        Assignment[Assignment Service]
+        Recommend[Recommendation Engine]
+        LTI[LTI 1.3 Stubs]
+        iSAMS[iSAMS Integration]
+    end
+
+    subgraph "Data Stores (In-Memory)"
+        AssignDB[(Assignments Map)]
+        LearnerDB[(Learners Array)]
+        SchoolDB[(Schools Array)]
+        SchemeDB[(Scheme of Work)]
+        ContentDB[(Content Resources)]
+        PerfDB[(Learner Performance)]
+        PRIZMDB[(PRIZM Content Repository)]
+    end
+
+    subgraph "External Integrations"
+        ExtRec[External AI<br/>Recommender API]
+        iSAMSAPI[iSAMS API]
+        S3[AWS S3]
+        PG[PostgREST]
+    end
+
+    Canvas -->|LTI Launch| LTI
+    LTI -->|Redirect| Teacher
+    LTI -->|Redirect| Student
+
+    Static --> Landing
+    Static --> Teacher
+    Static --> Student
+
+    Teacher -->|Create Assignment| Assignment
+    Teacher -->|Get Recommendations| Recommend
+    Teacher -->|Sync Cycles| iSAMS
+    Teacher -->|Browse Content| PRIZMDB
+
+    Student -->|Load Assignment| Assignment
+    Student -->|View Content| PRIZMDB
+
+    Assignment --> AssignDB
+    Assignment --> PRIZMDB
+    Recommend --> LearnerDB
+    Recommend --> PerfDB
+    Recommend --> SchemeDB
+    Recommend --> ContentDB
+    Recommend -->|Optional| ExtRec
+
+    Assignment --> SchoolDB
+    iSAMS --> iSAMSAPI
+    iSAMS --> S3
+    iSAMS --> PG
+
+    style Server fill:#4f46e5,color:#fff
+    style Assignment fill:#10b981,color:#fff
+    style Recommend fill:#3b82f6,color:#fff
+    style ExtRec fill:#8b5cf6,color:#fff
+                    </div>
+                </div>
+
+                <h3>Deployment Architecture</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">Production Deployment on Railway/PaaS</div>
+                    <div class="mermaid">
+graph LR
+    subgraph "Internet"
+        User[👤 Users]
+        Canvas[Canvas LMS]
+    end
+
+    subgraph "Railway/PaaS Platform"
+        LB[Load Balancer]
+
+        subgraph "Application Instances"
+            App1[Node.js Instance 1]
+            App2[Node.js Instance 2]
+            App3[Node.js Instance N]
+        end
+
+        Env[Environment Variables]
+    end
+
+    subgraph "External Services"
+        AI[AI Recommender]
+        iSAMS[iSAMS API]
+        S3[AWS S3]
+        DB[PostgREST/Supabase]
+    end
+
+    User --> LB
+    Canvas --> LB
+    LB --> App1
+    LB --> App2
+    LB --> App3
+
+    App1 --> AI
+    App1 --> iSAMS
+    App1 --> S3
+    App1 --> DB
+
+    Env -.->|Config| App1
+    Env -.->|Config| App2
+    Env -.->|Config| App3
+
+    style LB fill:#4f46e5,color:#fff
+    style App1 fill:#10b981,color:#fff
+    style App2 fill:#10b981,color:#fff
+    style App3 fill:#10b981,color:#fff
+                    </div>
+                </div>
+
+                <h3>Multi-Tenancy Model</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">School-Based Data Scoping</div>
+                    <div class="mermaid">
+graph TD
+    Request[HTTP Request<br/>?schoolId=SCH-A]
+
+    subgraph "School Context Layer"
+        Extract[Extract School ID]
+        Validate[Validate School Exists]
+    end
+
+    subgraph "Data Access Layer"
+        FilterLearners[Filter Learners by School]
+        FilterAssignments[Filter Assignments by School]
+        CheckAccess[Check Assignment Access]
+    end
+
+    subgraph "Schools"
+        SchA[Northfield High<br/>SCH-A]
+        SchB[Lakeside Academy<br/>SCH-B]
+        SchC[Riverside Prep<br/>SCH-C]
+    end
+
+    Request --> Extract
+    Extract --> Validate
+    Validate -->|Valid| FilterLearners
+    Validate -->|Valid| FilterAssignments
+    Validate -->|Valid| CheckAccess
+    Validate -->|Invalid| Error[403 Forbidden]
+
+    FilterLearners --> SchA
+    FilterLearners --> SchB
+    FilterLearners --> SchC
+
+    FilterAssignments --> SchA
+    FilterAssignments --> SchB
+    FilterAssignments --> SchC
+
+    style Extract fill:#4f46e5,color:#fff
+    style Validate fill:#f59e0b,color:#fff
+    style Error fill:#ef4444,color:#fff
+                    </div>
+                </div>
+            </section>
+
+            <!-- COMPONENTS SECTION -->
+            <section id="components">
+                <h2>🧩 Component Architecture</h2>
+
+                <h3>Frontend Component Hierarchy</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">Teacher Studio Component Tree</div>
+                    <div class="mermaid">
+graph TD
+    App[TeacherApp Root]
+
+    App --> Header[Header & Navigation]
+    App --> MainContent[Main Content Area]
+    App --> Sidebar[Sidebar Widgets]
+
+    MainContent --> StepIndicator[Step Indicator<br/>1→2→3]
+
+    MainContent --> Step1[Step 1: AI Enhancement]
+    MainContent --> Step2[Step 2: Assignment Details]
+    MainContent --> Step3[Step 3: Learner Selection]
+
+    Step1 --> SchoolSelector[School Selector]
+    Step1 --> QuartileSelector[Quartile Selector<br/>Q1-Q4]
+    Step1 --> TopicSelector[Topic Selector]
+    Step1 --> AIConfig[AI Configuration<br/>Time Budget, Difficulty]
+    Step1 --> AIButton[Generate Recommendations Button]
+
+    Step2 --> TitleInput[Title Input]
+    Step2 --> DescInput[Description Editor]
+    Step2 --> TasksList[Tasks List]
+    Step2 --> ResourceBrowser[Resource Browser]
+
+    ResourceBrowser --> TopicFilter[Topic Filter]
+    ResourceBrowser --> ResourceCards[Resource Cards<br/>Foundation/Core/Stretch]
+
+    Step3 --> QuartileCards[Quartile Selection Cards]
+    Step3 --> LearnerCount[Selected Learner Count]
+    Step3 --> CreateButton[Create Assignment Button]
+
+    Sidebar --> ProgressTracker[Assignment Progress]
+    Sidebar --> QuickStats[Quick Stats]
+    Sidebar --> iSAMSPanel[iSAMS Report Cycles]
+    Sidebar --> RecentAssignments[Recent Assignments List]
+
+    style App fill:#4f46e5,color:#fff
+    style Step1 fill:#10b981,color:#fff
+    style Step2 fill:#3b82f6,color:#fff
+    style Step3 fill:#8b5cf6,color:#fff
+                    </div>
+                </div>
+
+                <div class="diagram-container">
+                    <div class="diagram-title">Student View Component Tree</div>
+                    <div class="mermaid">
+graph TD
+    StudentApp[StudentApp Root]
+
+    StudentApp --> StudentHeader[Header]
+    StudentApp --> LoaderSection[Assignment Loader]
+    StudentApp --> DisplaySection[Assignment Display]
+    StudentApp --> TutorModal[Homework Tutor Modal]
+
+    LoaderSection --> SchoolSelect[School Selector]
+    LoaderSection --> AssignmentInput[Assignment ID Input]
+    LoaderSection --> LoadButton[Load Assignment Button]
+
+    DisplaySection --> AssignmentCard[Assignment Card]
+    AssignmentCard --> MetaInfo[School, Date, Title]
+    AssignmentCard --> Description[Description]
+    AssignmentCard --> TaskList[Task List]
+    AssignmentCard --> LaunchLink[Open in New Tab Link]
+    AssignmentCard --> OpenTutor[Open Homework Tutor Button]
+
+    TutorModal --> TutorLeft[Left Pane:<br/>Task Navigator]
+    TutorModal --> TutorRight[Right Pane:<br/>Active Task Details]
+
+    style StudentApp fill:#4f46e5,color:#fff
+    style DisplaySection fill:#10b981,color:#fff
+    style TutorModal fill:#3b82f6,color:#fff
+                    </div>
+                </div>
+
+                <h3>Backend Service Architecture</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">Server Services & Responsibilities</div>
+                    <div class="mermaid">
+graph LR
+    subgraph "HTTP Server (server.js)"
+        Router[Request Router]
+    end
+
+    subgraph "Static Services"
+        FileServer[Static File Server<br/>MIME Type Handler]
+    end
+
+    subgraph "Business Logic Services"
+        AssignmentSvc[Assignment Service<br/>CRUD Operations]
+        RecommendSvc[Recommendation Service<br/>AI Integration]
+        CalendarSvc[Calendar-Aware Service<br/>Scheme of Work]
+        RuleEngine[Rule-Based Recommender<br/>Fallback Logic]
+        LTISvc[LTI 1.3 Service<br/>Launch & Deep Link]
+        iSAMSSvc[iSAMS Service<br/>API Integration]
+    end
+
+    subgraph "Data Access Layer"
+        AssignmentRepo[Assignment Repository]
+        LearnerRepo[Learner Repository]
+        SchoolRepo[School Repository]
+        ContentRepo[Content Repository]
+        SchemeRepo[Scheme Repository]
+        PerfRepo[Performance Repository]
+    end
+
+    Router --> FileServer
+    Router --> AssignmentSvc
+    Router --> RecommendSvc
+    Router --> CalendarSvc
+    Router --> LTISvc
+    Router --> iSAMSSvc
+
+    AssignmentSvc --> AssignmentRepo
+    AssignmentSvc --> SchoolRepo
+
+    RecommendSvc --> LearnerRepo
+    RecommendSvc --> PerfRepo
+    RecommendSvc --> ContentRepo
+    RecommendSvc --> RuleEngine
+
+    CalendarSvc --> SchemeRepo
+    CalendarSvc --> RecommendSvc
+
+    iSAMSSvc --> SchoolRepo
+
+    style Router fill:#4f46e5,color:#fff
+    style AssignmentSvc fill:#10b981,color:#fff
+    style RecommendSvc fill:#3b82f6,color:#fff
+    style CalendarSvc fill:#8b5cf6,color:#fff
+                    </div>
+                </div>
+
+                <h3>Recommendation Engine Pipeline</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">AI Recommendation Flow</div>
+                    <div class="mermaid">
+flowchart TD
+    Start[Teacher Requests<br/>Recommendations]
+
+    Start --> CheckExternal{External API<br/>Configured?}
+
+    CheckExternal -->|Yes| BuildRequest[Build Recommendation<br/>Request Payload]
+    CheckExternal -->|No| Fallback[Use Rule-Based Engine]
+
+    BuildRequest --> GatherLearner[Gather Learner<br/>Performance Data]
+    GatherLearner --> GatherContent[Gather Content<br/>Resources by Topic]
+    GatherContent --> GatherCalendar[Gather Scheme of Work<br/>Week Mapping]
+
+    GatherCalendar --> CallAPI[HTTP POST to<br/>External Recommender]
+
+    CallAPI --> APISuccess{API Call<br/>Successful?}
+    APISuccess -->|Yes| ParseResponse[Parse Homework<br/>Response]
+    APISuccess -->|No| Fallback
+
+    Fallback --> RuleLogic[Apply Rule-Based Logic:<br/>- Filter by topic<br/>- Match difficulty to quartile<br/>- Calculate time budget<br/>- Select diverse content types]
+
+    RuleLogic --> BuildHomework[Build Homework Object]
+
+    ParseResponse --> Return[Return to Teacher]
+    BuildHomework --> Return
+
+    Return --> Populate[Populate Step 2 Form:<br/>Title, Description, Tasks]
+
+    style Start fill:#4f46e5,color:#fff
+    style CallAPI fill:#8b5cf6,color:#fff
+    style Fallback fill:#f59e0b,color:#000
+    style Return fill:#10b981,color:#fff
+                    </div>
+                </div>
+            </section>
+
+            <!-- DATA MODELS SECTION -->
+            <section id="data-models">
+                <h2>💾 Data Models</h2>
+
+                <h3>Core Entity Models</h3>
+                <div class="data-model-grid">
+                    <div class="model-card">
+                        <div class="model-header">School</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">id</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">name</span>
+                                <span class="field-type">String</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <div class="model-header">Learner</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">id</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">name</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">email</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">cohort</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">status</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">quartile</span>
+                                <span class="field-type">String (Q1-Q4)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">schoolId</span>
+                                <span class="field-type">String (FK)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <div class="model-header">Assignment</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">id</span>
+                                <span class="field-type">UUID</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">title</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">description</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">tasks</span>
+                                <span class="field-type">Array&lt;String&gt;</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">students</span>
+                                <span class="field-type">Array&lt;String&gt;</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">groups</span>
+                                <span class="field-type">Array&lt;String&gt;</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">prizmContent</span>
+                                <span class="field-type">Array&lt;Object&gt;</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">createdAt</span>
+                                <span class="field-type">ISO8601</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">schoolId</span>
+                                <span class="field-type">String (FK)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">schoolName</span>
+                                <span class="field-type">String</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <div class="model-header">Content Resource</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">id</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">topic</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">difficulty</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">lengthMinutes</span>
+                                <span class="field-type">Number</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">type</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">title</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">alignedOutcomes</span>
+                                <span class="field-type">Array&lt;String&gt;</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <div class="model-header">Learner Performance</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">mastery</span>
+                                <span class="field-type">Array&lt;Mastery&gt;</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">recentActivity</span>
+                                <span class="field-type">Activity</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <div class="model-header">iSAMS Report Cycle</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">id</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">name</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">start_date</span>
+                                <span class="field-type">ISO8601</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">end_date</span>
+                                <span class="field-type">ISO8601</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">academic_year</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">school_id</span>
+                                <span class="field-type">String (FK)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">status</span>
+                                <span class="field-type">String</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <div class="model-header">PRIZM Content</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">id</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">title</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">description</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">topic</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">category</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">mediaType</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">difficulty</span>
+                                <span class="field-type">String</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">duration</span>
+                                <span class="field-type">Number (seconds)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">fileSize</span>
+                                <span class="field-type">Number (bytes)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">contentUrl</span>
+                                <span class="field-type">String (URL)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">thumbnailUrl</span>
+                                <span class="field-type">String (URL)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">tags</span>
+                                <span class="field-type">Array&lt;String&gt;</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">alignedStandards</span>
+                                <span class="field-type">Array&lt;String&gt;</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">alignedOutcomes</span>
+                                <span class="field-type">Array&lt;String&gt;</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">rating</span>
+                                <span class="field-type">Number</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">viewCount</span>
+                                <span class="field-type">Number</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Entity Relationship Diagram</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">Data Model Relationships</div>
+                    <div class="mermaid">
+erDiagram
+    School ||--o{ Learner : contains
+    School ||--o{ Assignment : owns
+    School ||--o{ ReportCycle : has
+    Learner ||--|| LearnerPerformance : has
+    Learner }o--o{ Assignment : assigned
+    ContentResource }o--o{ Assignment : includes
+    PRIZMContent }o--o{ Assignment : attached
+    Topic }o--o{ ContentResource : aligned
+    Topic }o--o{ PRIZMContent : aligned
+    SchemeOfWork ||--o{ Topic : defines
+
+    School {
+        string id PK
+        string name
+    }
+
+    Learner {
+        string id PK
+        string name
+        string email
+        string cohort
+        string status
+        string quartile
+        string schoolId FK
+    }
+
+    Assignment {
+        uuid id PK
+        string title
+        string description
+        array tasks
+        array students
+        array groups
+        array prizmContent
+        datetime createdAt
+        string schoolId FK
+        string schoolName
+    }
+
+    LearnerPerformance {
+        string learnerId PK
+        array mastery
+        object recentActivity
+    }
+
+    ContentResource {
+        string id PK
+        string topic
+        string difficulty
+        number lengthMinutes
+        string type
+        string title
+        array alignedOutcomes
+    }
+
+    PRIZMContent {
+        string id PK
+        string title
+        string description
+        string topic
+        string category
+        string mediaType
+        string difficulty
+        number duration
+        number fileSize
+        string contentUrl
+        string thumbnailUrl
+        array tags
+        array alignedStandards
+        array alignedOutcomes
+        number rating
+        number viewCount
+    }
+
+    SchemeOfWork {
+        string academicYear
+        array semesters
+    }
+
+    ReportCycle {
+        string id PK
+        string name
+        date start_date
+        date end_date
+        string academic_year
+        string school_id FK
+        string status
+    }
+
+    Topic {
+        string name
+        number weekNumber
+    }
+                    </div>
+                </div>
+            </section>
+
+            <!-- USER FLOWS SECTION -->
+            <section id="flows">
+                <h2>🔄 User Flows</h2>
+
+                <h3>Flow 1: Teacher Creates Assignment</h3>
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <h4>Teacher Launches Teacher Studio</h4>
+                        <p>Teacher clicks "Teacher Studio" link from landing page or launches from Canvas via LTI Deep Link.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Select School & View Context</h4>
+                        <p>Teacher selects their school from dropdown. App loads learners, assignments, and resources for that school context.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Step 1: AI Enhancement</h4>
+                        <p>Teacher selects target quartile (Q1-Q4), chooses topic from scheme of work, sets time budget and difficulty profile, then clicks "AI Recommendations".</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>AI Generates Content</h4>
+                        <p>System calls external AI recommender (or fallback rule engine), analyzes learner performance and curriculum alignment, generates title, description, and task list.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Step 2: Review & Customize</h4>
+                        <p>Teacher reviews AI-generated content, edits as needed, browses content library filtered by topic, adds relevant resources to assignment.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Step 3: Select Learners</h4>
+                        <p>Teacher selects which quartiles to assign homework to (can select multiple), reviews learner count, confirms selection.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Create Assignment</h4>
+                        <p>Teacher clicks "Create Assignment". System generates UUID, stores assignment with school context, returns student launch link and optional LTI deep-link for Canvas.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Share with Students</h4>
+                        <p>Teacher either posts student launch link in Canvas or uses deep-link to embed assignment directly in Canvas course.</p>
+                    </div>
+                </div>
+
+                <div class="diagram-container">
+                    <div class="diagram-title">Teacher Flow Diagram</div>
+                    <div class="mermaid">
+flowchart TD
+    Start([Teacher Opens Studio])
+
+    Start --> SelectSchool[Select School]
+    SelectSchool --> LoadData[Load School Data<br/>Learners, Resources, Assignments]
+
+    LoadData --> Step1{Step 1:<br/>AI Enhancement}
+
+    Step1 --> SelectQuartile[Select Target Quartile]
+    SelectQuartile --> SelectTopic[Choose Topic<br/>from Scheme]
+    SelectTopic --> SetParams[Set Time Budget &<br/>Difficulty Profile]
+    SetParams --> ClickAI[Click 'AI Recommendations']
+
+    ClickAI --> AIProcess[AI Generates:<br/>Title, Description, Tasks]
+
+    AIProcess --> Step2{Step 2:<br/>Assignment Details}
+
+    Step2 --> ReviewContent[Review Generated Content]
+    ReviewContent --> EditContent{Need to<br/>Edit?}
+    EditContent -->|Yes| ModifyContent[Modify Title/Description/Tasks]
+    EditContent -->|No| BrowseResources[Browse Content Library]
+    ModifyContent --> BrowseResources
+
+    BrowseResources --> FilterTopic[Filter by Topic]
+    FilterTopic --> AddResources[Add Resources to Assignment]
+
+    AddResources --> Step3{Step 3:<br/>Learner Selection}
+
+    Step3 --> SelectQuartiles[Select Quartiles<br/>Q1, Q2, Q3, Q4]
+    SelectQuartiles --> ReviewCount[Review Learner Count]
+    ReviewCount --> CreateAssign[Click 'Create Assignment']
+
+    CreateAssign --> Generate[Generate UUID<br/>Store Assignment<br/>Generate Launch Links]
+
+    Generate --> ShareOptions{How to Share?}
+    ShareOptions -->|Manual| CopyLink[Copy Student Launch Link<br/>Post in Canvas]
+    ShareOptions -->|Deep Link| UseDeepLink[Use Deep-Link URL<br/>Embed in Canvas]
+
+    CopyLink --> End([Assignment Created])
+    UseDeepLink --> End
+
+    style Start fill:#4f46e5,color:#fff
+    style Step1 fill:#10b981,color:#fff
+    style Step2 fill:#3b82f6,color:#fff
+    style Step3 fill:#8b5cf6,color:#fff
+    style End fill:#4f46e5,color:#fff
+                    </div>
+                </div>
+
+                <h3>Flow 2: Student Completes Homework</h3>
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <h4>Student Receives Assignment</h4>
+                        <p>Student sees assignment link in Canvas course (posted by teacher or via LTI deep-link).</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Click Assignment Link</h4>
+                        <p>Student clicks link, launches student view with assignmentId and schoolId in URL parameters.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Load Assignment</h4>
+                        <p>App extracts parameters from URL, makes GET request to /api/assignments/:id?schoolId=X, validates school access.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>View Assignment Details</h4>
+                        <p>Student sees assignment title, description, task list, school name, and creation date.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Open Homework Tutor (Optional)</h4>
+                        <p>Student clicks "Open Homework Tutor" to launch modal with two-pane task player.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Navigate Tasks</h4>
+                        <p>Student uses left pane to view all tasks, clicks task to see details in right pane, works through tasks sequentially.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Access External Resources</h4>
+                        <p>Student clicks "Open in new tab" links to launch external content resources in separate windows.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Complete Homework</h4>
+                        <p>Student completes all tasks. (Note: Submission tracking not yet implemented in PoC.)</p>
+                    </div>
+                </div>
+
+                <div class="diagram-container">
+                    <div class="diagram-title">Student Flow Diagram</div>
+                    <div class="mermaid">
+flowchart TD
+    Start([Student in Canvas])
+
+    Start --> SeeLink[See Assignment Link<br/>in Course]
+    SeeLink --> ClickLink[Click Assignment Link]
+
+    ClickLink --> LaunchURL[Launch Student View<br/>URL with assignmentId & schoolId]
+
+    LaunchURL --> ParseURL[Parse URL Parameters]
+    ParseURL --> FetchAssign[GET /api/assignments/:id]
+
+    FetchAssign --> ValidateSchool{School<br/>Match?}
+    ValidateSchool -->|No| Error403[403 Forbidden Error]
+    ValidateSchool -->|Yes| DisplayAssign[Display Assignment Details]
+
+    DisplayAssign --> ViewDetails[View:<br/>Title, Description,<br/>Tasks, Resources]
+
+    ViewDetails --> ChooseMode{How to Work?}
+
+    ChooseMode -->|Simple View| ReadTasks[Read Task List]
+    ChooseMode -->|Homework Tutor| OpenTutor[Click 'Open Homework Tutor']
+
+    OpenTutor --> TutorModal[Modal Opens:<br/>Two-Pane View]
+    TutorModal --> LeftPane[Left: Task Navigator]
+    TutorModal --> RightPane[Right: Active Task Details]
+
+    LeftPane --> SelectTask[Click Task]
+    SelectTask --> UpdateRight[Update Right Pane<br/>with Task Details]
+
+    ReadTasks --> AccessResource{Need<br/>Resources?}
+    UpdateRight --> AccessResource
+
+    AccessResource -->|Yes| OpenTab[Click 'Open in new tab'<br/>Launch External Content]
+    AccessResource -->|No| WorkTask[Work on Tasks]
+
+    OpenTab --> WorkTask
+    WorkTask --> NextTask{More<br/>Tasks?}
+
+    NextTask -->|Yes| SelectTask
+    NextTask -->|No| Complete([Homework Complete])
+
+    Error403 --> End([Error - Cannot Access])
+
+    style Start fill:#4f46e5,color:#fff
+    style DisplayAssign fill:#10b981,color:#fff
+    style TutorModal fill:#3b82f6,color:#fff
+    style Complete fill:#10b981,color:#fff
+    style Error403 fill:#ef4444,color:#fff
+                    </div>
+                </div>
+
+                <h3>Flow 3: iSAMS Report Cycle Sync</h3>
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <h4>Teacher Opens iSAMS Panel</h4>
+                        <p>Teacher clicks "iSAMS Report Cycles" panel in sidebar of Teacher Studio.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Initiate Sync</h4>
+                        <p>Teacher clicks "Sync iSAMS" button to fetch latest report cycles from school information system.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Fetch from iSAMS API</h4>
+                        <p>Server makes authenticated GET request to iSAMS API endpoint for report cycles.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Store Raw Data in S3</h4>
+                        <p>Server uploads raw JSON response to S3 using presigned URL for archival and audit purposes.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Create Batch Record</h4>
+                        <p>Server posts batch metadata (timestamp, S3 key, record count) to PostgREST for tracking.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Normalize & Upsert</h4>
+                        <p>Server normalizes report cycle data (extract id, name, dates, academic year), upserts to PostgREST report_cycles table.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Display Sync Results</h4>
+                        <p>UI shows success message with record count and S3 key reference.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Refresh List</h4>
+                        <p>Teacher clicks "Refresh" to load newly synced cycles. Server fetches from PostgREST filtered by school ID.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>View Report Cycles</h4>
+                        <p>Teacher sees list of report cycles with names, dates, and academic years for reference when creating assignments.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SEQUENCES SECTION -->
+            <section id="sequences">
+                <h2>📊 Sequence Diagrams</h2>
+
+                <h3>Sequence 1: LTI Launch to Assignment Creation</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">End-to-End LTI Launch Flow</div>
+                    <div class="mermaid">
+sequenceDiagram
+    actor Teacher
+    participant Canvas as Canvas LMS
+    participant LTI as LTI 1.3 Endpoint
+    participant Studio as Teacher Studio
+    participant API as Assignment API
+    participant DB as In-Memory Store
+
+    Teacher->>Canvas: Click "Inspired Homework" Tool
+    Canvas->>LTI: POST /api/lti/launch<br/>(with OIDC token)
+
+    Note over LTI: Stub validates token<br/>(production: verify JWT)
+
+    LTI->>Studio: Redirect to /teacher.html<br/>?schoolId=X&returnUrl=Y
+
+    Studio->>Teacher: Display Step 1: AI Enhancement
+
+    Teacher->>Studio: Select quartile, topic,<br/>configure AI params
+    Teacher->>Studio: Click "AI Recommendations"
+
+    Studio->>API: POST /api/recommendations/calendar-aware
+
+    Note over API: Build request from<br/>learner performance,<br/>scheme of work,<br/>content catalog
+
+    API->>API: Call external AI or<br/>use rule-based engine
+
+    API->>Studio: Return homework object<br/>(title, description, tasks)
+
+    Studio->>Teacher: Populate Step 2 with AI content
+
+    Teacher->>Studio: Review/edit, add resources,<br/>proceed to Step 3
+    Teacher->>Studio: Select quartiles, click "Create"
+
+    Studio->>API: POST /api/assignments<br/>(schoolId, title, description, tasks, students)
+
+    API->>DB: Generate UUID, store assignment
+    DB-->>API: Assignment stored
+
+    API->>Studio: Return studentLaunchLink,<br/>teacherLink, deepLink
+
+    Studio->>Teacher: Display success + links
+
+    Teacher->>Canvas: Post student launch link<br/>or use deep-link URL
+                    </div>
+                </div>
+
+                <h3>Sequence 2: Student Launches Assignment</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">Student Assignment Load Flow</div>
+                    <div class="mermaid">
+sequenceDiagram
+    actor Student
+    participant Canvas as Canvas LMS
+    participant StudentView as Student View
+    participant API as Assignment API
+    participant DB as In-Memory Store
+
+    Student->>Canvas: Click assignment link in course
+    Canvas->>StudentView: Redirect to /student.html<br/>?assignmentId=UUID&schoolId=X
+
+    StudentView->>StudentView: Parse URL parameters<br/>(assignmentId, schoolId)
+
+    StudentView->>API: GET /api/assignments/:id?schoolId=X
+
+    API->>DB: Fetch assignment by ID
+    DB-->>API: Return assignment object
+
+    API->>API: Validate assignment.schoolId<br/>matches request schoolId
+
+    alt School Match Valid
+        API->>StudentView: 200 OK + assignment data
+        StudentView->>Student: Display assignment:<br/>Title, description, tasks
+
+        Student->>StudentView: Click "Open Homework Tutor"
+        StudentView->>Student: Show modal with task player
+
+        Student->>StudentView: Navigate tasks in left pane
+        StudentView->>Student: Display active task in right pane
+
+        Student->>StudentView: Click "Open in new tab"
+        StudentView->>Student: Launch external resource
+
+    else School Mismatch
+        API->>StudentView: 403 Forbidden
+        StudentView->>Student: Display error:<br/>"Access denied for this school"
+    end
+                    </div>
+                </div>
+
+                <h3>Sequence 3: Calendar-Aware AI Recommendation</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">AI Recommendation Pipeline</div>
+                    <div class="mermaid">
+sequenceDiagram
+    actor Teacher
+    participant UI as Teacher Studio
+    participant API as Recommendation API
+    participant Learner as Learner Data
+    participant Scheme as Scheme of Work
+    participant Content as Content Catalog
+    participant External as External AI API
+    participant Fallback as Rule Engine
+
+    Teacher->>UI: Select quartile Q3,<br/>week 5, time budget 45min
+    Teacher->>UI: Click "AI Recommendations"
+
+    UI->>API: POST /api/recommendations/calendar-aware<br/>{learnerId, weekNumber:5, maxTotalTimeMinutes:45}
+
+    API->>Scheme: Map week 5 to topic
+    Scheme-->>API: Topic: "Linear Equations"
+
+    API->>Learner: Fetch learner performance<br/>for Q3 representative
+    Learner-->>API: Return mastery data,<br/>recent activity
+
+    API->>Content: Fetch resources aligned<br/>to "Linear Equations"
+    Content-->>API: Return content items<br/>(Foundation/Core/Stretch)
+
+    Note over API: Build recommendation request:<br/>learner mastery,<br/>topic alignment,<br/>time budget,<br/>content options
+
+    alt External AI Configured
+        API->>External: POST recommend request
+        External-->>API: Return homework object<br/>(title, description, tasks, explanations)
+    else External AI Not Available
+        API->>Fallback: Invoke rule-based engine
+
+        Note over Fallback: Apply rules:<br/>- Match difficulty to Q3<br/>- Select 2-3 resources<br/>- Total time ≤ 45min<br/>- Diverse content types
+
+        Fallback-->>API: Return homework object
+    end
+
+    API->>UI: 200 OK + homework object
+
+    UI->>Teacher: Populate Step 2 form:<br/>Title: "Exploring Linear Equations"<br/>Description: "Practice..."<br/>Tasks: "1. Watch..., 2. Complete..."
+                    </div>
+                </div>
+
+                <h3>Sequence 4: iSAMS Report Cycle Sync</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">iSAMS Integration Sync Process</div>
+                    <div class="mermaid">
+sequenceDiagram
+    actor Teacher
+    participant UI as Teacher Studio
+    participant API as iSAMS Integration API
+    participant iSAMS as iSAMS API
+    participant S3 as AWS S3
+    participant PG as PostgREST
+
+    Teacher->>UI: Click "Sync iSAMS" button
+    UI->>API: POST /api/integrations/isams/report-cycles/sync
+
+    API->>iSAMS: GET /api/batch/schoolreports/reportcycles<br/>(with API key auth)
+    iSAMS-->>API: 200 OK + JSON array of report cycles
+
+    Note over API: Raw response received:<br/>[{id, name, startDate, endDate,...}]
+
+    API->>S3: Upload raw JSON to presigned URL
+    S3-->>API: Upload successful, return S3 key
+
+    API->>PG: POST /isams_batches<br/>{school_id, fetched_at, s3_key, record_count}
+    PG-->>API: Batch record created (UUID)
+
+    loop For each report cycle
+        API->>API: Normalize data:<br/>extract id, name, dates, academic_year
+        API->>PG: POST /report_cycles<br/>(upsert by id)
+        PG-->>API: Record upserted
+    end
+
+    API->>UI: 200 OK + sync summary<br/>{recordCount, s3Key, batchId}
+
+    UI->>Teacher: Display success message:<br/>"Synced 12 report cycles"
+
+    Teacher->>UI: Click "Refresh" to load cycles
+    UI->>API: GET /api/integrations/isams/report-cycles<br/>?schoolId=X&limit=10
+
+    API->>PG: GET /report_cycles?school_id=eq.X&limit=10<br/>&order=synced_at.desc
+    PG-->>API: Return recent cycles
+
+    API->>UI: 200 OK + array of report cycles
+    UI->>Teacher: Display list:<br/>"Autumn Term 2025-26"<br/>"Spring Term 2025-26"
+                    </div>
+                </div>
+
+                <h3>Sequence 5: Multi-School Access Control</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">School-Based Security Flow</div>
+                    <div class="mermaid">
+sequenceDiagram
+    actor User
+    participant UI as Frontend
+    participant API as Server API
+    participant Validator as School Validator
+    participant DB as Data Store
+
+    User->>UI: Select school "Northfield High"<br/>(SCH-A)
+    UI->>API: GET /api/learners?schoolId=SCH-A
+
+    API->>Validator: Validate school SCH-A exists
+    Validator->>DB: Lookup school by ID
+    DB-->>Validator: School found
+    Validator-->>API: Valid school
+
+    API->>DB: Filter learners.filter(l => l.schoolId === 'SCH-A')
+    DB-->>API: Return learners for SCH-A
+
+    API->>UI: 200 OK + learners array
+    UI->>User: Display 50 learners from Northfield High
+
+    Note over User: User creates assignment for SCH-A
+
+    UI->>API: POST /api/assignments<br/>{schoolId: 'SCH-A', title, description,...}
+
+    API->>DB: Store assignment with schoolId
+    DB-->>API: Assignment created (UUID: abc-123)
+
+    API->>UI: Return studentLaunchLink:<br/>/student.html?assignmentId=abc-123&schoolId=SCH-A
+
+    Note over User: Different user tries<br/>to access from different school
+
+    User->>UI: Load /student.html?assignmentId=abc-123&schoolId=SCH-B
+    UI->>API: GET /api/assignments/abc-123?schoolId=SCH-B
+
+    API->>DB: Fetch assignment abc-123
+    DB-->>API: Assignment (schoolId: SCH-A)
+
+    API->>API: Check: assignment.schoolId === requestedSchoolId<br/>SCH-A !== SCH-B
+
+    API->>UI: 403 Forbidden<br/>"Access denied for this school"
+    UI->>User: Display error message
+                    </div>
+                </div>
+            </section>
+
+            <!-- API REFERENCE SECTION -->
+            <section id="api">
+                <h2>🔌 API Reference</h2>
+
+                <h3>Health & System</h3>
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/health</code>
+                    <div class="api-description">Health check endpoint. Returns server status and timestamp.</div>
+                </div>
+
+                <h3>Schools</h3>
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/schools</code>
+                    <div class="api-description">List all schools in the system (Northfield High, Lakeside Academy, Riverside Prep).</div>
+                </div>
+
+                <h3>Learners</h3>
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/learners?schoolId={id}</code>
+                    <div class="api-description">Get learners filtered by school. Returns array of learner objects with quartile data.</div>
+                </div>
+
+                <h3>Assignments</h3>
+                <div class="api-endpoint">
+                    <span class="api-method post">POST</span>
+                    <code>/api/assignments</code>
+                    <div class="api-description">
+                        Create new assignment. Requires schoolId in request body.<br/>
+                        <strong>Request:</strong> {schoolId, title, description, tasks, students, groups, returnUrl}<br/>
+                        <strong>Response:</strong> {assignment, studentLaunchLink, teacherLink, deepLink}
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/assignments?schoolId={id}</code>
+                    <div class="api-description">List all assignments for a specific school.</div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/assignments/{id}?schoolId={schoolId}</code>
+                    <div class="api-description">
+                        Get single assignment by ID. Validates school access (returns 403 if school mismatch).
+                    </div>
+                </div>
+
+                <h3>Curriculum</h3>
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/scheme-of-work</code>
+                    <div class="api-description">Get 3-semester academic calendar with weekly topics for curriculum planning.</div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/content-resources?topic={topic}</code>
+                    <div class="api-description">
+                        Get content resources filtered by topic. Returns activities, assessments, and resources with difficulty levels.
+                    </div>
+                </div>
+
+                <h3>AI Recommendations</h3>
+                <div class="api-endpoint">
+                    <span class="api-method post">POST</span>
+                    <code>/api/recommend-homework</code>
+                    <div class="api-description">
+                        Topic-based recommendation engine.<br/>
+                        <strong>Request:</strong> {learnerId, topic, maxTotalTimeMinutes, difficultyProfile, explain}<br/>
+                        <strong>Response:</strong> {requestId, modelVersion, homework: {title, description, tasks}, explanations}
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="api-method post">POST</span>
+                    <code>/api/recommendations/calendar-aware</code>
+                    <div class="api-description">
+                        Calendar-aware recommendation using scheme of work.<br/>
+                        <strong>Request:</strong> {learnerId, weekNumber, topic, maxTotalTimeMinutes}<br/>
+                        <strong>Response:</strong> {requestId, modelVersion, homework: {title, description, tasks}}
+                    </div>
+                </div>
+
+                <h3>LTI 1.3 (Stubs)</h3>
+                <div class="api-endpoint">
+                    <span class="api-method post">POST</span>
+                    <code>/api/lti/launch</code>
+                    <div class="api-description">
+                        LTI 1.3 launch endpoint (stub). Production: validates OIDC token and JWT claims.
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="api-method post">POST</span>
+                    <code>/api/lti/deep-link/{id}</code>
+                    <div class="api-description">
+                        LTI Deep Linking response endpoint (stub). Production: signs response with platform keys.
+                    </div>
+                </div>
+
+                <h3>PRIZM Content Repository</h3>
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/prizm/content?topic={topic}&category={category}&difficulty={difficulty}&search={query}</code>
+                    <div class="api-description">
+                        Browse and filter PRIZM digital content assets. Supports filtering by topic, category (Video/Interactive/Document/Image/Audio), difficulty level, and text search.<br/>
+                        <strong>Response:</strong> {content: Array&lt;PRIZMContent&gt;, total: Number}
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/prizm/content/{id}</code>
+                    <div class="api-description">
+                        Get a single PRIZM content item by ID with full metadata including thumbnails, content URLs, tags, and aligned standards.
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/prizm/categories</code>
+                    <div class="api-description">
+                        Get available PRIZM content categories: Video, Interactive, Document, Image, Audio.
+                    </div>
+                </div>
+
+                <h3>iSAMS Integration</h3>
+                <div class="api-endpoint">
+                    <span class="api-method post">POST</span>
+                    <code>/api/integrations/isams/report-cycles/sync</code>
+                    <div class="api-description">
+                        Sync report cycles from iSAMS API. Stores raw data in S3, normalizes and upserts to PostgREST.<br/>
+                        <strong>Response:</strong> {recordCount, s3Key, batchId}
+                    </div>
+                </div>
+
+                <div class="api-endpoint">
+                    <span class="api-method get">GET</span>
+                    <code>/api/integrations/isams/report-cycles?schoolId={id}&limit={n}</code>
+                    <div class="api-description">
+                        Get synced report cycles for a school. Returns recent cycles sorted by sync date.
+                    </div>
+                </div>
+
+                <h3>Request/Response Examples</h3>
+
+                <h4>Create Assignment Request</h4>
+                <div class="api-endpoint">
+                    <pre style="margin: 0; color: #94a3b8; white-space: pre-wrap;">
+POST /api/assignments
+Content-Type: application/json
+
+{
+  "schoolId": "SCH-A",
+  "title": "Exploring Linear Equations",
+  "description": "Practice solving linear equations with real-world applications.",
+  "tasks": "1. Watch introductory video (15 min)\n2. Complete practice worksheet (20 min)\n3. Submit word problem solutions",
+  "students": ["Q3"],
+  "groups": [],
+  "returnUrl": "https://canvas.school.edu/courses/123"
+}
+
+Response:
+{
+  "assignment": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "Exploring Linear Equations",
+    "schoolId": "SCH-A",
+    "schoolName": "Northfield High School",
+    "createdAt": "2026-01-13T10:30:00.000Z",
+    ...
+  },
+  "studentLaunchLink": "http://localhost:3000/student.html?assignmentId=550e8400-e29b-41d4-a716-446655440000&schoolId=SCH-A",
+  "teacherLink": "http://localhost:3000/teacher.html?assignmentId=550e8400-e29b-41d4-a716-446655440000&schoolId=SCH-A",
+  "deepLink": "http://localhost:3000/api/lti/deep-link/550e8400-e29b-41d4-a716-446655440000"
+}
+                    </pre>
+                </div>
+
+                <h4>Calendar-Aware Recommendation Request</h4>
+                <div class="api-endpoint">
+                    <pre style="margin: 0; color: #94a3b8; white-space: pre-wrap;">
+POST /api/recommendations/calendar-aware
+Content-Type: application/json
+
+{
+  "learnerId": "L015",
+  "weekNumber": 5,
+  "topic": "Linear Equations",
+  "maxTotalTimeMinutes": 45
+}
+
+Response:
+{
+  "requestId": "req_20260113_103045",
+  "modelVersion": "rule-based-v1",
+  "homework": {
+    "title": "Mastering Linear Equations - Week 5",
+    "description": "Build your skills in solving linear equations through guided practice and real-world applications.",
+    "tasks": [
+      "Watch: Introduction to Linear Equations (15 min)",
+      "Complete: Practice Worksheet - Solving for x (20 min)",
+      "Challenge: Real-world word problems (10 min)"
+    ]
+  }
+}
+                    </pre>
+                </div>
+            </section>
+
+            <!-- PRIZM CONTENT REPOSITORY SECTION -->
+            <section id="prizm">
+                <h2>🎬 PRIZM Content Repository</h2>
+
+                <p>
+                    The <strong>PRIZM Content Repository</strong> is a digital asset management system that stores and serves
+                    multimedia learning content including videos, interactive activities, documents, images, and audio files.
+                    It enables teachers to enrich homework assignments with engaging multimedia resources aligned to curriculum standards.
+                </p>
+
+                <h3>🎯 Key Features</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>📚 Rich Content Library</h4>
+                        <p>12+ digital assets spanning multiple topics with varied difficulty levels (Foundation, Core, Stretch) and content types.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔍 Advanced Filtering</h4>
+                        <p>Filter content by topic, category, difficulty level, or free-text search across titles, descriptions, and tags.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🎓 Standards Alignment</h4>
+                        <p>Each content item aligns to Common Core State Standards (CCSS) and learning outcomes for curriculum integration.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📊 Usage Analytics</h4>
+                        <p>Track view counts and ratings to identify popular content and make data-driven content recommendations.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔗 Assignment Integration</h4>
+                        <p>Seamlessly attach PRIZM content to assignments with full metadata preservation for student access.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🎭 Content Player</h4>
+                        <p>Dedicated player modal in student view provides immersive experience for videos, interactives, and documents.</p>
+                    </div>
+                </div>
+
+                <h3>Content Categories & Types</h3>
+                <div class="tech-stack">
+                    <span class="tech-badge frontend">📹 Video (MP4)</span>
+                    <span class="tech-badge backend">🎮 Interactive (HTML/JS)</span>
+                    <span class="tech-badge storage">📄 Document (PDF)</span>
+                    <span class="tech-badge integration">🖼️ Image (JPEG/PNG)</span>
+                    <span class="tech-badge">🎵 Audio (MP3)</span>
+                </div>
+
+                <h3>PRIZM Content Data Flow</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">Content Discovery to Student Access</div>
+                    <div class="mermaid">
+flowchart LR
+    subgraph "Teacher Discovery"
+        Browse[Teacher Browses<br/>PRIZM Repository]
+        Filter[Apply Filters:<br/>Topic, Category, Difficulty]
+        Preview[Preview Content<br/>Thumbnails & Metadata]
+        Select[Select Content Items]
+    end
+
+    subgraph "PRIZM Repository"
+        Database[(12 Content Items)]
+        Metadata[Rich Metadata:<br/>Title, Tags, Standards,<br/>Duration, Rating]
+        URLs[Content URLs &<br/>Thumbnails]
+    end
+
+    subgraph "Assignment Creation"
+        AddToAssignment[Add to Assignment]
+        StoreRefs[Store PRIZM<br/>Content References]
+        AssignmentObj[Assignment Object<br/>with prizmContent array]
+    end
+
+    subgraph "Student Experience"
+        LoadAssignment[Student Loads<br/>Assignment]
+        ViewContent[View PRIZM<br/>Content Cards]
+        PlayContent[Click Content →<br/>Open Player Modal]
+        Access[Stream from<br/>PRIZM Repository]
+    end
+
+    Browse --> Database
+    Filter --> Metadata
+    Preview --> URLs
+    Select --> AddToAssignment
+    AddToAssignment --> StoreRefs
+    Database --> StoreRefs
+    StoreRefs --> AssignmentObj
+    AssignmentObj --> LoadAssignment
+    LoadAssignment --> ViewContent
+    ViewContent --> PlayContent
+    PlayContent --> Access
+    Database --> Access
+
+    style Database fill:#059669,color:#fff
+    style AssignmentObj fill:#4f46e5,color:#fff
+    style PlayContent fill:#3b82f6,color:#fff
+                    </div>
+                </div>
+
+                <h3>PRIZM Integration Architecture</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">Multi-Layer PRIZM Integration</div>
+                    <div class="mermaid">
+graph TB
+    subgraph "Presentation Layer"
+        TeacherUI[Teacher Studio<br/>PRIZM Browser Panel]
+        StudentUI[Student View<br/>PRIZM Content Player]
+    end
+
+    subgraph "API Layer"
+        PRIZMAPI[PRIZM API Endpoints<br/>/api/prizm/*]
+        FilterService[Filter Service]
+        MetadataService[Metadata Service]
+    end
+
+    subgraph "Data Layer"
+        PRIZMRepo[(PRIZM Repository<br/>In-Memory Array)]
+        Categories[Categories Index]
+        TopicIndex[Topic Index]
+    end
+
+    subgraph "Integration Points"
+        AssignmentService[Assignment Service]
+        TeacherWorkflow[Teacher Workflow]
+        StudentWorkflow[Student Workflow]
+    end
+
+    TeacherUI --> PRIZMAPI
+    StudentUI --> PRIZMAPI
+    PRIZMAPI --> FilterService
+    PRIZMAPI --> MetadataService
+    FilterService --> PRIZMRepo
+    MetadataService --> PRIZMRepo
+    PRIZMRepo --> Categories
+    PRIZMRepo --> TopicIndex
+    TeacherUI --> TeacherWorkflow
+    TeacherWorkflow --> AssignmentService
+    AssignmentService --> PRIZMRepo
+    StudentWorkflow --> PRIZMRepo
+
+    style PRIZMRepo fill:#059669,color:#fff
+    style PRIZMAPI fill:#3b82f6,color:#fff
+    style AssignmentService fill:#4f46e5,color:#fff
+                    </div>
+                </div>
+
+                <h3>Sample PRIZM Content Items</h3>
+                <div class="data-model-grid">
+                    <div class="model-card">
+                        <div class="model-header">PRIZM-001 (Video)</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">Title</span>
+                                <span class="field-type">Introduction to Fractions</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Category</span>
+                                <span class="field-type">Video</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Duration</span>
+                                <span class="field-type">8 minutes</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Difficulty</span>
+                                <span class="field-type">Foundation</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Rating</span>
+                                <span class="field-type">4.7 ⭐</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <div class="model-header">PRIZM-004 (Document)</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">Title</span>
+                                <span class="field-type">Linear Equations Workbook</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Category</span>
+                                <span class="field-type">Document (PDF)</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Duration</span>
+                                <span class="field-type">30 minutes</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Difficulty</span>
+                                <span class="field-type">Core</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Rating</span>
+                                <span class="field-type">4.8 ⭐</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <div class="model-header">PRIZM-007 (Interactive)</div>
+                        <div class="model-body">
+                            <div class="model-field">
+                                <span class="field-name">Title</span>
+                                <span class="field-type">Parabola Transformations</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Category</span>
+                                <span class="field-type">Interactive</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Duration</span>
+                                <span class="field-type">20 minutes</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Difficulty</span>
+                                <span class="field-type">Stretch</span>
+                            </div>
+                            <div class="model-field">
+                                <span class="field-name">Rating</span>
+                                <span class="field-type">4.9 ⭐</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <strong>🎓 Standards-Aligned Learning</strong>
+                    All PRIZM content is aligned to Common Core State Standards (CCSS) and curriculum learning outcomes.
+                    Each item includes:
+                    <ul style="margin: 0.5rem 0 0 2rem;">
+                        <li><strong>alignedStandards:</strong> CCSS codes (e.g., CCSS.MATH.CONTENT.8.EE.C.7)</li>
+                        <li><strong>alignedOutcomes:</strong> Internal outcome IDs matching learner performance data</li>
+                        <li><strong>tags:</strong> Searchable keywords for content discovery</li>
+                        <li><strong>topic:</strong> Curriculum topic from Scheme of Work alignment</li>
+                    </ul>
+                    This ensures content recommendations are pedagogically sound and curriculum-relevant.
+                </div>
+
+                <h3>Teacher Workflow: Adding PRIZM Content</h3>
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <h4>Access PRIZM Repository Panel</h4>
+                        <p>Teacher opens the "PRIZM Content Repository" section in Teacher Studio (Step 2: Assignment Details).</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Filter Content by Topic</h4>
+                        <p>Select curriculum topic from dropdown (e.g., "Linear equations and inequalities") to filter relevant content.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Apply Additional Filters</h4>
+                        <p>Optionally filter by category (Video/Interactive/Document), difficulty (Foundation/Core/Stretch), or search by keywords.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Preview Content Cards</h4>
+                        <p>Browse content cards showing thumbnails, titles, categories, durations, and ratings.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Select Content Items</h4>
+                        <p>Click "Add to Assignment" on desired content items. Selected items show visual confirmation.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Review Selected Content</h4>
+                        <p>View selected PRIZM content count and list in assignment preview panel.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Create Assignment</h4>
+                        <p>When assignment is created, PRIZM content IDs and metadata are stored in assignment.prizmContent array.</p>
+                    </div>
+                </div>
+
+                <h3>Student Workflow: Accessing PRIZM Content</h3>
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <h4>Load Assignment with PRIZM Content</h4>
+                        <p>Student opens assignment and sees PRIZM content cards below task list.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>View Content Card Grid</h4>
+                        <p>PRIZM content displays as visual cards with thumbnails, titles, categories, and durations.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Click Content to Play</h4>
+                        <p>Student clicks PRIZM content card to open fullscreen player modal.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Experience Content in Player</h4>
+                        <p>Modal displays content icon, title, description, duration, and category-specific details.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Access Content URL</h4>
+                        <p>Student clicks "Open in PRIZM Repository" to launch content in new tab from CDN URL.</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>Return to Assignment</h4>
+                        <p>Close modal to return to assignment task list and access additional PRIZM content items.</p>
+                    </div>
+                </div>
+
+                <h3>PRIZM Content Sequence Diagram</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">End-to-End PRIZM Content Flow</div>
+                    <div class="mermaid">
+sequenceDiagram
+    actor Teacher
+    participant TeacherUI as Teacher Studio
+    participant API as PRIZM API
+    participant Repo as PRIZM Repository
+    participant Assignment as Assignment Service
+    actor Student
+    participant StudentUI as Student View
+
+    Teacher->>TeacherUI: Open PRIZM Content Panel
+    TeacherUI->>API: GET /api/prizm/content?topic=Linear+Equations
+
+    API->>Repo: Filter content by topic
+    Repo-->>API: Return matching content items
+    API-->>TeacherUI: {content: [PRIZM-004, PRIZM-005], total: 2}
+
+    TeacherUI->>Teacher: Display content cards with thumbnails
+
+    Teacher->>TeacherUI: Select PRIZM-004 (Linear Equations PDF)
+    Teacher->>TeacherUI: Select PRIZM-005 (Desmos Tutorial Video)
+    TeacherUI->>TeacherUI: Store selected IDs: [PRIZM-004, PRIZM-005]
+
+    Teacher->>TeacherUI: Click "Create Assignment"
+    TeacherUI->>API: POST /api/assignments<br/>{prizmContent: [PRIZM-004, PRIZM-005]}
+
+    API->>Repo: Resolve content details for IDs
+    Repo-->>API: Return full metadata for each item
+    API->>Assignment: Store assignment with prizmContent array
+    Assignment-->>API: Assignment created with ID: abc-123
+
+    API-->>TeacherUI: {assignment, studentLaunchLink}
+    TeacherUI->>Teacher: Display success + launch link
+
+    Note over Student: Student clicks launch link
+
+    Student->>StudentUI: Open /student.html?assignmentId=abc-123
+    StudentUI->>API: GET /api/assignments/abc-123
+    API->>Assignment: Fetch assignment
+    Assignment-->>API: Return assignment with prizmContent metadata
+    API-->>StudentUI: {assignment: {prizmContent: [{id, title, thumbnailUrl,...}]}}
+
+    StudentUI->>Student: Display assignment with PRIZM content cards
+
+    Student->>StudentUI: Click PRIZM-004 card
+    StudentUI->>Student: Open PRIZM Content Player modal
+    StudentUI->>Student: Show content details and thumbnail
+
+    Student->>StudentUI: Click "Open in PRIZM Repository"
+    StudentUI->>Student: Open new tab → contentUrl (mock CDN)
+                    </div>
+                </div>
+            </section>
+
+            <!-- INTEGRATIONS SECTION -->
+            <section id="integrations">
+                <h2>🔗 External Integrations</h2>
+
+                <h3>Integration Architecture</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">External Service Integration Map</div>
+                    <div class="mermaid">
+graph TB
+    subgraph "Inspired Homework Platform"
+        App[Node.js Server]
+    end
+
+    subgraph "LMS Integration"
+        Canvas[Canvas LMS<br/>LTI 1.3]
+    end
+
+    subgraph "AI Services"
+        ExtAI[External AI<br/>Recommender API<br/><small>Optional</small>]
+    end
+
+    subgraph "School Systems"
+        iSAMS[iSAMS API<br/>School Information System]
+    end
+
+    subgraph "Cloud Infrastructure"
+        S3[AWS S3<br/>Raw Data Archive]
+        PG[PostgREST<br/>Structured Storage]
+    end
+
+    Canvas <-->|LTI Launch<br/>Deep Linking| App
+    App -->|Recommendation<br/>Requests| ExtAI
+    ExtAI -->|Homework<br/>Responses| App
+    App -->|Fetch Report<br/>Cycles| iSAMS
+    App -->|Upload Raw<br/>JSON| S3
+    App -->|Upsert<br/>Normalized Data| PG
+
+    style App fill:#4f46e5,color:#fff
+    style Canvas fill:#10b981,color:#fff
+    style ExtAI fill:#8b5cf6,color:#fff
+    style iSAMS fill:#3b82f6,color:#fff
+                    </div>
+                </div>
+
+                <h3>Integration Details</h3>
+
+                <h4>1. Canvas LMS (LTI 1.3)</h4>
+                <div class="feature-card">
+                    <p><strong>Purpose:</strong> Enable seamless single sign-on and deep-linking for homework assignments within Canvas courses.</p>
+                    <p><strong>Protocol:</strong> LTI 1.3 (IMS Global Learning Tools Interoperability)</p>
+                    <p><strong>Current Status:</strong> Stub implementations ready for production JWT validation</p>
+                    <p><strong>Key Flows:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>OIDC login + LTI resource link launch</li>
+                        <li>Deep Linking for embedding assignments in Canvas</li>
+                        <li>Future: Assignment & Grade Services (AGS) for submission tracking</li>
+                    </ul>
+                    <p><strong>Configuration Required:</strong> Platform registration, key sets, client ID</p>
+                </div>
+
+                <h4>2. External AI Recommender</h4>
+                <div class="feature-card">
+                    <p><strong>Purpose:</strong> Generate personalized homework recommendations using advanced AI models.</p>
+                    <p><strong>Protocol:</strong> HTTPS REST API with Bearer token authentication</p>
+                    <p><strong>Current Status:</strong> Optional integration with automatic fallback to rule-based engine</p>
+                    <p><strong>Request Contract:</strong> Learner performance, topic, time budget, difficulty profile</p>
+                    <p><strong>Response Contract:</strong> Title, description, task list, explanations</p>
+                    <p><strong>Environment Variables:</strong> RECOMMENDER_API_URL, RECOMMENDER_API_KEY</p>
+                </div>
+
+                <h4>3. iSAMS School Information System</h4>
+                <div class="feature-card">
+                    <p><strong>Purpose:</strong> Sync academic report cycles to align assignments with school calendars.</p>
+                    <p><strong>Protocol:</strong> HTTPS REST API with configurable authentication (Bearer token by default)</p>
+                    <p><strong>Current Status:</strong> Fully implemented with S3 archival and PostgREST persistence</p>
+                    <p><strong>Key Endpoint:</strong> /api/batch/schoolreports/reportcycles</p>
+                    <p><strong>Data Flow:</strong> iSAMS API → Raw JSON to S3 → Normalized to PostgREST</p>
+                    <p><strong>Environment Variables:</strong> ISAMS_BASE_URL, ISAMS_API_KEY, ISAMS_AUTH_HEADER, ISAMS_AUTH_SCHEME</p>
+                </div>
+
+                <h4>4. AWS S3</h4>
+                <div class="feature-card">
+                    <p><strong>Purpose:</strong> Archive raw API responses for audit trails and data recovery.</p>
+                    <p><strong>Protocol:</strong> Presigned URL upload (no AWS SDK required)</p>
+                    <p><strong>Current Status:</strong> Implemented for iSAMS sync workflow</p>
+                    <p><strong>Data Stored:</strong> Raw JSON from iSAMS API with timestamped keys</p>
+                    <p><strong>Environment Variables:</strong> S3_PRESIGNED_URL or S3_PRESIGNED_URL_TEMPLATE</p>
+                </div>
+
+                <h4>5. PostgREST (Supabase)</h4>
+                <div class="feature-card">
+                    <p><strong>Purpose:</strong> Structured storage for report cycles with SQL-over-HTTP interface.</p>
+                    <p><strong>Protocol:</strong> REST API with PostgreSQL-backed tables</p>
+                    <p><strong>Current Status:</strong> Implemented for iSAMS integration</p>
+                    <p><strong>Tables:</strong> isams_batches (batch metadata), report_cycles (normalized cycles)</p>
+                    <p><strong>Operations:</strong> Batch insert, upsert by ID, filtered queries</p>
+                    <p><strong>Environment Variables:</strong> PG_REST_URL, PG_REST_API_KEY, PG_REST_AUTH_HEADER</p>
+                </div>
+
+                <h3>Integration Error Handling</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">Graceful Degradation Strategy</div>
+                    <div class="mermaid">
+flowchart TD
+    Start[Integration Request]
+
+    Start --> CheckConfig{Service<br/>Configured?}
+
+    CheckConfig -->|No| UseFallback[Use Fallback Logic]
+    CheckConfig -->|Yes| CallService[Call External Service]
+
+    CallService --> ServiceResponse{Response<br/>Successful?}
+
+    ServiceResponse -->|Yes| ProcessResponse[Process Response Data]
+    ServiceResponse -->|No| LogError[Log Error Details]
+
+    LogError --> CheckFallback{Fallback<br/>Available?}
+    CheckFallback -->|Yes| UseFallback
+    CheckFallback -->|No| ReturnError[Return Error to User]
+
+    UseFallback --> ProcessResponse
+    ProcessResponse --> Success[Return Success]
+
+    style Start fill:#4f46e5,color:#fff
+    style UseFallback fill:#f59e0b,color:#000
+    style Success fill:#10b981,color:#fff
+    style ReturnError fill:#ef4444,color:#fff
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <strong>🛡️ Resilience Strategy</strong>
+                    All external integrations are designed with graceful degradation:
+                    <ul style="margin: 0.5rem 0 0 2rem;">
+                        <li><strong>AI Recommender:</strong> Falls back to rule-based engine if unavailable</li>
+                        <li><strong>iSAMS:</strong> Sync failures logged with detailed error messages, no impact on core features</li>
+                        <li><strong>S3/PostgREST:</strong> Failures logged but don't block iSAMS data fetch</li>
+                        <li><strong>Canvas LTI:</strong> Stubs allow local testing without LMS dependency</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- PRODUCTION READINESS SECTION -->
+            <section id="production">
+                <h2>🚀 Production Readiness</h2>
+
+                <h3>Current Status: Proof of Concept</h3>
+                <p>This application demonstrates core concepts but requires the following enhancements for production deployment:</p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>🔐 Authentication & Authorization</h4>
+                        <ul style="margin-left: 1.5rem;">
+                            <li>Implement real LTI 1.3 JWT validation</li>
+                            <li>Add user session management</li>
+                            <li>Role-based access control (Teacher vs Student)</li>
+                            <li>Sign LTI Deep Link responses</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <h4>💾 Persistent Storage</h4>
+                        <ul style="margin-left: 1.5rem;">
+                            <li>Replace in-memory stores with PostgreSQL or similar</li>
+                            <li>Implement data migrations</li>
+                            <li>Add database connection pooling</li>
+                            <li>Set up automated backups</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <h4>📊 Submission & Grading</h4>
+                        <ul style="margin-left: 1.5rem;">
+                            <li>Implement LTI Assignment & Grade Services (AGS)</li>
+                            <li>Track student submission status</li>
+                            <li>Post grades back to Canvas gradebook</li>
+                            <li>Add submission timestamp tracking</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <h4>🔒 Security Hardening</h4>
+                        <ul style="margin-left: 1.5rem;">
+                            <li>HTTPS enforcement</li>
+                            <li>CSRF protection</li>
+                            <li>Rate limiting on API endpoints</li>
+                            <li>Input validation and sanitization</li>
+                            <li>SQL injection prevention (with ORM)</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <h4>📈 Monitoring & Logging</h4>
+                        <ul style="margin-left: 1.5rem;">
+                            <li>Structured logging (JSON format)</li>
+                            <li>Application performance monitoring (APM)</li>
+                            <li>Error tracking (e.g., Sentry)</li>
+                            <li>Analytics for usage patterns</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <h4>⚡ Performance & Scalability</h4>
+                        <ul style="margin-left: 1.5rem;">
+                            <li>Database query optimization</li>
+                            <li>Caching layer (Redis)</li>
+                            <li>CDN for static assets</li>
+                            <li>Horizontal scaling support</li>
+                            <li>Load balancing</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Recommended Production Architecture (AWS)</h3>
+                <div class="diagram-container">
+                    <div class="diagram-title">AWS Production Deployment</div>
+                    <div class="mermaid">
+graph TB
+    subgraph "Users"
+        Teachers[Teachers]
+        Students[Students]
+        Canvas[Canvas LMS]
+    end
+
+    subgraph "AWS Cloud"
+        subgraph "Edge Layer"
+            CF[CloudFront CDN]
+            WAF[AWS WAF]
+        end
+
+        subgraph "Application Layer"
+            ALB[Application<br/>Load Balancer]
+            ECS1[ECS Fargate<br/>Container 1]
+            ECS2[ECS Fargate<br/>Container 2]
+            ECS3[ECS Fargate<br/>Container N]
+        end
+
+        subgraph "Data Layer"
+            RDS[(RDS PostgreSQL<br/>Multi-AZ)]
+            Redis[(ElastiCache<br/>Redis)]
+            S3[S3 Bucket<br/>Archives]
+        end
+
+        subgraph "Monitoring"
+            CW[CloudWatch<br/>Logs & Metrics]
+            XRay[X-Ray<br/>Tracing]
+        end
+
+        subgraph "Secrets"
+            SM[Secrets Manager<br/>API Keys, DB Creds]
+        end
+    end
+
+    subgraph "External Services"
+        ExtAI[AI Recommender]
+        iSAMS[iSAMS API]
+    end
+
+    Teachers --> CF
+    Students --> CF
+    Canvas --> CF
+
+    CF --> WAF
+    WAF --> ALB
+    ALB --> ECS1
+    ALB --> ECS2
+    ALB --> ECS3
+
+    ECS1 --> RDS
+    ECS1 --> Redis
+    ECS1 --> S3
+    ECS1 --> ExtAI
+    ECS1 --> iSAMS
+
+    ECS1 --> CW
+    ECS1 --> XRay
+    ECS1 --> SM
+
+    style ALB fill:#4f46e5,color:#fff
+    style ECS1 fill:#10b981,color:#fff
+    style ECS2 fill:#10b981,color:#fff
+    style ECS3 fill:#10b981,color:#fff
+    style RDS fill:#3b82f6,color:#fff
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <strong>📖 Reference Documentation</strong>
+                    Detailed production deployment guidance is available in the project README.md, including:
+                    <ul style="margin: 0.5rem 0 0 2rem;">
+                        <li>AWS infrastructure setup with Terraform/CDK</li>
+                        <li>LTI 1.3 certification requirements</li>
+                        <li>Multi-tenant database design patterns</li>
+                        <li>CI/CD pipeline configuration</li>
+                        <li>Environment variable management</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p><strong>Inspired Homework PoC</strong> - Design Document v1.0</p>
+            <p>Generated: January 2026 | LTI 1.3 Canvas Integration</p>
+            <p style="margin-top: 1rem; opacity: 0.8;">This document provides comprehensive architecture, flow, and component diagrams for the Inspired Homework proof of concept.</p>
+        </footer>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#4f46e5',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#4338ca',
+                lineColor: '#64748b',
+                secondaryColor: '#10b981',
+                tertiaryColor: '#3b82f6',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            },
+            flowchart: {
+                curve: 'basis',
+                padding: 20
+            },
+            sequence: {
+                diagramMarginX: 20,
+                diagramMarginY: 20,
+                actorMargin: 80,
+                boxMargin: 10,
+                boxTextMargin: 5,
+                noteMargin: 10,
+                messageMargin: 35
+            }
+        });
+
+        // Smooth scrolling for navigation
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+
+        // Add active state to nav on scroll
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('nav a');
+
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (scrollY >= (sectionTop - 100)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.style.background = '';
+                if (link.getAttribute('href') === '#' + current) {
+                    link.style.background = '#4f46e5';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
