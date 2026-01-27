@@ -256,61 +256,195 @@
 
       const HomeworkTutor = ({ open, assignment, onClose }) => {
         const [activeIndex, setActiveIndex] = useState(0);
+        const [messages, setMessages] = useState([]);
+        const [draft, setDraft] = useState('');
 
         useEffect(() => {
-          if (open) setActiveIndex(0);
+          if (open) {
+            setActiveIndex(0);
+          }
         }, [open, assignment]);
 
         const tasks = assignment?.tasks || [];
+        const assignmentTitle = assignment?.title || 'your homework';
+
+        useEffect(() => {
+          if (!open) return;
+
+          const initialMessages = [
+            {
+              id: 1,
+              role: 'assistant',
+              text: `Hi! I'm your Homework Tutor. I can help you work through ${assignmentTitle} step by step.`,
+            },
+            {
+              id: 2,
+              role: 'assistant',
+              text: tasks.length
+                ? `I see ${tasks.length} tasks. Want to start with task ${activeIndex + 1}: “${tasks[activeIndex]}”?`
+                : 'Share what you want to work on and I will guide you.',
+            },
+            {
+              id: 3,
+              role: 'assistant',
+              text: 'Ask a question, summarize what you need, or paste your work and I will respond with hints.',
+            },
+          ];
+          setMessages(initialMessages);
+          setDraft('');
+        }, [open, assignmentTitle, tasks.length, activeIndex]);
+
+        const handleSend = () => {
+          const trimmed = draft.trim();
+          if (!trimmed) return;
+
+          const nextId = messages.length ? messages[messages.length - 1].id + 1 : 1;
+          const newMessages = [
+            ...messages,
+            { id: nextId, role: 'user', text: trimmed },
+            {
+              id: nextId + 1,
+              role: 'assistant',
+              text: tasks.length
+                ? `Thanks! For task ${activeIndex + 1}, let's break it down. What part feels most challenging so far?`
+                : 'Got it. Want me to help outline a plan or review your answer?',
+            },
+          ];
+          setMessages(newMessages);
+          setDraft('');
+        };
 
         return (
           <div
             className={`fixed inset-0 z-50 ${open ? 'flex' : 'hidden'} items-center justify-center bg-slate-950/70 backdrop-blur-sm`}
           >
-            <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-start justify-between px-6 py-4 border-b border-slate-200">
-                <div>
-                  <h3 className="text-xl font-semibold text-slate-900">Homework Tutor</h3>
-                  <p className="text-sm text-slate-600">Two-pane player to step through tasks. Exit anytime.</p>
+            <div className="bg-white w-full max-w-6xl rounded-2xl shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center font-bold shadow-md">
+                    HT
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-900">Homework Tutor</h3>
+                    <p className="text-sm text-slate-600">Chat with your tutor, keep tasks handy, and work naturally.</p>
+                  </div>
                 </div>
                 <button className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 hover:bg-slate-50" onClick={onClose}>
                   Exit
                 </button>
               </div>
-              <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200">
-                <div className="md:col-span-1 p-4 space-y-3 bg-slate-50/70 min-h-[320px]">
-                  <p className="text-xs uppercase tracking-wide text-slate-600">Tasks</p>
-                  {tasks.length === 0 && <p className="text-sm text-slate-600">No tasks to show.</p>}
+
+              <div className="grid lg:grid-cols-[260px_1fr] divide-y lg:divide-y-0 lg:divide-x divide-slate-200 min-h-[520px]">
+                <aside className="p-5 bg-slate-50/70 space-y-5">
                   <div className="space-y-2">
-                    {tasks.map((task, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setActiveIndex(idx)}
-                        className={`w-full text-left rounded-lg px-3 py-2 text-sm border transition ${
-                          activeIndex === idx
-                            ? 'border-primary-500 bg-primary-50 text-primary-800 shadow-sm'
-                            : 'border-slate-200 hover:border-primary-300'
-                        }`}
+                    <p className="text-xs uppercase tracking-wide text-slate-600">Assignment</p>
+                    <p className="text-sm font-semibold text-slate-900">{assignmentTitle}</p>
+                    <p className="text-xs text-slate-500">Stay here while you work in a new tab.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-wide text-slate-600">Tasks</p>
+                    {tasks.length === 0 && <p className="text-sm text-slate-600">No tasks to show.</p>}
+                    <div className="space-y-2">
+                      {tasks.map((task, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setActiveIndex(idx)}
+                          className={`w-full text-left rounded-lg px-3 py-2 text-sm border transition ${
+                            activeIndex === idx
+                              ? 'border-primary-500 bg-primary-50 text-primary-800 shadow-sm'
+                              : 'border-slate-200 hover:border-primary-300'
+                          }`}
+                        >
+                          <span className="mr-2 text-xs font-semibold text-slate-600">{idx + 1}</span>
+                          {task}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-wide text-slate-600">Quick tips</p>
+                    <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600 space-y-2">
+                      <p>• Ask for hints, not answers, if you want to practice.</p>
+                      <p>• Paste your draft and ask for feedback.</p>
+                      <p>• Use “Summarize task” to get a quick plan.</p>
+                    </div>
+                  </div>
+                </aside>
+
+                <section className="flex flex-col">
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-semibold">AI</div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">Tutor Chat</p>
+                        <p className="text-xs text-slate-500">Always on • Ready to help</p>
+                      </div>
+                    </div>
+                    {tasks.length > 0 && (
+                      <span className="text-xs text-primary-700 bg-primary-50 border border-primary-200 px-3 py-1 rounded-full">
+                        Task {activeIndex + 1} focus
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 bg-gradient-to-b from-white to-slate-50">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
-                        <span className="mr-2 text-xs font-semibold text-slate-600">{idx + 1}</span>
-                        {task}
-                      </button>
+                        <div
+                          className={`max-w-[70%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                            message.role === 'user'
+                              ? 'bg-primary-600 text-white rounded-br-none'
+                              : 'bg-white text-slate-700 border border-slate-200 rounded-bl-none'
+                          }`}
+                        >
+                          {message.text}
+                        </div>
+                      </div>
                     ))}
                   </div>
-                </div>
-                <div className="md:col-span-2 p-6 min-h-[320px]">
-                  {tasks.length === 0 ? (
-                    <p className="text-sm text-slate-600">Add tasks to see details here.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-wide text-slate-600">Task {activeIndex + 1}</p>
-                      <h4 className="text-xl font-semibold text-slate-900">{tasks[activeIndex]}</h4>
-                      <p className="text-sm text-slate-600">
-                        Use the new-tab link in the assignment details to launch the task and return here when done.
-                      </p>
+
+                  <div className="border-t border-slate-200 px-6 py-4 bg-white">
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <button
+                        className="text-xs px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:border-primary-300 hover:text-primary-700"
+                        onClick={() => setDraft('Summarize task ' + (activeIndex + 1))}
+                      >
+                        Summarize task
+                      </button>
+                      <button
+                        className="text-xs px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:border-primary-300 hover:text-primary-700"
+                        onClick={() => setDraft('Give me a hint for task ' + (activeIndex + 1))}
+                      >
+                        Give a hint
+                      </button>
+                      <button
+                        className="text-xs px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:border-primary-300 hover:text-primary-700"
+                        onClick={() => setDraft('Check my answer: ')}
+                      >
+                        Check my answer
+                      </button>
                     </div>
-                  )}
-                </div>
+                    <div className="flex items-end gap-3">
+                      <textarea
+                        rows={2}
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        placeholder="Ask a question, paste your work, or request a hint..."
+                        className="flex-1 resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      />
+                      <button
+                        className="px-5 py-3 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm font-semibold shadow-lg hover:from-primary-600 hover:to-primary-700"
+                        onClick={handleSend}
+                      >
+                        Send
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">Tip: Use Shift+Enter for new lines. The tutor replies with guidance.</p>
+                  </div>
+                </section>
               </div>
             </div>
           </div>
