@@ -450,6 +450,10 @@
       const [isamsSyncing, setIsamsSyncing] = useState(false);
       const [showStudentLinkModal, setShowStudentLinkModal] = useState(false);
       const [studentLaunchLink, setStudentLaunchLink] = useState('');
+      const [mongoCollections, setMongoCollections] = useState([]);
+      const [mongoStatus, setMongoStatus] = useState('');
+      const [mongoLoading, setMongoLoading] = useState(false);
+      const [mongoIsMock, setMongoIsMock] = useState(false);
 
       // PRIZM Content Repository state
       const [prizmContent, setPrizmContent] = useState([]);
@@ -662,6 +666,25 @@
         return false;
       };
 
+      const loadMongoSnapshot = async () => {
+        setMongoLoading(true);
+        try {
+          const response = await fetch('/api/mongodb/collections?limit=4&sampleSize=3');
+          const data = await response.json();
+          if (response.ok) {
+            setMongoCollections(data.collections || []);
+            setMongoIsMock(Boolean(data.isMock));
+            setMongoStatus(data.message || '');
+          } else {
+            setMongoStatus(data.error || 'Unable to load MongoDB collections');
+          }
+        } catch (error) {
+          setMongoStatus('Unable to load MongoDB collections');
+        } finally {
+          setMongoLoading(false);
+        }
+      };
+
       useEffect(() => {
         setForm((prev) => {
           const mergedTasks = mergePrizmTasks(prev.tasks, selectedPrizmContent);
@@ -698,6 +721,10 @@
           }
         }
         loadStatic();
+      }, []);
+
+      useEffect(() => {
+        loadMongoSnapshot();
       }, []);
 
       useEffect(() => {
@@ -1234,6 +1261,68 @@
                   ))}
                 </div>
               </div>
+            </div>
+          </ModernCard>
+
+          <ModernCard className="p-8">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+              <div>
+                <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">MongoDB collections snapshot</h3>
+                <p className="text-slate-600">Live view of collection counts and sample documents from the connected database.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {mongoIsMock && (
+                  <span className="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-semibold border border-amber-100">
+                    Mocked
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={loadMongoSnapshot}
+                  className="text-xs px-3 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                  disabled={mongoLoading}
+                >
+                  {mongoLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>
+            </div>
+
+            {mongoStatus && (
+              <div className="mb-4 p-3 rounded-lg text-xs border bg-slate-50 border-slate-200 text-slate-600">
+                {mongoStatus}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {mongoLoading && <p className="text-sm text-slate-500">Loading collections...</p>}
+              {!mongoLoading && mongoCollections.length === 0 && (
+                <p className="text-sm text-slate-500">No collections to display yet.</p>
+              )}
+              {!mongoLoading &&
+                mongoCollections.map((collection) => (
+                  <div key={collection.name} className="border border-slate-200 rounded-xl p-4 bg-slate-50/60">
+                    <div className="flex items-center justify-between">
+                      <div className="font-semibold text-slate-900">{collection.name}</div>
+                      <span className="text-xs font-semibold bg-white border border-slate-200 text-slate-600 px-2.5 py-1 rounded-lg">
+                        {collection.count ?? 0} docs
+                      </span>
+                    </div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      {collection.sample && collection.sample.length > 0 ? (
+                        collection.sample.map((doc, index) => (
+                          <pre
+                            key={`${collection.name}-${index}`}
+                            className="text-xs text-slate-600 bg-white border border-slate-200 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap"
+                          >
+                            {JSON.stringify(doc, null, 2)}
+                          </pre>
+                        ))
+                      ) : (
+                        <p className="text-xs text-slate-500">No sample documents available.</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
             </div>
           </ModernCard>
 

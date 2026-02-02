@@ -508,6 +508,42 @@ async function getPrizmContentByIds(ids = []) {
   return collection.find({ id: { $in: ids } }).toArray();
 }
 
+async function getMongoCollectionsSnapshot({ limit = 4, sampleSize = 3 } = {}) {
+  if (!MONGODB_URI) {
+    return {
+      isMock: true,
+      collections: [
+        {
+          name: MONGODB_PRIZM_COLLECTION,
+          count: prizmContentRepository.length,
+          sample: prizmContentRepository.slice(0, sampleSize),
+        },
+      ],
+      message: 'MongoDB connection not configured. Showing seeded PRIZM content instead.',
+    };
+  }
+
+  const db = await getMongoDb();
+  const collectionInfos = await db.listCollections().toArray();
+  const trimmed = collectionInfos.slice(0, limit);
+  const collections = await Promise.all(
+    trimmed.map(async ({ name }) => {
+      const collection = db.collection(name);
+      const [count, sample] = await Promise.all([
+        collection.estimatedDocumentCount(),
+        collection.find({}).limit(sampleSize).toArray(),
+      ]);
+      return { name, count, sample };
+    })
+  );
+
+  return {
+    isMock: false,
+    collections,
+    message: collections.length === 0 ? 'No collections found in this database.' : '',
+  };
+}
+
 function buildPgRestHeaders() {
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
   if (PG_REST_API_KEY) {
@@ -1151,6 +1187,18 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname === '/api/prizm/categories') {
     res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
     return res.end(JSON.stringify({ categories: prizmCategories }));
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/mongodb/collections') {
+    try {
+      const limit = Number(url.searchParams.get('limit') || 4);
+      const sampleSize = Number(url.searchParams.get('sampleSize') || 3);
+      const snapshot = await getMongoCollectionsSnapshot({ limit, sampleSize });
+      return sendJson(res, 200, snapshot, baseHeaders);
+    } catch (err) {
+      console.error('Error loading MongoDB collections snapshot:', err);
+      return sendJson(res, 500, { error: err.message }, baseHeaders);
+    }
   }
 
   if (req.method === 'POST' && url.pathname === '/api/recommend-homework') {
