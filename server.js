@@ -31,6 +31,7 @@ const MONGODB_PERFORMANCE_COLLECTION = process.env.MONGODB_PERFORMANCE_COLLECTIO
 const MONGODB_COURSEWARE_COLLECTION = process.env.MONGODB_COURSEWARE_COLLECTION || 'courseware';
 const MONGODB_SCHEMES_COLLECTION = process.env.MONGODB_SCHEMES_COLLECTION || 'schemes_of_work';
 const MONGODB_HOMEWORK_COLLECTION = process.env.MONGODB_HOMEWORK_COLLECTION || 'homework';
+const MONGODB_ASSIGNMENTS_COLLECTION = process.env.MONGODB_ASSIGNMENTS_COLLECTION || 'assignments';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const assignments = new Map();
@@ -571,6 +572,53 @@ async function getPrizmCollection() {
   const db = await getMongoDb();
   return db.collection(MONGODB_PRIZM_COLLECTION);
 }
+
+const normalizeAssignmentDoc = (doc) => {
+  if (!doc) return null;
+  const { _id, ...rest } = doc;
+  if (!rest.id && _id) {
+    rest.id = String(_id);
+  }
+  return rest;
+};
+
+const fetchAssignmentsFromStore = async ({ schoolId } = {}) => {
+  if (!MONGODB_URI) {
+    return Array.from(assignments.values()).filter((assignment) =>
+      schoolId ? assignment.schoolId === schoolId : true
+    );
+  }
+
+  const db = await getMongoDb();
+  const query = schoolId ? { schoolId } : {};
+  const docs = await db.collection(MONGODB_ASSIGNMENTS_COLLECTION).find(query).toArray();
+  return docs.map(normalizeAssignmentDoc);
+};
+
+const fetchAssignmentById = async (id) => {
+  if (!MONGODB_URI) {
+    return assignments.get(id);
+  }
+
+  const db = await getMongoDb();
+  const doc = await db.collection(MONGODB_ASSIGNMENTS_COLLECTION).findOne({
+    $or: [{ _id: id }, { id }],
+  });
+  return normalizeAssignmentDoc(doc);
+};
+
+const persistAssignment = async (assignment) => {
+  if (!MONGODB_URI) {
+    assignments.set(assignment.id, assignment);
+    return assignment;
+  }
+
+  const db = await getMongoDb();
+  const collection = db.collection(MONGODB_ASSIGNMENTS_COLLECTION);
+  const doc = { ...assignment, _id: assignment.id };
+  await collection.updateOne({ _id: assignment.id }, { $set: doc }, { upsert: true });
+  return assignment;
+};
 
 function buildLearnerSeedDocs({ timestamp }) {
   return learners.map((learner) => ({
@@ -1294,7 +1342,7 @@ async function createAssignment(payload, baseUrl) {
     schoolName: school.name,
   };
 
-  assignments.set(id, assignment);
+  await persistAssignment(assignment);
 
   const studentLaunchLink = `${baseUrl}/student.html?assignmentId=${id}&schoolId=${encodeURIComponent(school.id)}`;
   const teacherLink = `${baseUrl}/teacher.html?assignmentId=${id}&schoolId=${encodeURIComponent(school.id)}`;
@@ -1789,16 +1837,14 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && url.pathname === '/api/assignments') {
     const schoolId = url.searchParams.get('schoolId');
-    const data = Array.from(assignments.values()).filter((assignment) =>
-      schoolId ? assignment.schoolId === schoolId : true
-    );
+    const data = await fetchAssignmentsFromStore({ schoolId });
     res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
     return res.end(JSON.stringify({ assignments: data }));
   }
 
   if (req.method === 'GET' && url.pathname.startsWith('/api/assignments/')) {
     const id = url.pathname.split('/')[3];
-    const assignment = assignments.get(id);
+    const assignment = await fetchAssignmentById(id);
     const requestedSchoolId = url.searchParams.get('schoolId');
     if (!assignment) return notFound(res);
     if (!requestedSchoolId) {
@@ -1815,7 +1861,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && url.pathname.startsWith('/api/lti/deep-link/')) {
     const id = url.pathname.split('/')[4];
-    const assignment = assignments.get(id);
+    const assignment = await fetchAssignmentById(id);
     if (!assignment) return notFound(res);
     try {
       const payload = await parseBody(req);
@@ -1844,7 +1890,7 @@ const server = http.createServer(async (req, res) => {
       const payload = await parseBody(req);
       const role = payload.role || 'Learner';
       const assignmentId = payload.assignmentId;
-      const assignment = assignmentId ? assignments.get(assignmentId) : null;
+      const assignment = assignmentId ? await fetchAssignmentById(assignmentId) : null;
       res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
       return res.end(
         JSON.stringify({

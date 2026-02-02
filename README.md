@@ -26,7 +26,7 @@ server.js          → Node HTTP server, API + static file host
 
 ### Server responsibilities (`server.js`)
 - Serves static assets from `public/` and handles simple CORS for local testing.
-- Maintains an in-memory `Map` of assignments using `crypto.randomUUID()` identifiers.
+- Persists assignments to MongoDB (when configured) and falls back to an in-memory `Map` using `crypto.randomUUID()` identifiers.
 - In-memory data sources for the teacher UI:
   - `GET /api/learners` → learners with `id`, `name`, `email`, `cohort`, `status`.
   - `GET /api/scheme-of-work` → a 3-semester academic year broken into weekly topics.
