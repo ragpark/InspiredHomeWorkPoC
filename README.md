@@ -144,6 +144,10 @@ The app defaults to `http://localhost:3000`. Use `BASE_URL` if you expose it via
    - Launch `/student.html?assignmentId=<id>` to verify the student experience.
 5. Update the in-memory data stores in `server.js` if you want to tailor the learners, weekly topics, or content resources for your demo.
 
+## Railway NoSQL datastore for personalization
+
+If you want to persist learner performance, courseware metadata, and schemes of work in a managed NoSQL service on Railway, follow the data model and provisioning steps in [`docs/railway-nosql.md`](docs/railway-nosql.md).
+
 ## Extending toward production
 
 - Replace the `/api/lti/launch` stub with real OIDC login + JWT verification per IMS Global specs.
