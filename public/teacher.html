@@ -434,6 +434,8 @@
       const [completedSteps, setCompletedSteps] = useState(new Set());
       const [learners, setLearners] = useState([]);
       const [scheme, setScheme] = useState(null);
+      const [selectedSchemeId, setSelectedSchemeId] = useState('');
+      const [selectedWeekNumber, setSelectedWeekNumber] = useState('');
       const [resources, setResources] = useState([]);
       const [assignments, setAssignments] = useState([]);
       const [schools, setSchools] = useState([]);
@@ -489,6 +491,43 @@
         profile: 'balanced',
         explain: false,
       });
+
+      const schemeOptions = useMemo(() => {
+        return scheme ? [scheme] : [];
+      }, [scheme]);
+
+      const selectedScheme = useMemo(() => {
+        if (!scheme) return null;
+        if (!selectedSchemeId) return scheme;
+        return schemeOptions.find((item) => `${item.subject || ''}-${item.academicYear || ''}` === selectedSchemeId) || scheme;
+      }, [scheme, schemeOptions, selectedSchemeId]);
+
+      const schemeWeeks = useMemo(() => {
+        if (!selectedScheme) return [];
+        return selectedScheme.semesters.flatMap((semester) =>
+          semester.weeks.map((week) => ({
+            ...week,
+            semester: semester.name,
+            focus: semester.focus,
+          }))
+        );
+      }, [selectedScheme]);
+
+      const selectedWeek = useMemo(() => {
+        if (!selectedWeekNumber) return null;
+        return schemeWeeks.find((week) => String(week.week) === String(selectedWeekNumber)) || null;
+      }, [schemeWeeks, selectedWeekNumber]);
+
+      const maxWeekNumber = useMemo(() => {
+        return schemeWeeks.reduce((max, week) => Math.max(max, Number(week.week) || 0), 0);
+      }, [schemeWeeks]);
+
+      const schemeSummary = useMemo(() => {
+        if (!selectedWeek || !selectedScheme) return null;
+        const title = `Week ${selectedWeek.week}: ${selectedWeek.topic}`;
+        const description = `Aligned to ${selectedWeek.semester} • ${selectedWeek.focus}`;
+        return { title, description };
+      }, [selectedScheme, selectedWeek]);
 
       const topics = useMemo(() => {
         if (!scheme) return [];
@@ -770,6 +809,30 @@
       }, []);
 
       useEffect(() => {
+        if (!scheme) return;
+        const schemeKey = `${scheme.subject || ''}-${scheme.academicYear || ''}`;
+        if (!selectedSchemeId) {
+          setSelectedSchemeId(schemeKey);
+        }
+        if (!selectedWeekNumber && scheme.semesters?.length) {
+          const firstWeek = scheme.semesters[0]?.weeks?.[0]?.week;
+          if (firstWeek !== undefined) {
+            setSelectedWeekNumber(String(firstWeek));
+          }
+        }
+      }, [scheme, selectedSchemeId, selectedWeekNumber]);
+
+      useEffect(() => {
+        if (!selectedWeek) return;
+        setAiForm((prev) => ({
+          ...prev,
+          week: selectedWeek.week,
+          topic: prev.topic || selectedWeek.topic,
+        }));
+        setSelectedTopic((prev) => prev || selectedWeek.topic);
+      }, [selectedWeek]);
+
+      useEffect(() => {
         loadMongoSnapshot();
       }, []);
 
@@ -826,6 +889,15 @@
 
       const updateForm = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
       const updateMongoEditor = (key, value) => setMongoEditor((prev) => ({ ...prev, [key]: value }));
+
+      const applySchemeToAssignment = () => {
+        if (!schemeSummary) return;
+        setForm((prev) => ({
+          ...prev,
+          title: prev.title || schemeSummary.title,
+          description: prev.description || schemeSummary.description,
+        }));
+      };
 
       const changeSchool = (schoolId) => {
         setSelectedSchool(schoolId);
@@ -1888,8 +1960,99 @@
                   <div className="lg:col-span-3 space-y-8">
                     <ModernCard className="p-8">
                       <div className="mb-6">
+                        <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Scheme of Work</h3>
+                        <p className="text-slate-600">Select the curriculum sequence and week to align the assignment to planned teaching.</p>
+                      </div>
+
+                      <div className="grid md:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700">Scheme</label>
+                          <select
+                            value={selectedSchemeId}
+                            onChange={(e) => setSelectedSchemeId(e.target.value)}
+                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                          >
+                            {schemeOptions.length === 0 && (
+                              <option value="">No scheme loaded</option>
+                            )}
+                            {schemeOptions.map((item) => {
+                              const optionValue = `${item.subject || ''}-${item.academicYear || ''}`;
+                              return (
+                                <option key={optionValue} value={optionValue}>
+                                  {item.subject || 'Scheme of Work'} • {item.academicYear || 'Academic year'}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700">Week</label>
+                          <select
+                            value={selectedWeekNumber}
+                            onChange={(e) => setSelectedWeekNumber(e.target.value)}
+                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                            disabled={!schemeWeeks.length}
+                          >
+                            {schemeWeeks.map((week) => (
+                              <option key={week.week} value={week.week}>
+                                Week {week.week}: {week.topic}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700">Week Summary</label>
+                          <div className="p-4 border border-slate-200 rounded-xl bg-slate-50 h-full">
+                            {selectedWeek ? (
+                              <div className="space-y-2">
+                                <p className="text-sm font-semibold text-slate-900">Week {selectedWeek.week}</p>
+                                <p className="text-sm text-slate-700">{selectedWeek.topic}</p>
+                                <p className="text-xs text-slate-500">{selectedWeek.semester} • {selectedWeek.focus}</p>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-slate-500">Select a week to view details.</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {selectedScheme && (
+                        <div className="mt-6 grid md:grid-cols-2 gap-4 max-h-64 overflow-y-auto">
+                          {selectedScheme.semesters.map((semester) => (
+                            <div key={semester.name} className="p-4 border border-slate-200 rounded-xl bg-white">
+                              <p className="text-sm font-semibold text-slate-900">{semester.name}</p>
+                              <p className="text-xs text-slate-500 mb-3">{semester.focus}</p>
+                              <div className="space-y-2">
+                                {semester.weeks.map((week) => (
+                                  <button
+                                    key={week.week}
+                                    type="button"
+                                    onClick={() => setSelectedWeekNumber(String(week.week))}
+                                    className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-all ${
+                                      String(selectedWeekNumber) === String(week.week)
+                                        ? 'border-primary-500 bg-primary-50 text-primary-700'
+                                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+                                    }`}
+                                  >
+                                    <span className="font-semibold">Week {week.week}</span> • {week.topic}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </ModernCard>
+
+                    <ModernCard className="p-8">
+                      <div className="mb-6">
                         <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Assignment Details</h3>
                         <p className="text-slate-600">Create the foundation of your assignment with clear objectives and structured tasks.</p>
+                        {selectedWeek && (
+                          <div className="mt-3 text-xs text-slate-500">
+                            Aligned to {selectedScheme?.subject} • {selectedScheme?.academicYear} • Week {selectedWeek.week}: {selectedWeek.topic}
+                          </div>
+                        )}
                       </div>
 
                       <div className="space-y-6">
@@ -2116,7 +2279,7 @@
                                   value={aiForm.week}
                                   onChange={(e) => setAiForm((prev) => ({ ...prev, week: e.target.value }))}
                                   min="1"
-                                  max="18"
+                                  max={maxWeekNumber || 36}
                                   className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                                 />
                               </div>
@@ -2203,6 +2366,30 @@
                   </div>
 
                   <div className="space-y-6">
+                    <ModernCard className="p-6">
+                      <h4 className="font-semibold text-slate-900 mb-4">Homework Assignment Card</h4>
+                      {schemeSummary && selectedScheme ? (
+                        <div className="space-y-3">
+                          <div className="text-sm text-slate-700">
+                            <span className="font-semibold">{selectedScheme.subject}</span> • {selectedScheme.academicYear}
+                          </div>
+                          <div className="p-3 border border-slate-200 rounded-lg bg-slate-50">
+                            <p className="text-sm font-semibold text-slate-900">{schemeSummary.title}</p>
+                            <p className="text-xs text-slate-500 mt-1">{schemeSummary.description}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={applySchemeToAssignment}
+                            className="w-full text-sm px-4 py-2 rounded-lg border border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100"
+                          >
+                            Apply to assignment details
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500">Select a scheme week to populate the homework context.</p>
+                      )}
+                    </ModernCard>
+
                     <ModernCard className="p-6">
                       <h4 className="font-semibold text-slate-900 mb-4">Assignment Progress</h4>
                       <div className="space-y-3">
