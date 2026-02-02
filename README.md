@@ -148,6 +148,68 @@ The app defaults to `http://localhost:3000`. Use `BASE_URL` if you expose it via
 
 If you want to persist learner performance, courseware metadata, and schemes of work in a managed NoSQL service on Railway, follow the data model and provisioning steps in [`docs/railway-nosql.md`](docs/railway-nosql.md).
 
+## Integrating 3rd-party systems with the 360 MongoDB collections
+
+External platforms such as Canvas, Learning Record Stores (LRS), or recommendation engines can push data into the 360-degree learner/profile collections by calling the MongoDB REST endpoints exposed by `server.js`. These endpoints are designed to support upsert semantics so integrations can repeatedly sync without creating duplicates.
+
+### Required environment variables
+
+- `MONGODB_URI` (or `MONGODB_URL` / `MONGO_URL`) – MongoDB connection string.
+- `MONGODB_DB` (optional) – database name.
+- `MONGODB_PRIZM_COLLECTION` (optional) – collection name for PRIZM content (defaults to `prizmContent`).
+
+If MongoDB is not configured, the same endpoints operate against the in-memory mock collections for demos and local testing.
+
+### Upsert endpoint (recommended for integrations)
+
+Use `POST` or `PUT` to upsert a document into any MongoDB collection:
+
+```
+POST /api/mongodb/collections/:collection/upsert
+PUT /api/mongodb/collections/:collection/upsert/:id
+```
+
+**Request body (JSON)**
+
+```json
+{
+  "filter": { "externalId": "canvas-assignment-42" },
+  "document": {
+    "externalId": "canvas-assignment-42",
+    "learnerId": "L001",
+    "source": "canvas",
+    "score": 0.84
+  },
+  "setOnInsert": {
+    "createdAt": "2025-02-01T12:00:00Z"
+  }
+}
+```
+
+- `filter` (required when no `:id` is provided) determines which record to update.
+- `document` is merged into the existing record via `$set`.
+- `setOnInsert` only applies when the record is created for the first time.
+
+**Response body (JSON)**
+
+```json
+{
+  "document": { "externalId": "canvas-assignment-42", "learnerId": "L001", "source": "canvas", "score": 0.84 },
+  "upserted": true,
+  "upsertedId": "65c3c5b6e8b5e7b8d3c1a2f1"
+}
+```
+
+### Integration tips
+
+- **Canvas LMS**: upsert assignment, submission, or grade-return payloads keyed by Canvas `assignment_id`, `user_id`, or `submission_id`.
+- **LRS**: upsert xAPI statements keyed by `statementId` or a composite key from `actor` + `verb` + `object`.
+- **Recommendations**: upsert recommendation snapshots keyed by `learnerId` + `generatedAt` to maintain a history of model runs.
+
+### Batch loading
+
+For bulk ingestion, iterate over the external payload and issue parallel upserts per record. This PoC does not include a bulk endpoint, so orchestrate batching in the calling system (e.g., serverless function, ETL job, or LMS webhook handler).
+
 ## Extending toward production
 
 - Replace the `/api/lti/launch` stub with real OIDC login + JWT verification per IMS Global specs.
