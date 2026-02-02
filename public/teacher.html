@@ -292,7 +292,7 @@
       );
     };
 
-    const QuartileCard = ({ group, isSelected, onToggle }) => (
+    const CohortCard = ({ group, isSelected, onToggle }) => (
       <label
         className={`block p-4 rounded-xl border transition-all cursor-pointer ${
           isSelected ? 'border-primary-300 bg-primary-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'
@@ -313,7 +313,7 @@
             </div>
             <div className="text-xs text-slate-600 leading-relaxed">{group.description}</div>
             <div className="text-[11px] text-slate-500">
-              {group.learners.length} learner{group.learners.length !== 1 ? 's' : ''} in this quartile
+              {group.learners.length} learner{group.learners.length !== 1 ? 's' : ''} in this cohort
             </div>
           </div>
         </div>
@@ -440,7 +440,7 @@
       const [selectedSchool, setSelectedSchool] = useState('');
       const [schoolStatus, setSchoolStatus] = useState('');
       const [selectedTopic, setSelectedTopic] = useState('');
-      const [selectedQuartiles, setSelectedQuartiles] = useState(new Set());
+      const [selectedCohorts, setSelectedCohorts] = useState(new Set());
       const [status, setStatus] = useState('');
       const [aiStatus, setAiStatus] = useState('');
       const [aiExplanation, setAiExplanation] = useState('');
@@ -482,42 +482,13 @@
 
       const [aiForm, setAiForm] = useState({
         learnerId: '',
-        quartile: '',
+        cohort: '',
         topic: '',
         week: 1,
         time: 30,
         profile: 'balanced',
         explain: false,
       });
-
-      const quartileMeta = {
-        Q1: {
-          label: 'Quartile 1',
-          tier: 'High readiness',
-          badge: 'bg-green-100 text-green-800',
-          description: 'Accelerated track with stronger mastery signals. Great fit for stretch challenges.',
-        },
-        Q2: {
-          label: 'Quartile 2',
-          tier: 'Above midpoint',
-          badge: 'bg-emerald-50 text-emerald-700',
-          description: 'Confident with core objectives; benefits from a balance of practice and light extension.',
-        },
-        Q3: {
-          label: 'Quartile 3',
-          tier: 'Developing',
-          badge: 'bg-amber-50 text-amber-700',
-          description: 'Building consistency on essentials. Prioritise scaffolded practice and feedback loops.',
-        },
-        Q4: {
-          label: 'Quartile 4',
-          tier: 'High support',
-          badge: 'bg-orange-50 text-orange-700',
-          description: 'Requires focused intervention with short, targeted tasks and immediate feedback.',
-        },
-      };
-
-      const quartileOrder = ['Q1', 'Q2', 'Q3', 'Q4'];
 
       const topics = useMemo(() => {
         if (!scheme) return [];
@@ -526,33 +497,23 @@
         return Array.from(new Set([...schemeTopics, ...resourceTopics])).sort();
       }, [scheme, resources]);
 
-      const quartileGroups = useMemo(() => {
+      const cohortGroups = useMemo(() => {
         const grouped = learners.reduce((acc, learner) => {
-          const key = learner.quartile || 'Unclassified';
+          const key = learner.cohort || 'Unassigned';
           if (!acc[key]) acc[key] = [];
           acc[key].push(learner);
           return acc;
         }, {});
 
-        const orderedKeys = [
-          ...quartileOrder.filter((key) => grouped[key]),
-          ...Object.keys(grouped).filter((key) => !quartileOrder.includes(key)),
-        ];
+        const orderedKeys = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
 
         return orderedKeys.map((key) => {
-          const meta = quartileMeta[key] || {
-            label: key,
-            tier: 'Mixed readiness',
-            badge: 'bg-slate-100 text-slate-700',
-            description: 'Learners grouped without personal identifiers.',
-          };
-
           return {
             key,
-            label: meta.label,
-            tier: meta.tier,
-            badge: meta.badge,
-            description: meta.description,
+            label: key,
+            tier: 'Cohort group',
+            badge: 'bg-slate-100 text-slate-700',
+            description: 'Learners grouped by cohort for assignment delivery.',
             learners: grouped[key] || [],
           };
         });
@@ -560,13 +521,13 @@
 
       const selectedLearners = useMemo(() => {
         const selected = new Set();
-        quartileGroups.forEach((group) => {
-          if (selectedQuartiles.has(group.key)) {
+        cohortGroups.forEach((group) => {
+          if (selectedCohorts.has(group.key)) {
             group.learners.forEach((learner) => selected.add(learner.email));
           }
         });
         return selected;
-      }, [quartileGroups, selectedQuartiles]);
+      }, [cohortGroups, selectedCohorts]);
 
       const selectedSchoolName = useMemo(() => {
         const match = schools.find((school) => school.id === selectedSchool);
@@ -868,8 +829,8 @@
 
       const changeSchool = (schoolId) => {
         setSelectedSchool(schoolId);
-        setSelectedQuartiles(new Set());
-        setAiForm((prev) => ({ ...prev, quartile: '', learnerId: '' }));
+        setSelectedCohorts(new Set());
+        setAiForm((prev) => ({ ...prev, cohort: '', learnerId: '' }));
         setStatus('');
         setAiStatus('');
         setIsamsStatus('');
@@ -1011,20 +972,20 @@
         }
       };
 
-      const toggleQuartile = (quartileKey) => {
-        setSelectedQuartiles((prev) => {
+      const toggleCohort = (cohortKey) => {
+        setSelectedCohorts((prev) => {
           const next = new Set(prev);
-          if (next.has(quartileKey)) next.delete(quartileKey);
-          else next.add(quartileKey);
+          if (next.has(cohortKey)) next.delete(cohortKey);
+          else next.add(cohortKey);
 
           if (next.size === 0) {
-            setAiForm((prevForm) => ({ ...prevForm, quartile: '', learnerId: '' }));
-          } else if (!next.has(aiForm.quartile)) {
-            const [firstQuartile] = Array.from(next);
+            setAiForm((prevForm) => ({ ...prevForm, cohort: '', learnerId: '' }));
+          } else if (!next.has(aiForm.cohort)) {
+            const [firstCohort] = Array.from(next);
             setAiForm((prevForm) => ({
               ...prevForm,
-              quartile: firstQuartile,
-              learnerId: resolveQuartileLearnerId(firstQuartile),
+              cohort: firstCohort,
+              learnerId: resolveCohortLearnerId(firstCohort),
             }));
           }
 
@@ -1037,10 +998,10 @@
         updateForm('tasks', form.tasks ? `${form.tasks}\n${resourceLine}` : resourceLine);
       };
 
-      const resolveQuartileLearnerId = (quartileKey) => {
-        const quartileGroup = quartileGroups.find((group) => group.key === quartileKey);
-        if (quartileGroup && quartileGroup.learners && quartileGroup.learners[0]) {
-          return quartileGroup.learners[0].id || '';
+      const resolveCohortLearnerId = (cohortKey) => {
+        const cohortGroup = cohortGroups.find((group) => group.key === cohortKey);
+        if (cohortGroup && cohortGroup.learners && cohortGroup.learners[0]) {
+          return cohortGroup.learners[0].id || '';
         }
         return '';
       };
@@ -1091,9 +1052,9 @@
       };
 
       const generateAI = async () => {
-        const learnerId = aiForm.learnerId || resolveQuartileLearnerId(aiForm.quartile);
-        if (!aiForm.quartile || !aiForm.topic || !learnerId) {
-          setAiStatus('Please select a quartile with available learners and a topic');
+        const learnerId = aiForm.learnerId || resolveCohortLearnerId(aiForm.cohort);
+        if (!aiForm.cohort || !aiForm.topic || !learnerId) {
+          setAiStatus('Please select a cohort with available learners and a topic');
           return;
         }
 
@@ -2082,24 +2043,24 @@
                         <ModernCard className="p-8">
                           <div className="mb-6">
                             <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">AI recommendations (Faculty 'black box')</h3>
-                            <p className="text-slate-600">Generate personalised content for Homework from PRIZM using Faculty AI, based on Inspired quartiles and context (Schemes of Work mapped to Pearson Curricula).</p>
+                            <p className="text-slate-600">Generate personalised content for Homework from PRIZM using Faculty AI, based on Inspired cohorts and context (Schemes of Work mapped to Pearson Curricula).</p>
                           </div>
 
                           <div className="space-y-6">
                             <div className="grid md:grid-cols-2 gap-6">
                               <div className="space-y-2">
-                                <label className="text-sm font-semibold text-slate-700">Select Quartile</label>
+                                <label className="text-sm font-semibold text-slate-700">Select Cohort</label>
                                 <select
-                                  value={aiForm.quartile}
+                                  value={aiForm.cohort}
                                   onChange={(e) => setAiForm((prev) => ({
                                     ...prev,
-                                    quartile: e.target.value,
-                                    learnerId: resolveQuartileLearnerId(e.target.value),
+                                    cohort: e.target.value,
+                                    learnerId: resolveCohortLearnerId(e.target.value),
                                   }))}
                                   className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                                 >
-                                  <option value="">Choose quartile for personalisation</option>
-                                  {quartileGroups.map((group) => (
+                                  <option value="">Choose cohort for personalisation</option>
+                                  {cohortGroups.map((group) => (
                                     <option key={group.key} value={group.key}>
                                       {group.label} ({group.learners.length} learners)
                                     </option>
@@ -2202,16 +2163,16 @@
                         <ModernCard className="p-8">
                           <div className="mb-6">
                             <h3 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Difficulty</h3>
-                            <p className="text-slate-600">Get AI Recommendations based on Quartile performance</p>
+                            <p className="text-slate-600">Choose cohorts to assign this homework to</p>
                           </div>
 
                           <div className="grid md:grid-cols-2 gap-6 mb-8">
-                            {quartileGroups.map((group) => (
-                              <QuartileCard
+                            {cohortGroups.map((group) => (
+                              <CohortCard
                                 key={group.key}
                                 group={group}
-                                isSelected={selectedQuartiles.has(group.key)}
-                                onToggle={toggleQuartile}
+                                isSelected={selectedCohorts.has(group.key)}
+                                onToggle={toggleCohort}
                               />
                             ))}
                           </div>
@@ -2219,7 +2180,7 @@
                           <div className="border-t border-slate-200 pt-6">
                             <div className="flex items-center justify-between">
                               <div className="text-sm text-slate-600">
-                                {selectedQuartiles.size} quartile{selectedQuartiles.size !== 1 ? 's' : ''} selected • {selectedLearners.size} learner{selectedLearners.size !== 1 ? 's' : ''}
+                                {selectedCohorts.size} cohort{selectedCohorts.size !== 1 ? 's' : ''} selected • {selectedLearners.size} learner{selectedLearners.size !== 1 ? 's' : ''}
                               </div>
                               <FloatingActionButton onClick={() => setCurrentStep(2)} variant="secondary">Return to details</FloatingActionButton>
                             </div>
