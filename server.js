@@ -30,6 +30,7 @@ const MONGODB_LEARNERS_COLLECTION = process.env.MONGODB_LEARNERS_COLLECTION || '
 const MONGODB_PERFORMANCE_COLLECTION = process.env.MONGODB_PERFORMANCE_COLLECTION || 'learner_performance';
 const MONGODB_COURSEWARE_COLLECTION = process.env.MONGODB_COURSEWARE_COLLECTION || 'courseware';
 const MONGODB_SCHEMES_COLLECTION = process.env.MONGODB_SCHEMES_COLLECTION || 'schemes_of_work';
+const MONGODB_HOMEWORK_COLLECTION = process.env.MONGODB_HOMEWORK_COLLECTION || 'homework';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const assignments = new Map();
@@ -622,6 +623,14 @@ function buildSchemeOfWorkSeedDoc({ timestamp }) {
   };
 }
 
+function buildHomeworkSeedDocs({ timestamp }) {
+  return prizmContentRepository.map((content) => ({
+    _id: content.id,
+    ...content,
+    seededAt: timestamp,
+  }));
+}
+
 async function seedMongoFromMemory() {
   if (!MONGODB_URI) return;
   const db = await getMongoDb();
@@ -633,6 +642,7 @@ async function seedMongoFromMemory() {
   const performanceDocs = buildLearnerPerformanceSeedDocs({ timestamp, snapshotDate });
   const coursewareDocs = buildCoursewareSeedDocs({ timestamp });
   const schemeDoc = buildSchemeOfWorkSeedDoc({ timestamp });
+  const homeworkDocs = buildHomeworkSeedDocs({ timestamp });
 
   const bulkUpsert = async (collectionName, docs) => {
     if (!docs.length) return;
@@ -652,6 +662,7 @@ async function seedMongoFromMemory() {
     bulkUpsert(MONGODB_LEARNERS_COLLECTION, learnerDocs),
     bulkUpsert(MONGODB_PERFORMANCE_COLLECTION, performanceDocs),
     bulkUpsert(MONGODB_COURSEWARE_COLLECTION, coursewareDocs),
+    bulkUpsert(MONGODB_HOMEWORK_COLLECTION, homeworkDocs),
     db.collection(MONGODB_SCHEMES_COLLECTION).updateOne(
       { _id: schemeDoc._id },
       { $set: schemeDoc },
