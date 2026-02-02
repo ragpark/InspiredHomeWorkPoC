@@ -9,6 +9,7 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
+    "bson": "^6.5.0",
     "mongodb": "^6.5.0"
   },
   "keywords": [
