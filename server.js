@@ -26,6 +26,11 @@ const PG_REST_AUTH_SCHEME = process.env.PG_REST_AUTH_SCHEME || '';
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URL || '';
 const MONGODB_DB = process.env.MONGODB_DB || process.env.MONGO_DB || '';
 const MONGODB_PRIZM_COLLECTION = process.env.MONGODB_PRIZM_COLLECTION || 'prizmContent';
+const MONGODB_LEARNERS_COLLECTION = process.env.MONGODB_LEARNERS_COLLECTION || 'learners';
+const MONGODB_PERFORMANCE_COLLECTION = process.env.MONGODB_PERFORMANCE_COLLECTION || 'learner_performance';
+const MONGODB_COURSEWARE_COLLECTION = process.env.MONGODB_COURSEWARE_COLLECTION || 'courseware';
+const MONGODB_SCHEMES_COLLECTION = process.env.MONGODB_SCHEMES_COLLECTION || 'schemes_of_work';
+const MONGODB_HOMEWORK_COLLECTION = process.env.MONGODB_HOMEWORK_COLLECTION || 'homework';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const assignments = new Map();
@@ -565,6 +570,105 @@ async function getMongoDb() {
 async function getPrizmCollection() {
   const db = await getMongoDb();
   return db.collection(MONGODB_PRIZM_COLLECTION);
+}
+
+function buildLearnerSeedDocs({ timestamp }) {
+  return learners.map((learner) => ({
+    _id: learner.id,
+    name: learner.name,
+    email: learner.email,
+    cohort: learner.cohort,
+    status: learner.status,
+    schoolId: learner.schoolId,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  }));
+}
+
+function buildLearnerPerformanceSeedDocs({ timestamp, snapshotDate }) {
+  return Object.entries(learnerPerformance).map(([learnerId, performance]) => ({
+    _id: `PERF-${learnerId}-${snapshotDate}`,
+    learnerId,
+    snapshotDate,
+    mastery: performance.mastery || [],
+    recentActivity: performance.recentActivity || {},
+    createdAt: timestamp,
+  }));
+}
+
+function buildCoursewareSeedDocs({ timestamp }) {
+  return contentResources.map((resource) => ({
+    _id: resource.id,
+    title: resource.title,
+    topic: resource.topic,
+    difficulty: resource.difficulty,
+    lengthMinutes: resource.lengthMinutes,
+    type: resource.type,
+    alignedOutcomes: resource.alignedOutcomes || [],
+    media: {
+      category: resource.type,
+      contentUrl: resource.contentUrl || null,
+      thumbnailUrl: resource.thumbnailUrl || null,
+    },
+    updatedAt: timestamp,
+  }));
+}
+
+function buildSchemeOfWorkSeedDoc({ timestamp }) {
+  return {
+    _id: `SOW-${schemeOfWork.academicYear}`,
+    academicYear: schemeOfWork.academicYear,
+    semesters: schemeOfWork.semesters || [],
+    updatedAt: timestamp,
+  };
+}
+
+function buildHomeworkSeedDocs({ timestamp }) {
+  return prizmContentRepository.map((content) => ({
+    _id: content.id,
+    ...content,
+    seededAt: timestamp,
+  }));
+}
+
+async function seedMongoFromMemory() {
+  if (!MONGODB_URI) return;
+  const db = await getMongoDb();
+  const now = new Date();
+  const timestamp = now.toISOString();
+  const snapshotDate = timestamp.slice(0, 10);
+
+  const learnerDocs = buildLearnerSeedDocs({ timestamp });
+  const performanceDocs = buildLearnerPerformanceSeedDocs({ timestamp, snapshotDate });
+  const coursewareDocs = buildCoursewareSeedDocs({ timestamp });
+  const schemeDoc = buildSchemeOfWorkSeedDoc({ timestamp });
+  const homeworkDocs = buildHomeworkSeedDocs({ timestamp });
+
+  const bulkUpsert = async (collectionName, docs) => {
+    if (!docs.length) return;
+    const collection = db.collection(collectionName);
+    await collection.bulkWrite(
+      docs.map((doc) => ({
+        updateOne: {
+          filter: { _id: doc._id },
+          update: { $set: doc },
+          upsert: true,
+        },
+      }))
+    );
+  };
+
+  await Promise.all([
+    bulkUpsert(MONGODB_LEARNERS_COLLECTION, learnerDocs),
+    bulkUpsert(MONGODB_PERFORMANCE_COLLECTION, performanceDocs),
+    bulkUpsert(MONGODB_COURSEWARE_COLLECTION, coursewareDocs),
+    bulkUpsert(MONGODB_HOMEWORK_COLLECTION, homeworkDocs),
+    db.collection(MONGODB_SCHEMES_COLLECTION).updateOne(
+      { _id: schemeDoc._id },
+      { $set: schemeDoc },
+      { upsert: true }
+    ),
+  ]);
 }
 
 function filterPrizmContent(content, filters = {}) {
@@ -1765,4 +1869,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   const defaultOrigin = ENV_BASE_URL || `http://localhost:${PORT}`;
   console.log(`InspiredHomeworkPoC server running. Base origin: ${defaultOrigin}`);
+  seedMongoFromMemory().catch((err) => {
+    console.error('Failed to seed MongoDB with in-memory teacher studio data:', err);
+  });
 });
