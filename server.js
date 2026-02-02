@@ -419,6 +419,7 @@ const prizmCategories = ['All', 'Video', 'Interactive', 'Document', 'Image', 'Au
 const generatePrizmId = () => `PRIZM-${randomUUID().slice(0, 8).toUpperCase()}`;
 const generateMockId = () => randomUUID();
 const mockMongoCollections = new Map([[MONGODB_PRIZM_COLLECTION, prizmContentRepository]]);
+const isPlainObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
 const normalizeList = (value) => {
   if (Array.isArray(value)) return value.filter(Boolean);
@@ -512,6 +513,39 @@ const getMongoIdFilter = (id) => {
     return new ObjectId(id);
   }
   return id;
+};
+
+const matchMockDocument = (doc, filter) =>
+  Object.entries(filter).every(([key, value]) => doc?.[key] === value);
+
+const normalizeUpsertRequest = (payload, documentId) => {
+  if (!isPlainObject(payload)) {
+    return { error: 'Upsert payload must be an object.' };
+  }
+
+  const document = isPlainObject(payload.document) ? payload.document : payload.document ?? payload;
+  if (!isPlainObject(document)) {
+    return { error: 'document must be an object.' };
+  }
+
+  let filter = isPlainObject(payload.filter) ? payload.filter : null;
+  if (!filter && documentId) {
+    filter = { _id: documentId };
+  }
+  if (!filter && document._id) {
+    filter = { _id: document._id };
+  }
+  if (!filter && document.id) {
+    filter = { id: document.id };
+  }
+
+  if (!filter || !isPlainObject(filter) || Object.keys(filter).length === 0) {
+    return { error: 'filter is required for upserts when no document id is provided.' };
+  }
+
+  const setOnInsert = isPlainObject(payload.setOnInsert) ? payload.setOnInsert : null;
+
+  return { filter, document, setOnInsert };
 };
 
 let mongoClient;
@@ -1387,6 +1421,85 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       console.error('Error loading MongoDB collections snapshot:', err);
       return sendJson(res, 500, { error: err.message }, baseHeaders);
+    }
+  }
+
+  const mongoUpsertMatch = url.pathname.match(/^\/api\/mongodb\/collections\/([^/]+)\/upsert(?:\/([^/]+))?$/);
+  if (mongoUpsertMatch) {
+    const collectionName = decodeURIComponent(mongoUpsertMatch[1]);
+    const documentId = mongoUpsertMatch[2] ? decodeURIComponent(mongoUpsertMatch[2]) : null;
+
+    if (!['POST', 'PUT'].includes(req.method)) {
+      return sendJson(res, 405, { error: 'Method not allowed' }, baseHeaders);
+    }
+
+    try {
+      const payload = await parseBody(req);
+      const normalized = normalizeUpsertRequest(payload, documentId);
+      if (normalized.error) {
+        return sendJson(res, 400, { error: normalized.error }, baseHeaders);
+      }
+
+      const { filter, document, setOnInsert } = normalized;
+      const { _id: documentIdValue, ...documentToSet } = document;
+
+      if (!MONGODB_URI) {
+        const collection = getMockCollection(collectionName);
+        const index = collection.findIndex((doc) => matchMockDocument(doc, filter));
+        if (index >= 0) {
+          const updated = { ...collection[index], ...documentToSet };
+          updateMockCollection(collectionName, (docs) => {
+            docs[index] = updated;
+          });
+          return sendJson(res, 200, { document: updated, upserted: false }, baseHeaders);
+        }
+
+        const seededId = documentIdValue ?? filter._id ?? generateMockId();
+        const created = {
+          ...filter,
+          ...(setOnInsert || {}),
+          ...documentToSet,
+          _id: seededId,
+        };
+        updateMockCollection(collectionName, (docs) => {
+          docs.unshift(created);
+        });
+        return sendJson(res, 201, { document: created, upserted: true, upsertedId: created._id }, baseHeaders);
+      }
+
+      const db = await getMongoDb();
+      const mongoFilter = { ...filter };
+      if (mongoFilter._id) {
+        mongoFilter._id = getMongoIdFilter(mongoFilter._id);
+      }
+      const mongoDocumentId = documentIdValue ? getMongoIdFilter(documentIdValue) : null;
+      const normalizedSetOnInsert = setOnInsert ? { ...setOnInsert } : null;
+      if (normalizedSetOnInsert?._id) {
+        normalizedSetOnInsert._id = getMongoIdFilter(normalizedSetOnInsert._id);
+      }
+      const update = { $set: documentToSet };
+      if (normalizedSetOnInsert || mongoDocumentId) {
+        update.$setOnInsert = {
+          ...(normalizedSetOnInsert || {}),
+          ...(mongoDocumentId && !mongoFilter._id ? { _id: mongoDocumentId } : {}),
+        };
+      }
+
+      const result = await db.collection(collectionName).findOneAndUpdate(mongoFilter, update, {
+        upsert: true,
+        returnDocument: 'after',
+      });
+      const upsertedId = result.lastErrorObject?.upserted ?? null;
+      const upserted = Boolean(upsertedId);
+      return sendJson(
+        res,
+        upserted ? 201 : 200,
+        { document: result.value, upserted, upsertedId },
+        baseHeaders
+      );
+    } catch (err) {
+      console.error('Error handling MongoDB upsert request:', err);
+      return sendJson(res, 500, { error: 'Failed to upsert document' }, baseHeaders);
     }
   }
 
