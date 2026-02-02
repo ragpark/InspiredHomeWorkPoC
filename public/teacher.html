@@ -701,12 +701,14 @@
         const defaults = ['Video', 'Interactive', 'Document', 'Image', 'Audio'];
         const collected = prizmContent.map((item) => item.category).filter(Boolean);
         const unique = Array.from(new Set(collected));
-        return (unique.length ? unique : defaults).sort();
+        const categories = (unique.length ? unique : defaults).sort();
+        return ['All', ...categories];
       }, [prizmContent]);
 
       const prizmTopicOptions = useMemo(() => {
         const collected = prizmContent.map((item) => item.topic).filter(Boolean);
-        return Array.from(new Set(collected)).sort();
+        const topics = Array.from(new Set(collected)).sort();
+        return ['All', ...topics];
       }, [prizmContent]);
 
       const buildPrizmTaskLines = (contentIds) => {
@@ -789,18 +791,22 @@
       useEffect(() => {
         async function loadStatic() {
           try {
-            const [schemeRes, resourceRes, prizmRes] = await Promise.all([
+            const [schemeRes, resourceRes, homeworkRes, prizmRes] = await Promise.all([
               fetch('/api/scheme-of-work'),
               fetch('/api/content-resources'),
+              fetch('/api/mongodb/collections/homework/documents?limit=200'),
               fetch('/api/prizm/content'),
             ]);
 
             const schemeData = await schemeRes.json();
             const resourceData = await resourceRes.json();
+            const homeworkData = await homeworkRes.json();
             const prizmData = await prizmRes.json();
+            const homeworkDocuments = Array.isArray(homeworkData.documents) ? homeworkData.documents : [];
+            const prizmItems = homeworkRes.ok && homeworkDocuments.length > 0 ? homeworkDocuments : (prizmData.content || []);
             setScheme(schemeData.schemeOfWork || null);
             setResources(resourceData.resources || []);
-            setPrizmContent(prizmData.content || []);
+            setPrizmContent(prizmItems);
           } catch (error) {
             console.error('Failed to load static data:', error);
           }
@@ -2118,12 +2124,11 @@
                                 onChange={(e) => setPrizmFilters((prev) => ({ ...prev, category: e.target.value }))}
                                 className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white"
                               >
-                                <option value="All">All Categories</option>
-                                <option value="Video">Video</option>
-                                <option value="Interactive">Interactive</option>
-                                <option value="Document">Document</option>
-                                <option value="Image">Image</option>
-                                <option value="Audio">Audio</option>
+                                {prizmCategoryOptions.map((category) => (
+                                  <option key={category} value={category}>
+                                    {category === 'All' ? 'All Categories' : category}
+                                  </option>
+                                ))}
                               </select>
                             </div>
                             <div className="space-y-2">
@@ -2133,9 +2138,10 @@
                                 onChange={(e) => setPrizmFilters((prev) => ({ ...prev, topic: e.target.value }))}
                                 className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white"
                               >
-                                <option value="All">All Topics</option>
-                                {topics.map((topic) => (
-                                  <option key={topic} value={topic}>{topic}</option>
+                                {prizmTopicOptions.map((topic) => (
+                                  <option key={topic} value={topic}>
+                                    {topic === 'All' ? 'All Topics' : topic}
+                                  </option>
                                 ))}
                               </select>
                             </div>

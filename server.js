@@ -530,6 +530,8 @@ const updateMockCollection = (name, updater) => {
   updater(collection);
   if (name === MONGODB_PRIZM_COLLECTION) {
     prizmContentRepository = collection;
+    const timestamp = new Date().toISOString();
+    mockMongoCollections.set(MONGODB_HOMEWORK_COLLECTION, buildHomeworkSeedDocs({ timestamp }));
   }
   return collection;
 };
@@ -699,6 +701,10 @@ function buildHomeworkSeedDocs({ timestamp }) {
     ...content,
     seededAt: timestamp,
   }));
+}
+
+if (!mockMongoCollections.has(MONGODB_HOMEWORK_COLLECTION)) {
+  mockMongoCollections.set(MONGODB_HOMEWORK_COLLECTION, buildHomeworkSeedDocs({ timestamp: new Date().toISOString() }));
 }
 
 async function seedMongoFromMemory() {
