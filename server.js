@@ -3,6 +3,7 @@ import { readFile, stat } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
+import { MongoClient } from 'mongodb';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +23,9 @@ const PG_REST_URL = process.env.PG_REST_URL || '';
 const PG_REST_AUTH_HEADER = process.env.PG_REST_AUTH_HEADER || 'apikey';
 const PG_REST_API_KEY = process.env.PG_REST_API_KEY || '';
 const PG_REST_AUTH_SCHEME = process.env.PG_REST_AUTH_SCHEME || '';
+const MONGODB_URI = process.env.MONGODB_URI || '';
+const MONGODB_DB = process.env.MONGODB_DB || process.env.MONGO_DB || '';
+const MONGODB_PRIZM_COLLECTION = process.env.MONGODB_PRIZM_COLLECTION || 'prizmContent';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const assignments = new Map();
@@ -413,9 +417,27 @@ const prizmContentRepository = [
 // PRIZM content categories for filtering
 const prizmCategories = ['All', 'Video', 'Interactive', 'Document', 'Image', 'Audio'];
 
-// Helper functions for PRIZM repository
-function getPrizmContent(filters = {}) {
-  let filtered = [...prizmContentRepository];
+let mongoClient;
+let mongoDb;
+
+async function getMongoDb() {
+  if (!MONGODB_URI) {
+    throw new Error('MONGODB_URI is required to load PRIZM content from MongoDB');
+  }
+  if (mongoDb) return mongoDb;
+  mongoClient = new MongoClient(MONGODB_URI);
+  await mongoClient.connect();
+  mongoDb = mongoClient.db(MONGODB_DB || undefined);
+  return mongoDb;
+}
+
+async function getPrizmCollection() {
+  const db = await getMongoDb();
+  return db.collection(MONGODB_PRIZM_COLLECTION);
+}
+
+function filterPrizmContent(content, filters = {}) {
+  let filtered = [...content];
 
   if (filters.topic && filters.topic !== 'All') {
     filtered = filtered.filter(item => item.topic === filters.topic);
@@ -441,8 +463,49 @@ function getPrizmContent(filters = {}) {
   return filtered;
 }
 
-function getPrizmContentById(id) {
-  return prizmContentRepository.find(item => item.id === id);
+async function getPrizmContent(filters = {}) {
+  if (!MONGODB_URI) {
+    return filterPrizmContent(prizmContentRepository, filters);
+  }
+
+  const query = {};
+  if (filters.topic && filters.topic !== 'All') {
+    query.topic = filters.topic;
+  }
+  if (filters.category && filters.category !== 'All') {
+    query.category = filters.category;
+  }
+  if (filters.difficulty && filters.difficulty !== 'All') {
+    query.difficulty = filters.difficulty;
+  }
+  if (filters.search) {
+    const searchRegex = new RegExp(filters.search, 'i');
+    query.$or = [
+      { title: searchRegex },
+      { description: searchRegex },
+      { tags: { $elemMatch: { $regex: searchRegex } } },
+    ];
+  }
+
+  const collection = await getPrizmCollection();
+  return collection.find(query).toArray();
+}
+
+async function getPrizmContentById(id) {
+  if (!MONGODB_URI) {
+    return prizmContentRepository.find(item => item.id === id);
+  }
+  const collection = await getPrizmCollection();
+  return collection.findOne({ id });
+}
+
+async function getPrizmContentByIds(ids = []) {
+  if (!Array.isArray(ids) || ids.length === 0) return [];
+  if (!MONGODB_URI) {
+    return prizmContentRepository.filter(item => ids.includes(item.id));
+  }
+  const collection = await getPrizmCollection();
+  return collection.find({ id: { $in: ids } }).toArray();
 }
 
 function buildPgRestHeaders() {
@@ -922,7 +985,7 @@ function mergePrizmTasks(tasks, prizmContentItems) {
   return [...manualTasks, ...prizmTasks].filter(Boolean);
 }
 
-function createAssignment(payload, baseUrl) {
+async function createAssignment(payload, baseUrl) {
   const id = randomUUID();
   const { title, description, tasks = [], students = [], groups = [], ltiReturnUrl, schoolId, prizmContent = [] } = payload;
   const school = getSchoolById(schoolId);
@@ -932,32 +995,29 @@ function createAssignment(payload, baseUrl) {
   const normalizedTasks = tasks.filter(Boolean).map(task => task.trim()).filter(Boolean);
 
   // Process PRIZM content - store references with full metadata
-  const prizmContentItems = prizmContent
-    .map(contentId => {
-      const content = getPrizmContentById(contentId);
-      if (content) {
-        return {
-          id: content.id,
-          title: content.title,
-          category: content.category,
-          mediaType: content.mediaType,
-          thumbnailUrl: content.thumbnailUrl,
-          contentUrl: content.contentUrl,
-          duration: content.duration,
-        };
-      }
-      return null;
-    })
-    .filter(Boolean);
+  const prizmContentItems = await getPrizmContentByIds(prizmContent);
+  const prizmContentMap = new Map(prizmContentItems.map(item => [item.id, item]));
+  const orderedPrizmContent = prizmContent
+    .map(contentId => prizmContentMap.get(contentId))
+    .filter(Boolean)
+    .map(content => ({
+      id: content.id,
+      title: content.title,
+      category: content.category,
+      mediaType: content.mediaType,
+      thumbnailUrl: content.thumbnailUrl,
+      contentUrl: content.contentUrl,
+      duration: content.duration,
+    }));
 
   const assignment = {
     id,
     title: title || 'Untitled assignment',
     description: description || '',
-    tasks: mergePrizmTasks(normalizedTasks, prizmContentItems),
+    tasks: mergePrizmTasks(normalizedTasks, orderedPrizmContent),
     students: students.map(String),
     groups: groups.map(String),
-    prizmContent: prizmContentItems, // Include PRIZM content in assignment
+    prizmContent: orderedPrizmContent, // Include PRIZM content in assignment
     createdAt: new Date().toISOString(),
     schoolId: school.id,
     schoolName: school.name,
@@ -1073,14 +1133,14 @@ const server = http.createServer(async (req, res) => {
       difficulty: url.searchParams.get('difficulty'),
       search: url.searchParams.get('search'),
     };
-    const content = getPrizmContent(filters);
+    const content = await getPrizmContent(filters);
     res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
     return res.end(JSON.stringify({ content, total: content.length }));
   }
 
   if (req.method === 'GET' && url.pathname.startsWith('/api/prizm/content/')) {
     const id = url.pathname.split('/').pop();
-    const content = getPrizmContentById(id);
+    const content = await getPrizmContentById(id);
     if (!content) {
       return sendJson(res, 404, { error: 'Content not found' }, baseHeaders);
     }
@@ -1170,7 +1230,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/api/assignments') {
     try {
       const payload = await parseBody(req);
-      const { assignment, studentLaunchLink, teacherLink, deepLink } = createAssignment(payload, baseUrl);
+      const { assignment, studentLaunchLink, teacherLink, deepLink } = await createAssignment(payload, baseUrl);
       res.writeHead(201, { 'Content-Type': 'application/json', ...baseHeaders });
       return res.end(JSON.stringify({ assignment, studentLaunchLink, teacherLink, deepLink }));
     } catch (err) {
