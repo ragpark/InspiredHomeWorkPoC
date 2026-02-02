@@ -150,7 +150,81 @@ Use this to persist what the recommender generated and why.
    - Store credentials only in Railway variables.
 
 5. **Seed initial collections (optional)**
-   - Use `mongosh` locally or Railway’s CLI to insert seed data from your in-memory fixtures for learners, schemes, and courseware.
+   - Export Railway’s MongoDB connection string (from the MongoDB service variables) into your shell:
+     ```bash
+     export MONGODB_URL="mongodb://<user>:<password>@<host>:<port>/<db>?authSource=admin"
+     ```
+   - Connect with `mongosh` and create the collections, indexes, and seed data:
+     ```bash
+     mongosh "$MONGODB_URL" <<'EOF'
+     use homework_tutor
+
+     db.learners.insertMany([
+       { _id: "L001", name: "Ada Lovelace", email: "ada@example.com", cohort: "Algebra 2", status: "Active", schoolId: "SCH-A", createdAt: new Date(), updatedAt: new Date() },
+       { _id: "L002", name: "Alan Turing", email: "alan@example.com", cohort: "Geometry", status: "Active", schoolId: "SCH-A", createdAt: new Date(), updatedAt: new Date() }
+     ]);
+
+     db.learner_performance.insertMany([
+       {
+         _id: "PERF-L001-2025-02-01",
+         learnerId: "L001",
+         snapshotDate: "2025-02-01",
+         mastery: [
+           { outcomeId: "maths.algebra.linear-two-step", topic: "Linear equations and inequalities", proficiency: 0.46, confidence: 0.6 }
+         ],
+         recentActivity: {
+           numAssignmentsLast7d: 2,
+           averageScoreLast7d: 0.78,
+           averageTimeOnTaskMinutes: 26,
+           lastHomeworkTopic: "Linear equations and inequalities"
+         },
+         createdAt: new Date()
+       }
+     ]);
+
+     db.courseware.insertMany([
+       {
+         _id: "RES-201",
+         title: "Desmos exploration: balancing equations",
+         topic: "Linear equations and inequalities",
+         difficulty: "Core",
+         lengthMinutes: 30,
+         type: "Activity",
+         alignedOutcomes: ["maths.algebra.linear-two-step"],
+         media: {
+           category: "Interactive",
+           contentUrl: "https://cdn.example.com/desmos",
+           thumbnailUrl: "https://cdn.example.com/thumbs/desmos.png"
+         },
+         updatedAt: new Date()
+       }
+     ]);
+
+     db.schemes_of_work.insertOne({
+       _id: "SOW-2024-2025",
+       academicYear: "2024-2025",
+       semesters: [
+         {
+           name: "Semester 2",
+           focus: "Algebraic reasoning and functions",
+           weeks: [
+             { week: 7, topic: "Linear equations and inequalities" },
+             { week: 8, topic: "Systems of equations" }
+           ]
+         }
+       ],
+       updatedAt: new Date()
+     });
+
+     db.learners.createIndex({ schoolId: 1, cohort: 1 });
+     db.learner_performance.createIndex({ learnerId: 1, snapshotDate: -1 });
+     db.learner_performance.createIndex({ "mastery.outcomeId": 1 });
+     db.courseware.createIndex({ topic: 1, difficulty: 1 });
+     db.courseware.createIndex({ alignedOutcomes: 1 });
+     db.schemes_of_work.createIndex({ academicYear: 1 });
+     EOF
+     ```
+   - If you want to seed from JSON files instead, store them in `docs/seeds/*.json` and use `mongoimport --uri "$MONGODB_URL" --db homework_tutor --collection learners --file docs/seeds/learners.json --jsonArray`.
 
 6. **Connect from the application**
    - Add a MongoDB client (e.g., `mongodb` npm package) and read `process.env.MONGODB_URL`.
