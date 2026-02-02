@@ -3,7 +3,7 @@ import { readFile, stat } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -417,6 +417,8 @@ let prizmContentRepository = [
 // PRIZM content categories for filtering
 const prizmCategories = ['All', 'Video', 'Interactive', 'Document', 'Image', 'Audio'];
 const generatePrizmId = () => `PRIZM-${randomUUID().slice(0, 8).toUpperCase()}`;
+const generateMockId = () => randomUUID();
+const mockMongoCollections = new Map([[MONGODB_PRIZM_COLLECTION, prizmContentRepository]]);
 
 const normalizeList = (value) => {
   if (Array.isArray(value)) return value.filter(Boolean);
@@ -479,6 +481,38 @@ function buildPrizmContentPayload(payload = {}, existing = null) {
     rating: toNumberOr(payload.rating, base.rating),
   };
 }
+
+const deriveSchemaFields = (sample = []) => {
+  const fields = new Set();
+  sample.forEach((item) => {
+    if (!item || typeof item !== 'object') return;
+    Object.keys(item).forEach((key) => fields.add(key));
+  });
+  return Array.from(fields);
+};
+
+const getMockCollection = (name) => {
+  if (!mockMongoCollections.has(name)) {
+    mockMongoCollections.set(name, []);
+  }
+  return mockMongoCollections.get(name);
+};
+
+const updateMockCollection = (name, updater) => {
+  const collection = getMockCollection(name);
+  updater(collection);
+  if (name === MONGODB_PRIZM_COLLECTION) {
+    prizmContentRepository = collection;
+  }
+  return collection;
+};
+
+const getMongoIdFilter = (id) => {
+  if (ObjectId.isValid(id) && String(id).length === 24) {
+    return new ObjectId(id);
+  }
+  return id;
+};
 
 let mongoClient;
 let mongoDb;
@@ -573,16 +607,16 @@ async function getPrizmContentByIds(ids = []) {
 
 async function getMongoCollectionsSnapshot({ limit = 4, sampleSize = 3 } = {}) {
   if (!MONGODB_URI) {
+    const collections = Array.from(mockMongoCollections.entries()).map(([name, docs]) => ({
+      name,
+      count: docs.length,
+      sample: docs.slice(0, sampleSize),
+      schemaFields: deriveSchemaFields(docs.slice(0, sampleSize)),
+    }));
     return {
       isMock: true,
-      collections: [
-        {
-          name: MONGODB_PRIZM_COLLECTION,
-          count: prizmContentRepository.length,
-          sample: prizmContentRepository.slice(0, sampleSize),
-        },
-      ],
-      message: 'MongoDB connection not configured. Showing seeded PRIZM content instead.',
+      collections,
+      message: 'MongoDB connection not configured. Showing in-memory collections instead.',
     };
   }
 
@@ -596,7 +630,7 @@ async function getMongoCollectionsSnapshot({ limit = 4, sampleSize = 3 } = {}) {
         collection.estimatedDocumentCount(),
         collection.find({}).limit(sampleSize).toArray(),
       ]);
-      return { name, count, sample };
+      return { name, count, sample, schemaFields: deriveSchemaFields(sample) };
     })
   );
 
@@ -1246,10 +1280,13 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (!MONGODB_URI) {
-        if (prizmContentRepository.some((item) => item.id === content.id)) {
+        const collection = getMockCollection(MONGODB_PRIZM_COLLECTION);
+        if (collection.some((item) => item.id === content.id)) {
           return sendJson(res, 409, { error: 'Content with this id already exists' }, baseHeaders);
         }
-        prizmContentRepository = [content, ...prizmContentRepository];
+        updateMockCollection(MONGODB_PRIZM_COLLECTION, (docs) => {
+          docs.unshift(content);
+        });
         return sendJson(res, 201, { content }, baseHeaders);
       }
 
@@ -1283,12 +1320,15 @@ const server = http.createServer(async (req, res) => {
       let existing = null;
 
       if (!MONGODB_URI) {
-        existing = prizmContentRepository.find((item) => item.id === id);
-        if (!existing) {
+        const collection = getMockCollection(MONGODB_PRIZM_COLLECTION);
+        const index = collection.findIndex((item) => item.id === id);
+        if (index === -1) {
           return sendJson(res, 404, { error: 'Content not found' }, baseHeaders);
         }
-        const updated = buildPrizmContentPayload(payload, existing);
-        prizmContentRepository = prizmContentRepository.map((item) => (item.id === id ? updated : item));
+        const updated = buildPrizmContentPayload(payload, collection[index]);
+        updateMockCollection(MONGODB_PRIZM_COLLECTION, (docs) => {
+          docs[index] = updated;
+        });
         return sendJson(res, 200, { content: updated }, baseHeaders);
       }
 
@@ -1310,11 +1350,14 @@ const server = http.createServer(async (req, res) => {
     try {
       const id = url.pathname.split('/').pop();
       if (!MONGODB_URI) {
-        const existing = prizmContentRepository.find((item) => item.id === id);
-        if (!existing) {
+        const collection = getMockCollection(MONGODB_PRIZM_COLLECTION);
+        const index = collection.findIndex((item) => item.id === id);
+        if (index === -1) {
           return sendJson(res, 404, { error: 'Content not found' }, baseHeaders);
         }
-        prizmContentRepository = prizmContentRepository.filter((item) => item.id !== id);
+        updateMockCollection(MONGODB_PRIZM_COLLECTION, (docs) => {
+          docs.splice(index, 1);
+        });
         return sendJson(res, 200, { deleted: true }, baseHeaders);
       }
 
@@ -1344,6 +1387,101 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       console.error('Error loading MongoDB collections snapshot:', err);
       return sendJson(res, 500, { error: err.message }, baseHeaders);
+    }
+  }
+
+  const mongoDocumentsMatch = url.pathname.match(/^\/api\/mongodb\/collections\/([^/]+)\/documents(?:\/([^/]+))?$/);
+  if (mongoDocumentsMatch) {
+    const collectionName = decodeURIComponent(mongoDocumentsMatch[1]);
+    const documentId = mongoDocumentsMatch[2] ? decodeURIComponent(mongoDocumentsMatch[2]) : null;
+
+    try {
+      if (req.method === 'GET' && !documentId) {
+        const limit = Number(url.searchParams.get('limit') || 20);
+        if (!MONGODB_URI) {
+          const collection = getMockCollection(collectionName);
+          return sendJson(res, 200, { documents: collection.slice(0, limit) }, baseHeaders);
+        }
+        const db = await getMongoDb();
+        const documents = await db.collection(collectionName).find({}).limit(limit).toArray();
+        return sendJson(res, 200, { documents }, baseHeaders);
+      }
+
+      if (req.method === 'POST' && !documentId) {
+        const payload = await parseBody(req);
+        if (!payload || typeof payload !== 'object') {
+          return sendJson(res, 400, { error: 'Document payload must be an object.' }, baseHeaders);
+        }
+        if (!MONGODB_URI) {
+          const document = { ...payload, _id: payload._id || generateMockId() };
+          updateMockCollection(collectionName, (docs) => {
+            docs.unshift(document);
+          });
+          return sendJson(res, 201, { document }, baseHeaders);
+        }
+        const db = await getMongoDb();
+        const document = { ...payload };
+        if (document._id && ObjectId.isValid(document._id) && String(document._id).length === 24) {
+          document._id = new ObjectId(document._id);
+        }
+        const result = await db.collection(collectionName).insertOne(document);
+        return sendJson(res, 201, { document: { ...document, _id: result.insertedId } }, baseHeaders);
+      }
+
+      if (req.method === 'PUT' && documentId) {
+        const payload = await parseBody(req);
+        if (!payload || typeof payload !== 'object') {
+          return sendJson(res, 400, { error: 'Document payload must be an object.' }, baseHeaders);
+        }
+        if (!MONGODB_URI) {
+          const collection = getMockCollection(collectionName);
+          const index = collection.findIndex((doc) => String(doc._id) === documentId);
+          if (index === -1) {
+            return sendJson(res, 404, { error: 'Document not found' }, baseHeaders);
+          }
+          const updated = { ...collection[index], ...payload, _id: collection[index]._id };
+          updateMockCollection(collectionName, (docs) => {
+            docs[index] = updated;
+          });
+          return sendJson(res, 200, { document: updated }, baseHeaders);
+        }
+        const db = await getMongoDb();
+        const filter = { _id: getMongoIdFilter(documentId) };
+        const result = await db.collection(collectionName).findOneAndUpdate(
+          filter,
+          { $set: payload },
+          { returnDocument: 'after' }
+        );
+        if (!result.value) {
+          return sendJson(res, 404, { error: 'Document not found' }, baseHeaders);
+        }
+        return sendJson(res, 200, { document: result.value }, baseHeaders);
+      }
+
+      if (req.method === 'DELETE' && documentId) {
+        if (!MONGODB_URI) {
+          const collection = getMockCollection(collectionName);
+          const index = collection.findIndex((doc) => String(doc._id) === documentId);
+          if (index === -1) {
+            return sendJson(res, 404, { error: 'Document not found' }, baseHeaders);
+          }
+          updateMockCollection(collectionName, (docs) => {
+            docs.splice(index, 1);
+          });
+          return sendJson(res, 200, { deleted: true }, baseHeaders);
+        }
+        const db = await getMongoDb();
+        const result = await db.collection(collectionName).deleteOne({ _id: getMongoIdFilter(documentId) });
+        if (!result.deletedCount) {
+          return sendJson(res, 404, { error: 'Document not found' }, baseHeaders);
+        }
+        return sendJson(res, 200, { deleted: true }, baseHeaders);
+      }
+
+      return sendJson(res, 405, { error: 'Method not allowed' }, baseHeaders);
+    } catch (err) {
+      console.error('Error handling MongoDB document request:', err);
+      return sendJson(res, 500, { error: 'Failed to handle MongoDB document request' }, baseHeaders);
     }
   }
 

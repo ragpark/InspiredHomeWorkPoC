@@ -454,25 +454,12 @@
       const [mongoStatus, setMongoStatus] = useState('');
       const [mongoLoading, setMongoLoading] = useState(false);
       const [mongoIsMock, setMongoIsMock] = useState(false);
-      const defaultMongoEditor = {
-        id: '',
-        title: '',
-        description: '',
-        topic: '',
-        category: 'Video',
-        difficulty: 'Foundation',
-        contentUrl: '',
-        mediaType: 'video/mp4',
-        thumbnailUrl: '',
-        duration: '',
-        fileSize: '',
-        tags: '',
-        uploadedBy: 'teacher@school.edu',
-      };
-      const [mongoContentLoading, setMongoContentLoading] = useState(false);
-      const [mongoContentStatus, setMongoContentStatus] = useState('');
+      const [selectedMongoCollection, setSelectedMongoCollection] = useState('');
+      const [mongoDocuments, setMongoDocuments] = useState([]);
+      const [mongoDocumentsLoading, setMongoDocumentsLoading] = useState(false);
+      const [mongoDocumentsStatus, setMongoDocumentsStatus] = useState('');
       const [mongoEditingId, setMongoEditingId] = useState(null);
-      const [mongoEditor, setMongoEditor] = useState({ ...defaultMongoEditor });
+      const [mongoEditor, setMongoEditor] = useState({});
 
       // PRIZM Content Repository state
       const [prizmContent, setPrizmContent] = useState([]);
@@ -649,6 +636,67 @@
         };
       }, [prizmContent]);
 
+      const selectedMongoCollectionData = useMemo(() => {
+        return mongoCollections.find((collection) => collection.name === selectedMongoCollection) || null;
+      }, [mongoCollections, selectedMongoCollection]);
+
+      const mongoSchemaFields = useMemo(() => {
+        const fields = selectedMongoCollectionData?.schemaFields || [];
+        const withId = fields.includes('_id') ? fields : ['_id', ...fields];
+        return withId;
+      }, [selectedMongoCollectionData]);
+
+      const mongoSchemaTypes = useMemo(() => {
+        const sample = selectedMongoCollectionData?.sample || [];
+        const types = {};
+        mongoSchemaFields.forEach((field) => {
+          const sampleValue = sample.find((doc) => doc && Object.prototype.hasOwnProperty.call(doc, field))?.[field];
+          if (Array.isArray(sampleValue)) {
+            types[field] = 'array';
+          } else if (sampleValue === null || sampleValue === undefined) {
+            types[field] = 'string';
+          } else {
+            types[field] = typeof sampleValue;
+          }
+        });
+        return types;
+      }, [mongoSchemaFields, selectedMongoCollectionData]);
+
+      const formatMongoValue = (value, type) => {
+        if (type === 'array' || type === 'object') {
+          try {
+            return JSON.stringify(value ?? '', null, 2);
+          } catch (error) {
+            return '';
+          }
+        }
+        if (type === 'boolean') {
+          return Boolean(value);
+        }
+        return value ?? '';
+      };
+
+      const parseMongoValue = (value, type) => {
+        if (type === 'number') {
+          const parsed = Number(value);
+          return Number.isFinite(parsed) ? parsed : value;
+        }
+        if (type === 'boolean') {
+          return Boolean(value);
+        }
+        if (type === 'array' || type === 'object') {
+          if (typeof value === 'string' && value.trim() !== '') {
+            try {
+              return JSON.parse(value);
+            } catch (error) {
+              return value;
+            }
+          }
+          return value;
+        }
+        return value;
+      };
+
       const prizmCategoryOptions = useMemo(() => {
         const defaults = ['Video', 'Interactive', 'Document', 'Image', 'Audio'];
         const collected = prizmContent.map((item) => item.category).filter(Boolean);
@@ -706,6 +754,12 @@
             setMongoCollections(data.collections || []);
             setMongoIsMock(Boolean(data.isMock));
             setMongoStatus(data.message || '');
+            if (data.collections?.length) {
+              const names = data.collections.map((collection) => collection.name);
+              if (!selectedMongoCollection || !names.includes(selectedMongoCollection)) {
+                setSelectedMongoCollection(data.collections[0].name);
+              }
+            }
           } else {
             setMongoStatus(data.error || 'Unable to load MongoDB collections');
           }
@@ -757,6 +811,12 @@
       useEffect(() => {
         loadMongoSnapshot();
       }, []);
+
+      useEffect(() => {
+        if (selectedMongoCollection) {
+          loadMongoDocuments(selectedMongoCollection);
+        }
+      }, [selectedMongoCollection]);
 
       useEffect(() => {
         async function loadSchools() {
@@ -817,51 +877,42 @@
 
       const resetMongoEditor = () => {
         setMongoEditingId(null);
-        setMongoEditor({ ...defaultMongoEditor });
+        setMongoEditor({});
       };
 
-      const refreshPrizmContent = async (message = '') => {
-        setMongoContentLoading(true);
+      const loadMongoDocuments = async (collectionName = selectedMongoCollection, message = '') => {
+        if (!collectionName) return;
+        setMongoDocumentsLoading(true);
         try {
-          const response = await fetch('/api/prizm/content');
+          const response = await fetch(`/api/mongodb/collections/${encodeURIComponent(collectionName)}/documents?limit=25`);
           const data = await response.json();
           if (response.ok) {
-            setPrizmContent(data.content || []);
-            setMongoContentStatus(message);
+            setMongoDocuments(data.documents || []);
+            setMongoDocumentsStatus(message);
           } else {
-            setMongoContentStatus(data.error || 'Unable to load PRIZM content');
+            setMongoDocumentsStatus(data.error || 'Unable to load documents');
           }
         } catch (error) {
-          setMongoContentStatus('Unable to load PRIZM content');
+          setMongoDocumentsStatus('Unable to load documents');
         } finally {
-          setMongoContentLoading(false);
+          setMongoDocumentsLoading(false);
         }
       };
 
-      const submitMongoContent = async (event) => {
+      const submitMongoDocument = async (event) => {
         event.preventDefault();
-        setMongoContentStatus('');
-        const payload = {
-          id: mongoEditor.id.trim(),
-          title: mongoEditor.title.trim(),
-          description: mongoEditor.description.trim(),
-          topic: mongoEditor.topic.trim(),
-          category: mongoEditor.category,
-          difficulty: mongoEditor.difficulty,
-          contentUrl: mongoEditor.contentUrl.trim(),
-          mediaType: mongoEditor.mediaType.trim(),
-          thumbnailUrl: mongoEditor.thumbnailUrl.trim(),
-          duration: mongoEditor.duration,
-          fileSize: mongoEditor.fileSize,
-          tags: mongoEditor.tags
-            .split(',')
-            .map((tag) => tag.trim())
-            .filter(Boolean),
-          uploadedBy: mongoEditor.uploadedBy.trim(),
-        };
+        if (!selectedMongoCollection) return;
+        setMongoDocumentsStatus('');
+        const payload = {};
+        mongoSchemaFields.forEach((field) => {
+          if (field === '_id' && !mongoEditor[field]) return;
+          payload[field] = parseMongoValue(mongoEditor[field], mongoSchemaTypes[field]);
+        });
 
-        const targetId = mongoEditingId || payload.id;
-        const endpoint = mongoEditingId ? `/api/prizm/content/${encodeURIComponent(targetId)}` : '/api/prizm/content';
+        const targetId = mongoEditingId || payload._id;
+        const endpoint = mongoEditingId
+          ? `/api/mongodb/collections/${encodeURIComponent(selectedMongoCollection)}/documents/${encodeURIComponent(targetId)}`
+          : `/api/mongodb/collections/${encodeURIComponent(selectedMongoCollection)}/documents`;
         const method = mongoEditingId ? 'PUT' : 'POST';
 
         try {
@@ -872,53 +923,45 @@
           });
           const data = await response.json();
           if (response.ok) {
-            await refreshPrizmContent(mongoEditingId ? 'Content updated successfully.' : 'Content created successfully.');
+            await loadMongoDocuments(selectedMongoCollection, mongoEditingId ? 'Document updated.' : 'Document created.');
             resetMongoEditor();
           } else {
-            setMongoContentStatus(data.error || 'Unable to save content');
+            setMongoDocumentsStatus(data.error || 'Unable to save document');
           }
         } catch (error) {
-          setMongoContentStatus('Unable to save content');
+          setMongoDocumentsStatus('Unable to save document');
         }
       };
 
-      const startMongoEdit = (item) => {
-        setMongoEditingId(item.id);
-        setMongoEditor({
-          id: item.id || '',
-          title: item.title || '',
-          description: item.description || '',
-          topic: item.topic || '',
-          category: item.category || 'Video',
-          difficulty: item.difficulty || 'Foundation',
-          contentUrl: item.contentUrl || '',
-          mediaType: item.mediaType || '',
-          thumbnailUrl: item.thumbnailUrl || '',
-          duration: item.duration ?? '',
-          fileSize: item.fileSize ?? '',
-          tags: Array.isArray(item.tags) ? item.tags.join(', ') : '',
-          uploadedBy: item.uploadedBy || '',
+      const startMongoEdit = (document) => {
+        setMongoEditingId(String(document._id));
+        const nextEditor = {};
+        mongoSchemaFields.forEach((field) => {
+          nextEditor[field] = formatMongoValue(document[field], mongoSchemaTypes[field]);
         });
+        setMongoEditor(nextEditor);
       };
 
-      const deleteMongoContent = async (itemId) => {
-        const confirmed = window.confirm('Delete this content item? This cannot be undone.');
+      const deleteMongoDocument = async (documentId) => {
+        if (!selectedMongoCollection) return;
+        const confirmed = window.confirm('Delete this document? This cannot be undone.');
         if (!confirmed) return;
         try {
-          const response = await fetch(`/api/prizm/content/${encodeURIComponent(itemId)}`, {
-            method: 'DELETE',
-          });
+          const response = await fetch(
+            `/api/mongodb/collections/${encodeURIComponent(selectedMongoCollection)}/documents/${encodeURIComponent(documentId)}`,
+            { method: 'DELETE' }
+          );
           const data = await response.json();
           if (response.ok) {
-            await refreshPrizmContent('Content deleted.');
-            if (mongoEditingId === itemId) {
+            await loadMongoDocuments(selectedMongoCollection, 'Document deleted.');
+            if (mongoEditingId === documentId) {
               resetMongoEditor();
             }
           } else {
-            setMongoContentStatus(data.error || 'Unable to delete content');
+            setMongoDocumentsStatus(data.error || 'Unable to delete document');
           }
         } catch (error) {
-          setMongoContentStatus('Unable to delete content');
+          setMongoDocumentsStatus('Unable to delete document');
         }
       };
 
@@ -1838,19 +1881,19 @@
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M4 3h12a1 1 0 011 1v3H3V4a1 1 0 011-1zm-1 6h14v4H3V9zm0 6h14v1a1 1 0 01-1 1H4a1 1 0 01-1-1v-1z" />
                         </svg>
-                        MongoDB Content Studio
+                        360 Data Store Studio
                       </span>
                     </div>
                     <h2 className="font-serif text-4xl lg:text-5xl font-bold mb-6 leading-tight tracking-tight">
-                      Manage PRIZM content stored in MongoDB
+                      Manage 360 Data Store collections in MongoDB
                     </h2>
                     <p className="text-xl text-slate-100 mb-10 leading-relaxed">
-                      Review, create, update, and retire multimedia learning assets with real-time visibility into your PRIZM repository.
+                      Review, create, update, and retire collection records with real-time visibility into your 360 Data Store.
                     </p>
                     <div className="flex flex-wrap gap-3">
                       <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">CRUD Ready</span>
                       <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">MongoDB Sync</span>
-                      <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">PRIZM Library</span>
+                      <span className="px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-semibold border border-white/20 shadow-sm">360 Data Store</span>
                     </div>
                   </div>
                   <div className="absolute top-8 right-8 w-64 h-64 bg-gradient-to-br from-indigo-400/20 to-violet-400/20 rounded-full blur-3xl"></div>
@@ -2329,80 +2372,100 @@
                   <ModernCard className="p-6">
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                       <div>
-                        <h3 className="font-serif text-2xl font-semibold text-slate-900">PRIZM Content Library</h3>
-                        <p className="text-sm text-slate-600">Browse and manage the MongoDB-backed content collection.</p>
+                        <h3 className="font-serif text-2xl font-semibold text-slate-900">360 Data Store Collections</h3>
+                        <p className="text-sm text-slate-600">Browse and manage MongoDB collections with schema-aware CRUD.</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => refreshPrizmContent('Content refreshed.')}
+                          onClick={loadMongoSnapshot}
                           className="text-xs px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
                         >
-                          Refresh content
+                          Refresh collections
                         </button>
                         <button
                           type="button"
-                          onClick={loadMongoSnapshot}
+                          onClick={() => loadMongoDocuments(selectedMongoCollection, 'Documents refreshed.')}
                           className="text-xs px-3 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600"
+                          disabled={!selectedMongoCollection}
                         >
-                          Refresh collections
+                          Refresh documents
                         </button>
                       </div>
                     </div>
 
                     {mongoIsMock && (
                       <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                        MongoDB connection not configured. Updates are applied to the in-memory PRIZM seed data.
+                        MongoDB connection not configured. Updates are applied to the in-memory 360 Data Store collections.
                       </div>
                     )}
 
-                    {mongoContentStatus && (
+                    {mongoStatus && (
                       <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                        {mongoContentStatus}
+                        {mongoStatus}
                       </div>
                     )}
 
-                    {mongoContentLoading ? (
-                      <p className="text-sm text-slate-500">Loading content…</p>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="text-xs font-semibold text-slate-600">Active collection</label>
+                      <select
+                        value={selectedMongoCollection}
+                        onChange={(e) => {
+                          setSelectedMongoCollection(e.target.value);
+                          resetMongoEditor();
+                        }}
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      >
+                        {mongoCollections.length === 0 && <option value="">No collections available</option>}
+                        {mongoCollections.map((collection) => (
+                          <option key={collection.name} value={collection.name}>{collection.name}</option>
+                        ))}
+                      </select>
+                      {selectedMongoCollectionData && (
+                        <span className="text-xs text-slate-500">{selectedMongoCollectionData.count} docs</span>
+                      )}
+                    </div>
+                  </ModernCard>
+
+                  <ModernCard className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="font-semibold text-slate-900">Documents</h4>
+                        <p className="text-xs text-slate-500">Schema fields: {mongoSchemaFields.filter((field) => field !== '_id').join(', ') || 'None detected'}</p>
+                      </div>
+                    </div>
+
+                    {mongoDocumentsStatus && (
+                      <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        {mongoDocumentsStatus}
+                      </div>
+                    )}
+
+                    {mongoDocumentsLoading ? (
+                      <p className="text-sm text-slate-500">Loading documents…</p>
                     ) : (
                       <div className="space-y-4">
-                        {prizmContent.length === 0 && (
-                          <p className="text-sm text-slate-500">No PRIZM content has been added yet.</p>
+                        {mongoDocuments.length === 0 && (
+                          <p className="text-sm text-slate-500">No documents found for this collection.</p>
                         )}
-                        {prizmContent.map((item) => (
-                          <div key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        {mongoDocuments.map((document) => (
+                          <div key={document._id || JSON.stringify(document)} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                             <div className="flex flex-wrap items-start justify-between gap-4">
                               <div className="space-y-2">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <h4 className="text-base font-semibold text-slate-900">{item.title}</h4>
-                                  <span className="rounded-lg bg-primary-50 px-2 py-1 text-xs font-semibold text-primary-700">
-                                    {item.category}
-                                  </span>
-                                  <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
-                                    {item.difficulty}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-slate-500">ID: {item.id} • Topic: {item.topic || 'General'}</p>
-                                <p className="text-sm text-slate-600 line-clamp-2">{item.description}</p>
-                                <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-                                  <span>Media: {item.mediaType || 'n/a'}</span>
-                                  <span>•</span>
-                                  <span>Duration: {item.duration ? `${Math.round(item.duration / 60)} mins` : 'n/a'}</span>
-                                  <span>•</span>
-                                  <span>Uploaded by: {item.uploadedBy || 'n/a'}</span>
-                                </div>
+                                <div className="text-xs text-slate-500">ID: {String(document._id || 'n/a')}</div>
+                                <pre className="text-xs text-slate-700 whitespace-pre-wrap">{JSON.stringify(document, null, 2)}</pre>
                               </div>
                               <div className="flex items-center gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => startMongoEdit(item)}
+                                  onClick={() => startMongoEdit(document)}
                                   className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
                                 >
                                   Edit
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => deleteMongoContent(item.id)}
+                                  onClick={() => deleteMongoDocument(String(document._id))}
                                   className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
                                 >
                                   Delete
@@ -2414,40 +2477,14 @@
                       </div>
                     )}
                   </ModernCard>
-
-                  <ModernCard className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h4 className="font-semibold text-slate-900">MongoDB Collections Snapshot</h4>
-                        <p className="text-xs text-slate-500">Live summary of collections in the configured database.</p>
-                      </div>
-                    </div>
-                    {mongoLoading && <p className="text-xs text-slate-500">Loading collections…</p>}
-                    {!mongoLoading && mongoCollections.length === 0 && (
-                      <p className="text-xs text-slate-500">No collections found in the current MongoDB database.</p>
-                    )}
-                    <div className="space-y-3">
-                      {mongoCollections.map((collection) => (
-                        <div key={collection.name} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm font-semibold text-slate-900">{collection.name}</div>
-                            <div className="text-xs text-slate-500">{collection.count} docs</div>
-                          </div>
-                          {collection.sample && collection.sample.length > 0 && (
-                            <pre className="mt-3 text-xs text-slate-600 whitespace-pre-wrap">{JSON.stringify(collection.sample, null, 2)}</pre>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </ModernCard>
                 </div>
 
                 <div className="lg:col-span-2 space-y-6">
                   <ModernCard className="p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h4 className="font-semibold text-slate-900">{mongoEditingId ? 'Edit content item' : 'Add new content'}</h4>
-                        <p className="text-xs text-slate-500">Fields marked with * are required.</p>
+                        <h4 className="font-semibold text-slate-900">{mongoEditingId ? 'Edit document' : 'Add document'}</h4>
+                        <p className="text-xs text-slate-500">Fields follow the detected schema for this collection.</p>
                       </div>
                       {mongoEditingId && (
                         <button
@@ -2460,157 +2497,67 @@
                       )}
                     </div>
 
-                    <form onSubmit={submitMongoContent} className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Content ID</label>
-                        <input
-                          type="text"
-                          value={mongoEditor.id}
-                          onChange={(e) => updateMongoEditor('id', e.target.value)}
-                          placeholder="PRIZM-123"
-                          disabled={Boolean(mongoEditingId)}
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 disabled:bg-slate-100"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Title *</label>
-                        <input
-                          type="text"
-                          required
-                          value={mongoEditor.title}
-                          onChange={(e) => updateMongoEditor('title', e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Description</label>
-                        <textarea
-                          rows="3"
-                          value={mongoEditor.description}
-                          onChange={(e) => updateMongoEditor('description', e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                        ></textarea>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-slate-700">Topic</label>
-                          <input
-                            type="text"
-                            value={mongoEditor.topic}
-                            onChange={(e) => updateMongoEditor('topic', e.target.value)}
-                            list="prizm-topic-options"
-                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-slate-700">Category</label>
-                          <select
-                            value={mongoEditor.category}
-                            onChange={(e) => updateMongoEditor('category', e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                          >
-                            {prizmCategoryOptions.map((category) => (
-                              <option key={category} value={category}>{category}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-slate-700">Difficulty</label>
-                          <select
-                            value={mongoEditor.difficulty}
-                            onChange={(e) => updateMongoEditor('difficulty', e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                          >
-                            {['Foundation', 'Core', 'Stretch'].map((level) => (
-                              <option key={level} value={level}>{level}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-slate-700">Media type</label>
-                          <input
-                            type="text"
-                            value={mongoEditor.mediaType}
-                            onChange={(e) => updateMongoEditor('mediaType', e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Content URL</label>
-                        <input
-                          type="url"
-                          value={mongoEditor.contentUrl}
-                          onChange={(e) => updateMongoEditor('contentUrl', e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Thumbnail URL</label>
-                        <input
-                          type="url"
-                          value={mongoEditor.thumbnailUrl}
-                          onChange={(e) => updateMongoEditor('thumbnailUrl', e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-slate-700">Duration (seconds)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={mongoEditor.duration}
-                            onChange={(e) => updateMongoEditor('duration', e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-slate-700">File size (bytes)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={mongoEditor.fileSize}
-                            onChange={(e) => updateMongoEditor('fileSize', e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Tags (comma separated)</label>
-                        <input
-                          type="text"
-                          value={mongoEditor.tags}
-                          onChange={(e) => updateMongoEditor('tags', e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Uploaded by</label>
-                        <input
-                          type="email"
-                          value={mongoEditor.uploadedBy}
-                          onChange={(e) => updateMongoEditor('uploadedBy', e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                        />
-                      </div>
+                    {!selectedMongoCollection && (
+                      <p className="text-sm text-slate-500">Select a collection to edit documents.</p>
+                    )}
 
-                      <button
-                        type="submit"
-                        className="w-full rounded-xl bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-primary-600"
-                      >
-                        {mongoEditingId ? 'Save changes' : 'Add content item'}
-                      </button>
-                    </form>
+                    {selectedMongoCollection && (
+                      <form onSubmit={submitMongoDocument} className="space-y-4">
+                        {mongoSchemaFields.map((field) => {
+                          const type = mongoSchemaTypes[field] || 'string';
+                          const isId = field === '_id';
+                          if (type === 'boolean') {
+                            return (
+                              <label key={field} className="flex items-center gap-3 text-sm text-slate-700">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(mongoEditor[field])}
+                                  onChange={(e) => updateMongoEditor(field, e.target.checked)}
+                                  disabled={isId && Boolean(mongoEditingId)}
+                                  className="rounded text-primary-500 focus:ring-primary-500"
+                                />
+                                <span>{field}</span>
+                              </label>
+                            );
+                          }
+                          if (type === 'array' || type === 'object') {
+                            return (
+                              <div key={field} className="space-y-2">
+                                <label className="text-xs font-semibold text-slate-700">{field}</label>
+                                <textarea
+                                  rows="4"
+                                  value={mongoEditor[field] ?? ''}
+                                  onChange={(e) => updateMongoEditor(field, e.target.value)}
+                                  disabled={isId && Boolean(mongoEditingId)}
+                                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+                                ></textarea>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div key={field} className="space-y-2">
+                              <label className="text-xs font-semibold text-slate-700">{field}</label>
+                              <input
+                                type={type === 'number' ? 'number' : 'text'}
+                                value={mongoEditor[field] ?? ''}
+                                onChange={(e) => updateMongoEditor(field, e.target.value)}
+                                disabled={isId && Boolean(mongoEditingId)}
+                                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+                              />
+                            </div>
+                          );
+                        })}
+
+                        <button
+                          type="submit"
+                          className="w-full rounded-xl bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-primary-600"
+                          disabled={!selectedMongoCollection}
+                        >
+                          {mongoEditingId ? 'Save document' : 'Add document'}
+                        </button>
+                      </form>
+                    )}
                   </ModernCard>
-
-                  <datalist id="prizm-topic-options">
-                    {prizmTopicOptions.map((topic) => (
-                      <option key={topic} value={topic} />
-                    ))}
-                  </datalist>
                 </div>
               </div>
             )}
