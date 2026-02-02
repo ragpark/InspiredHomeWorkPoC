@@ -79,41 +79,61 @@ const learnerPerformance = {
 
 const schemeOfWork = {
   academicYear: '2024-2025',
+  subject: 'A Level Mathematics',
+  level: 'A Level',
   semesters: [
     {
       name: 'Semester 1',
-      focus: 'Number sense and proportional reasoning',
+      focus: 'Pure mathematics foundations',
       weeks: [
-        { week: 1, topic: 'Fractions and mixed numbers' },
-        { week: 2, topic: 'Ratios and rates' },
-        { week: 3, topic: 'Percent change' },
-        { week: 4, topic: 'Proportional relationships' },
-        { week: 5, topic: 'Scaling and similarity' },
-        { week: 6, topic: 'Unit conversions' },
+        { week: 1, topic: 'Algebraic manipulation and surds' },
+        { week: 2, topic: 'Functions, mappings, and composite/inverse functions' },
+        { week: 3, topic: 'Graphs and transformations (including modulus)' },
+        { week: 4, topic: 'Quadratics: completing the square and discriminant' },
+        { week: 5, topic: 'Polynomial division and factor theorem' },
+        { week: 6, topic: 'Sequences and series (arithmetic and geometric)' },
+        { week: 7, topic: 'Binomial expansion for positive integer powers' },
+        { week: 8, topic: 'Proof: direct, contradiction, and counterexample' },
+        { week: 9, topic: 'Trigonometric ratios and identities' },
+        { week: 10, topic: 'Trigonometric equations and graphs' },
+        { week: 11, topic: 'Exponentials and logarithms' },
+        { week: 12, topic: 'End-of-semester assessment and consolidation' },
       ],
     },
     {
       name: 'Semester 2',
-      focus: 'Algebraic reasoning and functions',
+      focus: 'Calculus, vectors, and mechanics',
       weeks: [
-        { week: 7, topic: 'Linear equations and inequalities' },
-        { week: 8, topic: 'Systems of equations' },
-        { week: 9, topic: 'Quadratic functions' },
-        { week: 10, topic: 'Exponential functions' },
-        { week: 11, topic: 'Polynomial expressions' },
-        { week: 12, topic: 'Sequences and series' },
+        { week: 13, topic: 'Differentiation basics and tangent/normal' },
+        { week: 14, topic: 'Product, quotient, and chain rule' },
+        { week: 15, topic: 'Applications of differentiation (rates, optimization)' },
+        { week: 16, topic: 'Integration as reverse differentiation' },
+        { week: 17, topic: 'Definite integrals and area under curves' },
+        { week: 18, topic: 'Numerical methods (iteration, Newton-Raphson)' },
+        { week: 19, topic: 'Vectors in 2D and 3D' },
+        { week: 20, topic: 'Kinematics with constant acceleration' },
+        { week: 21, topic: 'Forces, Newton’s laws, and friction' },
+        { week: 22, topic: 'Moments and equilibrium' },
+        { week: 23, topic: 'Projectiles and connected particles' },
+        { week: 24, topic: 'Semester review and mixed-problem practice' },
       ],
     },
     {
       name: 'Semester 3',
-      focus: 'Geometry, statistics, and consolidation',
+      focus: 'Statistics, advanced calculus, and exam readiness',
       weeks: [
-        { week: 13, topic: 'Transformations and congruence' },
-        { week: 14, topic: 'Similarity and right triangles' },
-        { week: 15, topic: 'Circles and arcs' },
-        { week: 16, topic: 'Data representations' },
-        { week: 17, topic: 'Probability and inference' },
-        { week: 18, topic: 'Review and capstone project' },
+        { week: 25, topic: 'Data presentation and statistical measures' },
+        { week: 26, topic: 'Probability, Venn diagrams, and conditional probability' },
+        { week: 27, topic: 'Discrete random variables and distributions' },
+        { week: 28, topic: 'Binomial distribution and expectation' },
+        { week: 29, topic: 'Normal distribution and standardization' },
+        { week: 30, topic: 'Hypothesis testing (binomial and normal)' },
+        { week: 31, topic: 'Further integration techniques' },
+        { week: 32, topic: 'Differential equations and modelling' },
+        { week: 33, topic: 'Parametric equations and differentiation' },
+        { week: 34, topic: 'Integration by substitution and by parts' },
+        { week: 35, topic: 'Synoptic review and exam strategy' },
+        { week: 36, topic: 'Mock exams and final revision' },
       ],
     },
   ],
@@ -122,57 +142,57 @@ const schemeOfWork = {
 const contentResources = [
   {
     id: 'RES-101',
-    topic: 'Fractions and mixed numbers',
+    topic: 'Algebraic manipulation and surds',
     difficulty: 'Foundation',
-    lengthMinutes: 15,
+    lengthMinutes: 20,
     type: 'Activity',
-    title: 'Hands-on fraction strip lab',
-    alignedOutcomes: ['maths.fractions.equivalence'],
+    title: 'Surds simplification practice set',
+    alignedOutcomes: ['a-level.pure.algebra.surds'],
   },
   {
     id: 'RES-102',
-    topic: 'Ratios and rates',
+    topic: 'Sequences and series (arithmetic and geometric)',
     difficulty: 'Core',
     lengthMinutes: 20,
     type: 'Assessment',
-    title: 'Exit ticket: Rate of change scenarios',
-    alignedOutcomes: ['maths.number.ratios'],
+    title: 'Exit ticket: series and sigma notation',
+    alignedOutcomes: ['a-level.pure.sequences.series'],
   },
   {
     id: 'RES-201',
-    topic: 'Linear equations and inequalities',
+    topic: 'Differentiation basics and tangent/normal',
     difficulty: 'Core',
     lengthMinutes: 30,
     type: 'Activity',
-    title: 'Desmos exploration: balancing equations',
-    alignedOutcomes: ['maths.algebra.linear-two-step'],
+    title: 'Desmos exploration: gradients and tangents',
+    alignedOutcomes: ['a-level.pure.calculus.differentiation'],
   },
   {
     id: 'RES-202',
-    topic: 'Quadratic functions',
+    topic: 'Integration as reverse differentiation',
     difficulty: 'Stretch',
     lengthMinutes: 40,
     type: 'Book chapter',
-    title: 'Vertex form and transformations',
-    alignedOutcomes: ['maths.algebra.quadratic-forms'],
+    title: 'Finding areas using integration',
+    alignedOutcomes: ['a-level.pure.calculus.integration'],
   },
   {
     id: 'RES-301',
-    topic: 'Transformations and congruence',
+    topic: 'Data presentation and statistical measures',
     difficulty: 'Core',
     lengthMinutes: 25,
     type: 'Activity',
-    title: 'Rigid motions on the coordinate plane',
-    alignedOutcomes: ['maths.geometry.transformations'],
+    title: 'Investigating central tendency and spread',
+    alignedOutcomes: ['a-level.stats.summary-measures'],
   },
   {
     id: 'RES-302',
-    topic: 'Probability and inference',
+    topic: 'Hypothesis testing (binomial and normal)',
     difficulty: 'Stretch',
     lengthMinutes: 30,
     type: 'Assessment',
-    title: 'Project brief: design a simple experiment',
-    alignedOutcomes: ['maths.statistics.inference'],
+    title: 'Mini project: testing a claim',
+    alignedOutcomes: ['a-level.stats.hypothesis-testing'],
   },
 ];
 
@@ -666,6 +686,8 @@ function buildSchemeOfWorkSeedDoc({ timestamp }) {
   return {
     _id: `SOW-${schemeOfWork.academicYear}`,
     academicYear: schemeOfWork.academicYear,
+    subject: schemeOfWork.subject,
+    level: schemeOfWork.level,
     semesters: schemeOfWork.semesters || [],
     updatedAt: timestamp,
   };
@@ -987,8 +1009,29 @@ async function storeReportCycleSnapshot({ schoolId, cycles, payload, requestUrl 
   };
 }
 
-function findTopicByWeek(weekNumber) {
-  for (const semester of schemeOfWork.semesters) {
+async function getSchemeOfWork() {
+  if (!MONGODB_URI) return schemeOfWork;
+
+  try {
+    const db = await getMongoDb();
+    const doc = await db.collection(MONGODB_SCHEMES_COLLECTION).findOne({}, { sort: { updatedAt: -1 } });
+    if (!doc) return schemeOfWork;
+    const { _id, ...rest } = doc;
+    return {
+      academicYear: rest.academicYear || schemeOfWork.academicYear,
+      subject: rest.subject || schemeOfWork.subject,
+      level: rest.level || schemeOfWork.level,
+      semesters: rest.semesters || [],
+    };
+  } catch (err) {
+    console.error('Failed to load scheme of work from MongoDB:', err.message);
+    return schemeOfWork;
+  }
+}
+
+function findTopicByWeek(weekNumber, scheme) {
+  const semesters = scheme?.semesters || [];
+  for (const semester of semesters) {
     const week = semester.weeks.find(entry => entry.week === weekNumber);
     if (week) {
       return { ...week, semester: semester.name, focus: semester.focus };
@@ -997,9 +1040,25 @@ function findTopicByWeek(weekNumber) {
   return null;
 }
 
-function buildStandardRecommendationRequest({ learnerId, weekNumber, topicOverride, maxTotalTimeMinutes = 30 }) {
+function findWeeksByTopic(topic, scheme) {
+  const semesters = scheme?.semesters || [];
+  if (!topic) return [];
+  const topicLower = topic.toLowerCase();
+  const matches = [];
+  for (const semester of semesters) {
+    for (const entry of semester.weeks) {
+      if (entry.topic.toLowerCase().includes(topicLower)) {
+        matches.push({ ...entry, semester: semester.name, focus: semester.focus });
+      }
+    }
+  }
+  return matches;
+}
+
+async function buildStandardRecommendationRequest({ learnerId, weekNumber, topicOverride, maxTotalTimeMinutes = 30 }) {
+  const activeScheme = await getSchemeOfWork();
   const learner = learners.find(l => l.id === learnerId) || null;
-  const calendar = findTopicByWeek(weekNumber) || { week: weekNumber, topic: topicOverride || 'Unspecified' };
+  const calendar = findTopicByWeek(weekNumber, activeScheme) || { week: weekNumber, topic: topicOverride || 'Unspecified' };
   const topic = topicOverride || calendar.topic;
   const performance = learnerPerformance[learnerId] || { mastery: [], recentActivity: {} };
   const catalogue = contentResources.map(resource => ({
@@ -1021,11 +1080,12 @@ function buildStandardRecommendationRequest({ learnerId, weekNumber, topicOverri
       : { id: learnerId, cohort: null, status: 'Unknown' },
     performanceSnapshot: performance,
     calendar: {
-      academicYear: schemeOfWork.academicYear,
+      academicYear: activeScheme.academicYear,
       weekNumber,
       topic,
       semester: calendar.semester || 'Unmapped',
     },
+    schemeOfWork: activeScheme,
     contentCatalogue: catalogue,
     constraints: {
       maxTotalTimeMinutes,
@@ -1034,8 +1094,8 @@ function buildStandardRecommendationRequest({ learnerId, weekNumber, topicOverri
   };
 }
 
-function calendarAwareRecommendation({ learnerId, weekNumber, topicOverride, maxTotalTimeMinutes = 30 }) {
-  const requestPayload = buildStandardRecommendationRequest({ learnerId, weekNumber, topicOverride, maxTotalTimeMinutes });
+async function calendarAwareRecommendation({ learnerId, weekNumber, topicOverride, maxTotalTimeMinutes = 30 }) {
+  const requestPayload = await buildStandardRecommendationRequest({ learnerId, weekNumber, topicOverride, maxTotalTimeMinutes });
   const { performanceSnapshot, calendar, contentCatalogue } = requestPayload;
   const topic = calendar.topic;
   const weakOutcomes = new Set(
@@ -1085,11 +1145,13 @@ function calendarAwareRecommendation({ learnerId, weekNumber, topicOverride, max
   };
 }
 
-function buildRecommendationRequest({ learnerId, topic, maxTotalTimeMinutes, difficultyProfile, explain }) {
+async function buildRecommendationRequest({ learnerId, topic, maxTotalTimeMinutes, difficultyProfile, explain }) {
   const learner = learners.find(l => l.id === learnerId) || null;
+  const activeScheme = await getSchemeOfWork();
   const topicResources = contentResources.filter(r =>
     topic ? r.topic.toLowerCase().includes(topic.toLowerCase()) : true
   );
+  const schemeMatches = findWeeksByTopic(topic, activeScheme);
 
   return {
     requestId: randomUUID(),
@@ -1109,6 +1171,8 @@ function buildRecommendationRequest({ learnerId, topic, maxTotalTimeMinutes, dif
       topic,
       maxTotalTimeMinutes,
       difficultyProfile,
+      schemeOfWork: activeScheme,
+      schemeMatches,
     },
     contentCatalogue: topicResources.map(r => ({
       contentId: r.id,
@@ -1431,8 +1495,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && url.pathname === '/api/scheme-of-work') {
+    const schemeSnapshot = await getSchemeOfWork();
     res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
-    return res.end(JSON.stringify({ schemeOfWork }));
+    return res.end(JSON.stringify({ schemeOfWork: schemeSnapshot }));
   }
 
   if (req.method === 'GET' && url.pathname === '/api/content-resources') {
@@ -1765,7 +1830,7 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { error: 'learnerId and topic are required' }, baseHeaders);
       }
 
-      const recommendationRequest = buildRecommendationRequest({
+      const recommendationRequest = await buildRecommendationRequest({
         learnerId,
         topic,
         maxTotalTimeMinutes,
@@ -1810,7 +1875,7 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { error: 'learnerId is required' }, baseHeaders);
       }
 
-      const recommendation = calendarAwareRecommendation({
+      const recommendation = await calendarAwareRecommendation({
         learnerId,
         weekNumber: Number(weekNumber) || 1,
         topicOverride: topic,
