@@ -11,7 +11,8 @@
   "dependencies": {
     "bson": "^6.5.0",
     "mongodb": "^6.5.0",
-    "mongodb-connection-string-url": "^3.0.0"
+    "mongodb-connection-string-url": "^3.0.0",
+    "whatwg-url": "^14.0.0"
   },
   "keywords": [
     "lti",
