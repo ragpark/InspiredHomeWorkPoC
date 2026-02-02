@@ -23,7 +23,7 @@ const PG_REST_URL = process.env.PG_REST_URL || '';
 const PG_REST_AUTH_HEADER = process.env.PG_REST_AUTH_HEADER || 'apikey';
 const PG_REST_API_KEY = process.env.PG_REST_API_KEY || '';
 const PG_REST_AUTH_SCHEME = process.env.PG_REST_AUTH_SCHEME || '';
-const MONGODB_URI = process.env.MONGODB_URI || '';
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URL || '';
 const MONGODB_DB = process.env.MONGODB_DB || process.env.MONGO_DB || '';
 const MONGODB_PRIZM_COLLECTION = process.env.MONGODB_PRIZM_COLLECTION || 'prizmContent';
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -422,7 +422,7 @@ let mongoDb;
 
 async function getMongoDb() {
   if (!MONGODB_URI) {
-    throw new Error('MONGODB_URI is required to load PRIZM content from MongoDB');
+    throw new Error('MONGODB_URI (or MONGODB_URL/MONGO_URL) is required to load PRIZM content from MongoDB');
   }
   if (mongoDb) return mongoDb;
   mongoClient = new MongoClient(MONGODB_URI);
