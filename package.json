@@ -8,6 +8,14 @@
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
+  "dependencies": {
+    "bson": "^6.5.0",
+    "mongodb": "^6.5.0",
+    "mongodb-connection-string-url": "^3.0.0",
+    "tr46": "^5.0.0",
+    "webidl-conversions": "^8.0.0",
+    "whatwg-url": "^14.0.0"
+  },
   "keywords": [
     "lti",
     "canvas",
