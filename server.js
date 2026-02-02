@@ -171,7 +171,7 @@ const contentResources = [
 ];
 
 // PRIZM Content Repository - Mock digital asset storage
-const prizmContentRepository = [
+let prizmContentRepository = [
   {
     id: 'PRIZM-001',
     title: 'Introduction to Fractions - Video Lesson',
@@ -416,6 +416,69 @@ const prizmContentRepository = [
 
 // PRIZM content categories for filtering
 const prizmCategories = ['All', 'Video', 'Interactive', 'Document', 'Image', 'Audio'];
+const generatePrizmId = () => `PRIZM-${randomUUID().slice(0, 8).toUpperCase()}`;
+
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+
+const toNumberOr = (value, fallback) => {
+  if (value === '' || value === null || value === undefined) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+function buildPrizmContentPayload(payload = {}, existing = null) {
+  const now = new Date().toISOString();
+  const base = existing || {
+    id: payload.id?.trim() || generatePrizmId(),
+    title: '',
+    description: '',
+    topic: 'General',
+    category: 'Document',
+    mediaType: 'application/pdf',
+    difficulty: 'Foundation',
+    duration: 0,
+    fileSize: 0,
+    thumbnailUrl: '',
+    contentUrl: '',
+    tags: [],
+    alignedStandards: [],
+    alignedOutcomes: [],
+    uploadedBy: payload.uploadedBy?.trim() || 'teacher@school.edu',
+    uploadedAt: now,
+    viewCount: 0,
+    rating: 0,
+  };
+
+  return {
+    ...base,
+    title: payload.title?.trim() ?? base.title,
+    description: payload.description?.trim() ?? base.description,
+    topic: payload.topic?.trim() ?? base.topic,
+    category: payload.category?.trim() ?? base.category,
+    mediaType: payload.mediaType?.trim() ?? base.mediaType,
+    difficulty: payload.difficulty?.trim() ?? base.difficulty,
+    duration: toNumberOr(payload.duration, base.duration),
+    fileSize: toNumberOr(payload.fileSize, base.fileSize),
+    thumbnailUrl: payload.thumbnailUrl?.trim() ?? base.thumbnailUrl,
+    contentUrl: payload.contentUrl?.trim() ?? base.contentUrl,
+    tags: payload.tags ? normalizeList(payload.tags) : base.tags,
+    alignedStandards: payload.alignedStandards ? normalizeList(payload.alignedStandards) : base.alignedStandards,
+    alignedOutcomes: payload.alignedOutcomes ? normalizeList(payload.alignedOutcomes) : base.alignedOutcomes,
+    uploadedBy: payload.uploadedBy?.trim() ?? base.uploadedBy,
+    uploadedAt: payload.uploadedAt?.trim() ?? base.uploadedAt,
+    viewCount: toNumberOr(payload.viewCount, base.viewCount),
+    rating: toNumberOr(payload.rating, base.rating),
+  };
+}
 
 let mongoClient;
 let mongoDb;
@@ -1174,6 +1237,35 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ content, total: content.length }));
   }
 
+  if (req.method === 'POST' && url.pathname === '/api/prizm/content') {
+    try {
+      const payload = await parseBody(req);
+      const content = buildPrizmContentPayload(payload);
+      if (!content.title) {
+        return sendJson(res, 400, { error: 'title is required' }, baseHeaders);
+      }
+
+      if (!MONGODB_URI) {
+        if (prizmContentRepository.some((item) => item.id === content.id)) {
+          return sendJson(res, 409, { error: 'Content with this id already exists' }, baseHeaders);
+        }
+        prizmContentRepository = [content, ...prizmContentRepository];
+        return sendJson(res, 201, { content }, baseHeaders);
+      }
+
+      const collection = await getPrizmCollection();
+      const exists = await collection.findOne({ id: content.id });
+      if (exists) {
+        return sendJson(res, 409, { error: 'Content with this id already exists' }, baseHeaders);
+      }
+      await collection.insertOne(content);
+      return sendJson(res, 201, { content }, baseHeaders);
+    } catch (err) {
+      console.error('Error creating PRIZM content:', err);
+      return sendJson(res, 500, { error: 'Failed to create content' }, baseHeaders);
+    }
+  }
+
   if (req.method === 'GET' && url.pathname.startsWith('/api/prizm/content/')) {
     const id = url.pathname.split('/').pop();
     const content = await getPrizmContentById(id);
@@ -1182,6 +1274,60 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(200, { 'Content-Type': 'application/json', ...baseHeaders });
     return res.end(JSON.stringify({ content }));
+  }
+
+  if (req.method === 'PUT' && url.pathname.startsWith('/api/prizm/content/')) {
+    try {
+      const id = url.pathname.split('/').pop();
+      const payload = await parseBody(req);
+      let existing = null;
+
+      if (!MONGODB_URI) {
+        existing = prizmContentRepository.find((item) => item.id === id);
+        if (!existing) {
+          return sendJson(res, 404, { error: 'Content not found' }, baseHeaders);
+        }
+        const updated = buildPrizmContentPayload(payload, existing);
+        prizmContentRepository = prizmContentRepository.map((item) => (item.id === id ? updated : item));
+        return sendJson(res, 200, { content: updated }, baseHeaders);
+      }
+
+      const collection = await getPrizmCollection();
+      existing = await collection.findOne({ id });
+      if (!existing) {
+        return sendJson(res, 404, { error: 'Content not found' }, baseHeaders);
+      }
+      const updated = buildPrizmContentPayload(payload, existing);
+      await collection.updateOne({ id }, { $set: updated });
+      return sendJson(res, 200, { content: updated }, baseHeaders);
+    } catch (err) {
+      console.error('Error updating PRIZM content:', err);
+      return sendJson(res, 500, { error: 'Failed to update content' }, baseHeaders);
+    }
+  }
+
+  if (req.method === 'DELETE' && url.pathname.startsWith('/api/prizm/content/')) {
+    try {
+      const id = url.pathname.split('/').pop();
+      if (!MONGODB_URI) {
+        const existing = prizmContentRepository.find((item) => item.id === id);
+        if (!existing) {
+          return sendJson(res, 404, { error: 'Content not found' }, baseHeaders);
+        }
+        prizmContentRepository = prizmContentRepository.filter((item) => item.id !== id);
+        return sendJson(res, 200, { deleted: true }, baseHeaders);
+      }
+
+      const collection = await getPrizmCollection();
+      const result = await collection.deleteOne({ id });
+      if (!result.deletedCount) {
+        return sendJson(res, 404, { error: 'Content not found' }, baseHeaders);
+      }
+      return sendJson(res, 200, { deleted: true }, baseHeaders);
+    } catch (err) {
+      console.error('Error deleting PRIZM content:', err);
+      return sendJson(res, 500, { error: 'Failed to delete content' }, baseHeaders);
+    }
   }
 
   if (req.method === 'GET' && url.pathname === '/api/prizm/categories') {
