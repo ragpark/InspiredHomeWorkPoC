@@ -696,11 +696,65 @@ function buildSchemeOfWorkSeedDoc({ timestamp }) {
 }
 
 function buildHomeworkSeedDocs({ timestamp }) {
-  return prizmContentRepository.map((content) => ({
-    _id: content.id,
-    ...content,
-    seededAt: timestamp,
-  }));
+  const schemeWeeks = schemeOfWork.semesters.flatMap((semester) =>
+    semester.weeks.map((week) => ({
+      ...week,
+      semester: semester.name,
+      focus: semester.focus,
+    }))
+  );
+
+  return schemeWeeks.map((week) => {
+    const alignedResources = contentResources.filter((resource) => resource.topic === week.topic);
+    const tasks = alignedResources.length
+      ? alignedResources.map((resource, index) => ({
+          sequence: index + 1,
+          taskText: `Complete "${resource.title}" (${resource.type}, ${resource.lengthMinutes} mins).`,
+          estimatedTimeMinutes: resource.lengthMinutes,
+          difficulty: resource.difficulty,
+          topic: resource.topic,
+          contentId: resource.id,
+          alignedOutcomes: resource.alignedOutcomes || [],
+        }))
+      : [
+          {
+            sequence: 1,
+            taskText: `Review class notes and highlight the key ideas for ${week.topic}.`,
+            estimatedTimeMinutes: 20,
+            difficulty: 'Core',
+            topic: week.topic,
+          },
+          {
+            sequence: 2,
+            taskText: `Solve 10-12 practice problems on ${week.topic} and write one reflection sentence.`,
+            estimatedTimeMinutes: 25,
+            difficulty: 'Foundation',
+            topic: week.topic,
+          },
+        ];
+
+    const estimatedTotalTimeMinutes = tasks.reduce((total, task) => total + (task.estimatedTimeMinutes || 0), 0);
+
+    return {
+      _id: `HW-${week.week}`,
+      weekNumber: week.week,
+      topic: week.topic,
+      title: `Week ${week.week}: ${week.topic}`,
+      description: `Homework aligned to ${week.semester} • ${week.focus}.`,
+      tasks,
+      estimatedTotalTimeMinutes,
+      status: 'draft',
+      scheme: {
+        academicYear: schemeOfWork.academicYear,
+        subject: schemeOfWork.subject,
+        semester: week.semester,
+        focus: week.focus,
+      },
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      seededAt: timestamp,
+    };
+  });
 }
 
 if (!mockMongoCollections.has(MONGODB_HOMEWORK_COLLECTION)) {
