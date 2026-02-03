@@ -221,6 +221,12 @@
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
             );
+          case 'Homework':
+            return (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M5 7h14M7 7V5a2 2 0 012-2h6a2 2 0 012 2v2" />
+              </svg>
+            );
           default:
             return null;
         }
@@ -233,6 +239,7 @@
           case 'Document': return 'bg-blue-100 text-blue-700';
           case 'Image': return 'bg-purple-100 text-purple-700';
           case 'Audio': return 'bg-yellow-100 text-yellow-700';
+          case 'Homework': return 'bg-sky-100 text-sky-700';
           default: return 'bg-gray-100 text-gray-700';
         }
       };
@@ -462,6 +469,7 @@
       const [mongoDocumentsStatus, setMongoDocumentsStatus] = useState('');
       const [mongoEditingId, setMongoEditingId] = useState(null);
       const [mongoEditor, setMongoEditor] = useState({});
+      const [homeworkDocuments, setHomeworkDocuments] = useState([]);
 
       // PRIZM Content Repository state
       const [prizmContent, setPrizmContent] = useState([]);
@@ -578,12 +586,54 @@
         return match ? match.name : '';
       }, [schools, selectedSchool]);
 
+      const homeworkTaskContent = useMemo(() => {
+        if (!homeworkDocuments.length) return [];
+        return homeworkDocuments.flatMap((doc) => {
+          const tasks = Array.isArray(doc.tasks) ? doc.tasks : [];
+          return tasks.map((task) => {
+            const estimatedMinutes = task.estimatedTimeMinutes || 20;
+            const taskTitle = task.taskText || `Homework task for ${doc.topic || 'the selected topic'}`;
+            return {
+              id: `${doc._id || `HW-${doc.weekNumber || doc.topic}`}-task-${task.sequence || 1}`,
+              title: taskTitle,
+              description: `Homework task aligned to Week ${doc.weekNumber || '?'}: ${doc.topic || 'Topic focus'}.`,
+              topic: doc.topic || task.topic || 'Homework focus',
+              category: 'Homework',
+              mediaType: 'text/plain',
+              difficulty: task.difficulty || 'Core',
+              duration: estimatedMinutes * 60,
+              fileSize: 1200000,
+              thumbnailUrl: 'https://via.placeholder.com/400x225/0EA5E9/FFFFFF?text=Homework+Task',
+              contentUrl: '',
+              tags: ['homework', 'scheme-of-work'],
+              alignedOutcomes: task.alignedOutcomes || [],
+              viewCount: 0,
+              rating: 4.6,
+              weekNumber: doc.weekNumber,
+              uploadedAt: doc.updatedAt || doc.createdAt || new Date().toISOString(),
+            };
+          });
+        });
+      }, [homeworkDocuments]);
+
+      const allPrizmContent = useMemo(() => {
+        return [...homeworkTaskContent, ...prizmContent];
+      }, [homeworkTaskContent, prizmContent]);
+
+      const availablePrizmContent = useMemo(() => {
+        if (!selectedWeek) return allPrizmContent;
+        const weekNumber = Number(selectedWeek.week);
+        const weekHomework = homeworkTaskContent.filter((item) => Number(item.weekNumber) === weekNumber);
+        const weekPrizm = prizmContent.filter((item) => item.topic === selectedWeek.topic);
+        return [...weekHomework, ...weekPrizm];
+      }, [allPrizmContent, homeworkTaskContent, prizmContent, selectedWeek]);
+
       const filteredResources = useMemo(() => {
         return resources.filter((r) => !selectedTopic || r.topic === selectedTopic);
       }, [resources, selectedTopic]);
 
       const filteredPrizmContent = useMemo(() => {
-        let filtered = [...prizmContent];
+        let filtered = [...availablePrizmContent];
 
         if (prizmFilters.category !== 'All') {
           filtered = filtered.filter(c => c.category === prizmFilters.category);
@@ -607,26 +657,26 @@
         }
 
         return filtered;
-      }, [prizmContent, prizmFilters]);
+      }, [availablePrizmContent, prizmFilters]);
 
       const prizmSnapshot = useMemo(() => {
-        const totalItems = prizmContent.length;
+        const totalItems = allPrizmContent.length;
         const safeTotalItems = totalItems || 1;
-        const byCategory = prizmContent.reduce((acc, item) => {
+        const byCategory = allPrizmContent.reduce((acc, item) => {
           acc[item.category] = (acc[item.category] || 0) + 1;
           return acc;
         }, {});
-        const byTopic = prizmContent.reduce((acc, item) => {
+        const byTopic = allPrizmContent.reduce((acc, item) => {
           acc[item.topic] = (acc[item.topic] || 0) + 1;
           return acc;
         }, {});
         const sortedCategories = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
         const sortedTopics = Object.entries(byTopic).sort((a, b) => b[1] - a[1]);
-        const totalViews = prizmContent.reduce((sum, item) => sum + (item.viewCount || 0), 0);
-        const avgRating = prizmContent.length
-          ? prizmContent.reduce((sum, item) => sum + (item.rating || 0), 0) / prizmContent.length
+        const totalViews = allPrizmContent.reduce((sum, item) => sum + (item.viewCount || 0), 0);
+        const avgRating = allPrizmContent.length
+          ? allPrizmContent.reduce((sum, item) => sum + (item.rating || 0), 0) / allPrizmContent.length
           : 0;
-        const newestItems = [...prizmContent]
+        const newestItems = [...allPrizmContent]
           .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
           .slice(0, 3);
 
@@ -639,7 +689,7 @@
           newestItems,
           safeTotalItems,
         };
-      }, [prizmContent]);
+      }, [allPrizmContent]);
 
       const selectedMongoCollectionData = useMemo(() => {
         return mongoCollections.find((collection) => collection.name === selectedMongoCollection) || null;
@@ -703,22 +753,25 @@
       };
 
       const prizmCategoryOptions = useMemo(() => {
-        const defaults = ['Video', 'Interactive', 'Document', 'Image', 'Audio'];
-        const collected = prizmContent.map((item) => item.category).filter(Boolean);
+        const defaults = ['Video', 'Interactive', 'Document', 'Image', 'Audio', 'Homework'];
+        const collected = availablePrizmContent.map((item) => item.category).filter(Boolean);
         const unique = Array.from(new Set(collected));
         const categories = (unique.length ? unique : defaults).sort();
         return ['All', ...categories];
-      }, [prizmContent]);
+      }, [availablePrizmContent]);
 
       const prizmTopicOptions = useMemo(() => {
-        const collected = prizmContent.map((item) => item.topic).filter(Boolean);
-        const topics = Array.from(new Set(collected)).sort();
+        const collected = allPrizmContent.map((item) => item.topic).filter(Boolean);
+        const schemeTopics = scheme
+          ? scheme.semesters.flatMap((semester) => semester.weeks.map((week) => week.topic))
+          : [];
+        const topics = Array.from(new Set([...collected, ...schemeTopics])).sort();
         return ['All', ...topics];
-      }, [prizmContent]);
+      }, [allPrizmContent, scheme]);
 
       const buildPrizmTaskLines = (contentIds) => {
         return contentIds
-          .map((contentId) => prizmContent.find((content) => content.id === contentId))
+          .map((contentId) => allPrizmContent.find((content) => content.id === contentId))
           .filter(Boolean)
           .map((content) => {
             const durationMinutes = content.duration ? Math.round(content.duration / 60) : null;
@@ -783,7 +836,7 @@
           if (mergedTasks === prev.tasks) return prev;
           return { ...prev, tasks: mergedTasks };
         });
-      }, [selectedPrizmContent, prizmContent]);
+      }, [selectedPrizmContent, allPrizmContent]);
 
       useEffect(() => {
         const newCompleted = new Set();
@@ -807,11 +860,10 @@
             const resourceData = await resourceRes.json();
             const homeworkData = await homeworkRes.json();
             const prizmData = await prizmRes.json();
-            const homeworkDocuments = Array.isArray(homeworkData.documents) ? homeworkData.documents : [];
-            const prizmItems = homeworkRes.ok && homeworkDocuments.length > 0 ? homeworkDocuments : (prizmData.content || []);
             setScheme(schemeData.schemeOfWork || null);
             setResources(resourceData.resources || []);
-            setPrizmContent(prizmItems);
+            setHomeworkDocuments(Array.isArray(homeworkData.documents) ? homeworkData.documents : []);
+            setPrizmContent(prizmData.content || []);
           } catch (error) {
             console.error('Failed to load static data:', error);
           }
@@ -841,6 +893,10 @@
           topic: selectedWeek.topic,
         }));
         setSelectedTopic((prev) => prev || selectedWeek.topic);
+        setPrizmFilters((prev) => ({
+          ...prev,
+          topic: selectedWeek.topic || 'All',
+        }));
       }, [selectedWeek]);
 
       useEffect(() => {
