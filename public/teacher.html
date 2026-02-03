@@ -436,6 +436,10 @@
 
     function TeacherApp() {
       const PRIZM_TASK_PREFIX = '[PRIZM]';
+      const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
+      const initialSchoolId = useMemo(() => urlParams.get('schoolId') || '', [urlParams]);
+      const [pendingCohort, setPendingCohort] = useState(() => urlParams.get('cohort') || '');
+
       const [viewMode, setViewMode] = useState('assignment'); // 'assignment', 'dashboard', or 'mongo'
       const [currentStep, setCurrentStep] = useState(1);
       const [completedSteps, setCompletedSteps] = useState(new Set());
@@ -914,16 +918,24 @@
             const data = await res.json();
             const list = data.schools || [];
             setSchools(list);
-            const urlSchool = new URLSearchParams(window.location.search).get('schoolId');
-            const hasUrlSchool = urlSchool && list.some((school) => school.id === urlSchool);
-            const defaultSchool = hasUrlSchool ? urlSchool : list.length > 0 ? list[0].id : '';
+            const hasUrlSchool = initialSchoolId && list.some((school) => school.id === initialSchoolId);
+            const defaultSchool = hasUrlSchool ? initialSchoolId : list.length > 0 ? list[0].id : '';
             setSelectedSchool(defaultSchool);
           } catch (error) {
             setSchoolStatus('Unable to load schools');
           }
         }
         loadSchools();
-      }, []);
+      }, [initialSchoolId]);
+
+      useEffect(() => {
+        if (!pendingCohort || !cohortGroups.length) return;
+        const matches = cohortGroups.some((group) => group.key === pendingCohort);
+        if (!matches) return;
+        setSelectedCohorts(new Set([pendingCohort]));
+        setAiForm((prev) => ({ ...prev, cohort: pendingCohort }));
+        setPendingCohort('');
+      }, [cohortGroups, pendingCohort]);
 
       useEffect(() => {
         if (!selectedSchool) return;
