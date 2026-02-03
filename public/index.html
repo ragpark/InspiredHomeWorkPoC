@@ -74,7 +74,7 @@
           </div>
         </div>
         <nav class="flex items-center gap-4 text-sm font-medium">
-          <a class="text-slate-600 hover:text-primary-600 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-primary-50" href="/teacher.html">Teacher Studio</a>
+          <a class="text-slate-600 hover:text-primary-600 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-primary-50" href="/teacher.html" data-teacher-link>Teacher Studio</a>
           <a class="text-slate-600 hover:text-primary-600 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-primary-50" href="/student.html">Student View</a>
           <span class="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-accent-100 to-accent-200 text-accent-800 font-semibold text-xs shadow-sm">LTI 1.3 Demo</span>
         </nav>
@@ -97,7 +97,7 @@
               journeys, verify LTI-style deep linking, and explore PRIZM + Berlin + Faculty AI-assisted assignment planning.
             </p>
             <div class="flex flex-wrap gap-4 pt-2">
-              <a href="/teacher.html" class="group px-6 py-3.5 rounded-xl bg-white text-slate-900 font-bold shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-200 flex items-center gap-2">
+              <a href="/teacher.html" class="group px-6 py-3.5 rounded-xl bg-white text-slate-900 font-bold shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-200 flex items-center gap-2" data-teacher-link>
                 Open Teacher Studio
                 <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -147,7 +147,7 @@
                 <p class="text-base font-bold text-slate-900">Quick Links</p>
               </div>
               <div class="flex flex-col gap-3 text-sm">
-                <a class="group flex items-center gap-3 text-slate-700 hover:text-primary-700 transition-colors p-2 rounded-lg hover:bg-primary-50/50" href="/teacher.html">
+                <a class="group flex items-center gap-3 text-slate-700 hover:text-primary-700 transition-colors p-2 rounded-lg hover:bg-primary-50/50" href="/teacher.html" data-teacher-link>
                   <span class="w-2 h-2 rounded-full bg-primary-500 group-hover:scale-125 transition-transform"></span>
                   <span class="font-medium">Teacher assignment flow</span>
                 </a>
@@ -155,6 +155,49 @@
                   <span class="w-2 h-2 rounded-full bg-primary-500 group-hover:scale-125 transition-transform"></span>
                   <span class="font-medium">Student launch + Homework Tutor</span>
                 </a>
+              </div>
+            </div>
+            <div class="glass-card rounded-2xl p-6 text-slate-900 shadow-xl border border-white/60 hover:shadow-2xl transition-shadow duration-300">
+              <div class="flex items-center gap-2 mb-4">
+                <div class="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
+                  </svg>
+                </div>
+                <p class="text-base font-bold text-slate-900">Launch with context</p>
+              </div>
+              <p class="text-sm text-slate-600 mb-4">
+                Select a school and cohort to preload the Teacher Studio with the right learners.
+              </p>
+              <div class="space-y-4 text-sm">
+                <label class="block">
+                  <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">School</span>
+                  <select
+                    id="overview-school-select"
+                    class="mt-2 w-full rounded-lg border-2 border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                  >
+                    <option value="">Loading schools...</option>
+                  </select>
+                </label>
+                <label class="block">
+                  <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Cohort</span>
+                  <select
+                    id="overview-cohort-select"
+                    class="mt-2 w-full rounded-lg border-2 border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                  >
+                    <option value="">Select a school first</option>
+                  </select>
+                </label>
+                <label class="block">
+                  <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Week</span>
+                  <select
+                    id="overview-week-select"
+                    class="mt-2 w-full rounded-lg border-2 border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                  >
+                    <option value="">Loading weeks...</option>
+                  </select>
+                </label>
+                <p id="overview-selection-status" class="text-xs text-slate-500"></p>
               </div>
             </div>
           </div>
@@ -263,5 +306,146 @@
         </div>
       </section>
     </main>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const schoolSelect = document.getElementById('overview-school-select');
+        const cohortSelect = document.getElementById('overview-cohort-select');
+        const weekSelect = document.getElementById('overview-week-select');
+        const statusText = document.getElementById('overview-selection-status');
+        const teacherLinks = document.querySelectorAll('[data-teacher-link]');
+
+        if (!schoolSelect || !cohortSelect || !weekSelect) return;
+
+        const updateTeacherLinks = () => {
+          const params = new URLSearchParams();
+          if (schoolSelect.value) params.set('schoolId', schoolSelect.value);
+          if (cohortSelect.value) params.set('cohort', cohortSelect.value);
+          if (weekSelect.value) params.set('week', weekSelect.value);
+          const query = params.toString();
+          const href = query ? `/teacher.html?${query}` : '/teacher.html';
+          teacherLinks.forEach((link) => {
+            link.setAttribute('href', href);
+          });
+        };
+
+        const setStatus = (message, isError = false) => {
+          if (!statusText) return;
+          statusText.textContent = message;
+          statusText.className = `text-xs ${isError ? 'text-rose-500' : 'text-slate-500'}`;
+        };
+
+        const populateSelect = (select, options, placeholder) => {
+          select.innerHTML = '';
+          if (placeholder) {
+            const placeholderOption = document.createElement('option');
+            placeholderOption.value = '';
+            placeholderOption.textContent = placeholder;
+            select.appendChild(placeholderOption);
+          }
+          options.forEach((option) => {
+            const optionEl = document.createElement('option');
+            optionEl.value = option.value;
+            optionEl.textContent = option.label;
+            select.appendChild(optionEl);
+          });
+        };
+
+        const loadCohorts = async (schoolId) => {
+          if (!schoolId) {
+            populateSelect(cohortSelect, [], 'Select a school first');
+            updateTeacherLinks();
+            return;
+          }
+          try {
+            setStatus('Loading cohorts...');
+            const response = await fetch(`/api/learners?schoolId=${encodeURIComponent(schoolId)}`);
+            const data = await response.json();
+            const cohorts = Array.from(new Set((data.learners || []).map((learner) => learner.cohort).filter(Boolean))).sort();
+            if (cohorts.length) {
+              populateSelect(
+                cohortSelect,
+                cohorts.map((cohort) => ({ value: cohort, label: cohort })),
+                'Choose a cohort'
+              );
+              cohortSelect.value = cohorts[0];
+              setStatus('Cohorts loaded.');
+            } else {
+              populateSelect(cohortSelect, [], 'No cohorts available');
+              setStatus('No cohorts found for this school.');
+            }
+          } catch (error) {
+            populateSelect(cohortSelect, [], 'Unable to load cohorts');
+            setStatus('Unable to load cohorts right now.', true);
+          } finally {
+            updateTeacherLinks();
+          }
+        };
+
+        const loadWeeks = async () => {
+          try {
+            const response = await fetch('/api/scheme-of-work');
+            const data = await response.json();
+            const weeks = data.schemeOfWork?.semesters?.flatMap((semester) => semester.weeks || []) || [];
+            if (!weeks.length) {
+              populateSelect(weekSelect, [], 'No weeks available');
+              return;
+            }
+            const sortedWeeks = [...weeks].sort((a, b) => Number(a.week) - Number(b.week));
+            populateSelect(
+              weekSelect,
+              sortedWeeks.map((week) => ({
+                value: String(week.week),
+                label: `Week ${week.week}: ${week.topic}`,
+              })),
+              'Choose a week'
+            );
+            weekSelect.value = String(sortedWeeks[0].week);
+          } catch (error) {
+            populateSelect(weekSelect, [], 'Unable to load weeks');
+          } finally {
+            updateTeacherLinks();
+          }
+        };
+
+        const loadSchools = async () => {
+          try {
+            setStatus('Loading schools...');
+            const response = await fetch('/api/schools');
+            const data = await response.json();
+            const schools = data.schools || [];
+            if (!schools.length) {
+              populateSelect(schoolSelect, [], 'No schools available');
+              setStatus('No schools available to select.', true);
+              return;
+            }
+            populateSelect(
+              schoolSelect,
+              schools.map((school) => ({ value: school.id, label: school.name })),
+              'Choose a school'
+            );
+            schoolSelect.value = schools[0].id;
+            await loadCohorts(schoolSelect.value);
+          } catch (error) {
+            populateSelect(schoolSelect, [], 'Unable to load schools');
+            setStatus('Unable to load schools right now.', true);
+          }
+        };
+
+        schoolSelect.addEventListener('change', async (event) => {
+          await loadCohorts(event.target.value);
+        });
+
+        cohortSelect.addEventListener('change', () => {
+          updateTeacherLinks();
+        });
+
+        weekSelect.addEventListener('change', () => {
+          updateTeacherLinks();
+        });
+
+        loadWeeks();
+        loadSchools();
+      });
+    </script>
   </body>
 </html>
