@@ -536,6 +536,11 @@
         return Array.from(new Set([...schemeTopics, ...resourceTopics])).sort();
       }, [scheme, resources]);
 
+      const aiTopicOptions = useMemo(() => {
+        if (selectedWeek?.topic) return [selectedWeek.topic];
+        return topics;
+      }, [selectedWeek, topics]);
+
       const cohortGroups = useMemo(() => {
         const grouped = learners.reduce((acc, learner) => {
           const key = learner.cohort || 'Unassigned';
@@ -833,7 +838,7 @@
         setAiForm((prev) => ({
           ...prev,
           week: selectedWeek.week,
-          topic: prev.topic || selectedWeek.topic,
+          topic: selectedWeek.topic,
         }));
         setSelectedTopic((prev) => prev || selectedWeek.topic);
       }, [selectedWeek]);
@@ -2244,7 +2249,7 @@
                                   className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                                 >
                                   <option value="">Select topic area</option>
-                                  {topics.map((topic) => (
+                                  {aiTopicOptions.map((topic) => (
                                     <option key={topic} value={topic}>{topic}</option>
                                   ))}
                                 </select>
@@ -2372,30 +2377,6 @@
                   </div>
 
                   <div className="space-y-6">
-                    <ModernCard className="p-6">
-                      <h4 className="font-semibold text-slate-900 mb-4">Homework Assignment Card</h4>
-                      {schemeSummary && selectedScheme ? (
-                        <div className="space-y-3">
-                          <div className="text-sm text-slate-700">
-                            <span className="font-semibold">{selectedScheme.subject}</span> • {selectedScheme.academicYear}
-                          </div>
-                          <div className="p-3 border border-slate-200 rounded-lg bg-slate-50">
-                            <p className="text-sm font-semibold text-slate-900">{schemeSummary.title}</p>
-                            <p className="text-xs text-slate-500 mt-1">{schemeSummary.description}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={applySchemeToAssignment}
-                            className="w-full text-sm px-4 py-2 rounded-lg border border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100"
-                          >
-                            Apply to assignment details
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-slate-500">Select a scheme week to populate the homework context.</p>
-                      )}
-                    </ModernCard>
-
                     <ModernCard className="p-6">
                       <h4 className="font-semibold text-slate-900 mb-4">Assignment Progress</h4>
                       <div className="space-y-3">
