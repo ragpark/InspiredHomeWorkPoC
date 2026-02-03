@@ -436,6 +436,10 @@
 
     function TeacherApp() {
       const PRIZM_TASK_PREFIX = '[PRIZM]';
+      const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
+      const initialSchoolId = useMemo(() => urlParams.get('schoolId') || '', [urlParams]);
+      const [pendingCohort, setPendingCohort] = useState(() => urlParams.get('cohort') || '');
+
       const [viewMode, setViewMode] = useState('assignment'); // 'assignment', 'dashboard', or 'mongo'
       const [currentStep, setCurrentStep] = useState(1);
       const [completedSteps, setCompletedSteps] = useState(new Set());
@@ -849,15 +853,17 @@
       useEffect(() => {
         async function loadStatic() {
           try {
-            const [schemeRes, resourceRes, prizmRes] = await Promise.all([
+            const [schemeRes, resourceRes, prizmRes, homeworkRes] = await Promise.all([
               fetch('/api/scheme-of-work'),
               fetch('/api/content-resources'),
               fetch('/api/prizm/content'),
+              fetch('/api/mongodb/collections/homework/documents?limit=100'),
             ]);
 
             const schemeData = await schemeRes.json();
             const resourceData = await resourceRes.json();
             const prizmData = await prizmRes.json();
+            const homeworkData = await homeworkRes.json();
             setScheme(schemeData.schemeOfWork || null);
             setResources(resourceData.resources || []);
             setHomeworkDocuments(Array.isArray(homeworkData.documents) ? homeworkData.documents : []);
@@ -914,16 +920,24 @@
             const data = await res.json();
             const list = data.schools || [];
             setSchools(list);
-            const urlSchool = new URLSearchParams(window.location.search).get('schoolId');
-            const hasUrlSchool = urlSchool && list.some((school) => school.id === urlSchool);
-            const defaultSchool = hasUrlSchool ? urlSchool : list.length > 0 ? list[0].id : '';
+            const hasUrlSchool = initialSchoolId && list.some((school) => school.id === initialSchoolId);
+            const defaultSchool = hasUrlSchool ? initialSchoolId : list.length > 0 ? list[0].id : '';
             setSelectedSchool(defaultSchool);
           } catch (error) {
             setSchoolStatus('Unable to load schools');
           }
         }
         loadSchools();
-      }, []);
+      }, [initialSchoolId]);
+
+      useEffect(() => {
+        if (!pendingCohort || !cohortGroups.length) return;
+        const matches = cohortGroups.some((group) => group.key === pendingCohort);
+        if (!matches) return;
+        setSelectedCohorts(new Set([pendingCohort]));
+        setAiForm((prev) => ({ ...prev, cohort: pendingCohort }));
+        setPendingCohort('');
+      }, [cohortGroups, pendingCohort]);
 
       useEffect(() => {
         if (!selectedSchool) return;
@@ -2230,7 +2244,7 @@
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {selectedPrizmContent.map((id) => {
-                                const content = prizmContent.find(c => c.id === id);
+                                const content = allPrizmContent.find(c => c.id === id);
                                 return content ? (
                                   <div key={id} className="flex items-center gap-2 px-3 py-1 bg-indigo-100 text-indigo-900 rounded-full text-sm">
                                     <span>{content.title}</span>
