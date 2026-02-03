@@ -438,6 +438,7 @@
       const PRIZM_TASK_PREFIX = '[PRIZM]';
       const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
       const initialSchoolId = useMemo(() => urlParams.get('schoolId') || '', [urlParams]);
+      const initialWeekNumber = useMemo(() => urlParams.get('week') || '', [urlParams]);
       const [pendingCohort, setPendingCohort] = useState(() => urlParams.get('cohort') || '');
 
       const [viewMode, setViewMode] = useState('assignment'); // 'assignment', 'dashboard', or 'mongo'
@@ -882,12 +883,15 @@
           setSelectedSchemeId(schemeKey);
         }
         if (!selectedWeekNumber && scheme.semesters?.length) {
-          const firstWeek = scheme.semesters[0]?.weeks?.[0]?.week;
-          if (firstWeek !== undefined) {
-            setSelectedWeekNumber(String(firstWeek));
+          const availableWeeks = scheme.semesters.flatMap((semester) => semester.weeks || []);
+          const hasInitialWeek = initialWeekNumber && availableWeeks.some((week) => String(week.week) === String(initialWeekNumber));
+          const firstWeek = availableWeeks[0]?.week;
+          const targetWeek = hasInitialWeek ? initialWeekNumber : firstWeek;
+          if (targetWeek !== undefined && targetWeek !== null && targetWeek !== '') {
+            setSelectedWeekNumber(String(targetWeek));
           }
         }
-      }, [scheme, selectedSchemeId, selectedWeekNumber]);
+      }, [scheme, selectedSchemeId, selectedWeekNumber, initialWeekNumber]);
 
       useEffect(() => {
         if (!selectedWeek) return;

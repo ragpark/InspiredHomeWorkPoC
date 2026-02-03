@@ -188,6 +188,15 @@
                     <option value="">Select a school first</option>
                   </select>
                 </label>
+                <label class="block">
+                  <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Week</span>
+                  <select
+                    id="overview-week-select"
+                    class="mt-2 w-full rounded-lg border-2 border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                  >
+                    <option value="">Loading weeks...</option>
+                  </select>
+                </label>
                 <p id="overview-selection-status" class="text-xs text-slate-500"></p>
               </div>
             </div>
@@ -301,15 +310,17 @@
       document.addEventListener('DOMContentLoaded', () => {
         const schoolSelect = document.getElementById('overview-school-select');
         const cohortSelect = document.getElementById('overview-cohort-select');
+        const weekSelect = document.getElementById('overview-week-select');
         const statusText = document.getElementById('overview-selection-status');
         const teacherLinks = document.querySelectorAll('[data-teacher-link]');
 
-        if (!schoolSelect || !cohortSelect) return;
+        if (!schoolSelect || !cohortSelect || !weekSelect) return;
 
         const updateTeacherLinks = () => {
           const params = new URLSearchParams();
           if (schoolSelect.value) params.set('schoolId', schoolSelect.value);
           if (cohortSelect.value) params.set('cohort', cohortSelect.value);
+          if (weekSelect.value) params.set('week', weekSelect.value);
           const query = params.toString();
           const href = query ? `/teacher.html?${query}` : '/teacher.html';
           teacherLinks.forEach((link) => {
@@ -370,6 +381,32 @@
           }
         };
 
+        const loadWeeks = async () => {
+          try {
+            const response = await fetch('/api/scheme-of-work');
+            const data = await response.json();
+            const weeks = data.schemeOfWork?.semesters?.flatMap((semester) => semester.weeks || []) || [];
+            if (!weeks.length) {
+              populateSelect(weekSelect, [], 'No weeks available');
+              return;
+            }
+            const sortedWeeks = [...weeks].sort((a, b) => Number(a.week) - Number(b.week));
+            populateSelect(
+              weekSelect,
+              sortedWeeks.map((week) => ({
+                value: String(week.week),
+                label: `Week ${week.week}: ${week.topic}`,
+              })),
+              'Choose a week'
+            );
+            weekSelect.value = String(sortedWeeks[0].week);
+          } catch (error) {
+            populateSelect(weekSelect, [], 'Unable to load weeks');
+          } finally {
+            updateTeacherLinks();
+          }
+        };
+
         const loadSchools = async () => {
           try {
             setStatus('Loading schools...');
@@ -402,6 +439,11 @@
           updateTeacherLinks();
         });
 
+        weekSelect.addEventListener('change', () => {
+          updateTeacherLinks();
+        });
+
+        loadWeeks();
         loadSchools();
       });
     </script>
