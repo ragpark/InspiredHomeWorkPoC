@@ -712,9 +712,12 @@
 
       const prizmTopicOptions = useMemo(() => {
         const collected = prizmContent.map((item) => item.topic).filter(Boolean);
-        const topics = Array.from(new Set(collected)).sort();
+        const schemeTopics = scheme
+          ? scheme.semesters.flatMap((semester) => semester.weeks.map((week) => week.topic))
+          : [];
+        const topics = Array.from(new Set([...collected, ...schemeTopics])).sort();
         return ['All', ...topics];
-      }, [prizmContent]);
+      }, [prizmContent, scheme]);
 
       const buildPrizmTaskLines = (contentIds) => {
         return contentIds
@@ -796,22 +799,18 @@
       useEffect(() => {
         async function loadStatic() {
           try {
-            const [schemeRes, resourceRes, homeworkRes, prizmRes] = await Promise.all([
+            const [schemeRes, resourceRes, prizmRes] = await Promise.all([
               fetch('/api/scheme-of-work'),
               fetch('/api/content-resources'),
-              fetch('/api/mongodb/collections/homework/documents?limit=200'),
               fetch('/api/prizm/content'),
             ]);
 
             const schemeData = await schemeRes.json();
             const resourceData = await resourceRes.json();
-            const homeworkData = await homeworkRes.json();
             const prizmData = await prizmRes.json();
-            const homeworkDocuments = Array.isArray(homeworkData.documents) ? homeworkData.documents : [];
-            const prizmItems = homeworkRes.ok && homeworkDocuments.length > 0 ? homeworkDocuments : (prizmData.content || []);
             setScheme(schemeData.schemeOfWork || null);
             setResources(resourceData.resources || []);
-            setPrizmContent(prizmItems);
+            setPrizmContent(prizmData.content || []);
           } catch (error) {
             console.error('Failed to load static data:', error);
           }
@@ -841,6 +840,10 @@
           topic: selectedWeek.topic,
         }));
         setSelectedTopic((prev) => prev || selectedWeek.topic);
+        setPrizmFilters((prev) => ({
+          ...prev,
+          topic: selectedWeek.topic || 'All',
+        }));
       }, [selectedWeek]);
 
       useEffect(() => {
