@@ -849,16 +849,14 @@
       useEffect(() => {
         async function loadStatic() {
           try {
-            const [schemeRes, resourceRes, homeworkRes, prizmRes] = await Promise.all([
+            const [schemeRes, resourceRes, prizmRes] = await Promise.all([
               fetch('/api/scheme-of-work'),
               fetch('/api/content-resources'),
-              fetch('/api/mongodb/collections/homework/documents?limit=200'),
               fetch('/api/prizm/content'),
             ]);
 
             const schemeData = await schemeRes.json();
             const resourceData = await resourceRes.json();
-            const homeworkData = await homeworkRes.json();
             const prizmData = await prizmRes.json();
             setScheme(schemeData.schemeOfWork || null);
             setResources(resourceData.resources || []);
