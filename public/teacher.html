@@ -327,7 +327,7 @@
       </label>
     );
 
-    const StudentLinkModal = ({ isOpen, onClose, studentLink }) => {
+    const StudentLinkModal = ({ isOpen, onClose, studentLink, imsccDownloadUrl }) => {
       const [copied, setCopied] = useState(false);
 
       const copyToClipboard = async () => {
@@ -407,6 +407,23 @@
                   </div>
                 </div>
 
+                {imsccDownloadUrl ? (
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700 mb-2 block">IMS Common Cartridge</label>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 text-sm font-mono overflow-x-auto">
+                        {imsccDownloadUrl}
+                      </div>
+                      <a
+                        href={imsccDownloadUrl}
+                        className="px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-200 shadow-md bg-indigo-500 text-white hover:bg-indigo-600 hover:shadow-lg"
+                      >
+                        Download
+                      </a>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
                   <div className="flex items-start gap-3">
                     <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -414,7 +431,7 @@
                     </svg>
                     <div>
                       <p className="text-sm font-semibold text-blue-900 mb-1">Next Steps</p>
-                      <p className="text-sm text-blue-800">Copy this link and share it with students via Canvas, email, or your preferred communication method. Students will access their personalized assignment through this URL.</p>
+                      <p className="text-sm text-blue-800">Copy the launch link for students and download the IMS Common Cartridge if you want to import the assignment into an LMS.</p>
                     </div>
                   </div>
                 </div>
@@ -464,6 +481,7 @@
       const [isamsSyncing, setIsamsSyncing] = useState(false);
       const [showStudentLinkModal, setShowStudentLinkModal] = useState(false);
       const [studentLaunchLink, setStudentLaunchLink] = useState('');
+      const [imsccDownloadUrl, setImsccDownloadUrl] = useState('');
       const [mongoCollections, setMongoCollections] = useState([]);
       const [mongoStatus, setMongoStatus] = useState('');
       const [mongoLoading, setMongoLoading] = useState(false);
@@ -1292,6 +1310,7 @@
           const data = await response.json();
           if (response.ok) {
             setStudentLaunchLink(data.studentLaunchLink);
+            setImsccDownloadUrl(data.imsccDownloadUrl || '');
             setShowStudentLinkModal(true);
             setStatus('');
             setAssignments((prev) => [...prev, data.assignment]);
@@ -2779,6 +2798,7 @@
             isOpen={showStudentLinkModal}
             onClose={() => setShowStudentLinkModal(false)}
             studentLink={studentLaunchLink}
+            imsccDownloadUrl={imsccDownloadUrl}
           />
         </div>
       );
