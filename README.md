@@ -34,6 +34,7 @@ server.js          → Node HTTP server, API + static file host
 - REST-ish JSON endpoints:
   - `POST /api/assignments` creates a new assignment, returning the student launch link and (optionally) a simulated deep link if an LMS return URL is provided.
   - `GET /api/assignments` lists assignments; `GET /api/assignments/:id` retrieves a single item.
+  - `GET /api/assignments/:id/imscc` downloads an IMS Common Cartridge package (imsmanifest + HTML resources) for the assignment.
   - `POST /api/lti/deep-link/:id` echoes a Canvas return URL with the generated launch URL attached to mimic LTI 1.3 deep linking.
   - `POST /api/lti/launch` stubs the LTI 1.3 launch payload and indicates the correct UI route (teacher vs student).
 - Defaults to `PORT` (from Railway) and `BASE_URL` environment variables to build fully-qualified launch links.
@@ -52,6 +53,7 @@ server.js          → Node HTTP server, API + static file host
 2. Teacher selects tasks via `teacher.html` and saves. The server returns:
    - `studentLaunchLink` → the URL Canvas will embed for students.
    - `deepLink` → if the teacher supplied a Canvas deep-link return URL, the server appends the launch URL to it (a placeholder for a signed deep-link response).
+   - `imsccDownloadUrl` → a download link for the generated IMS Common Cartridge package.
 3. Canvas stores and surfaces the launch link to students. When opened, students hit `student.html` with `assignmentId` in the query string and the app renders their tasks.
 
 ## Calendar-aware recommendation service
