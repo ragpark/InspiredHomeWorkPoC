@@ -56,6 +56,10 @@ server.js          → Node HTTP server, API + static file host
    - `imsccDownloadUrl` → a download link for the generated IMS Common Cartridge package.
 3. Canvas stores and surfaces the launch link to students. When opened, students hit `student.html` with `assignmentId` in the query string and the app renders their tasks.
 
+### Downloading the IMS Common Cartridge (IMSCC)
+- In the Teacher Studio flow, once you click **Create Assignment**, the server builds the IMSCC package in the background and returns an `imsccDownloadUrl` alongside the launch links.
+- Use that `imsccDownloadUrl` (or call `GET /api/assignments/:id/imscc` directly) to download the `.imscc` file and import it into an LMS.
+
 ## Calendar-aware recommendation service
 
 Use `POST /api/recommendations/calendar-aware` to populate the teacher assignment UI with week-aware suggestions that consider learner performance, courseware metadata (difficulty, length, aligned outcomes), and the academic calendar.
