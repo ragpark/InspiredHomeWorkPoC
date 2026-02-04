@@ -1508,6 +1508,43 @@ function buildPrizmContentHtml(content) {
 </html>`;
 }
 
+function escapeCsvValue(value) {
+  const stringValue = String(value ?? '');
+  if (/[",\r\n]/.test(stringValue)) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+}
+
+function buildAssignmentCsv({ assignment, studentLaunchLink }) {
+  const rows = [
+    ['Assignment Title', assignment.title],
+    ['Assignment Description', assignment.description || ''],
+    ['Student Launch Link', studentLaunchLink],
+    ['School', assignment.schoolName || assignment.schoolId || ''],
+    ['Created At', assignment.createdAt || ''],
+  ];
+
+  const taskRows = (assignment.tasks || []).map((task, index) => [
+    `Task ${index + 1}`,
+    task,
+  ]);
+
+  const prizmRows = (assignment.prizmContent || []).map((content, index) => [
+    `PRIZM Resource ${index + 1}`,
+    `${content.title || ''} (${content.category || 'Resource'}) ${content.contentUrl || ''}`.trim(),
+  ]);
+
+  const csvLines = [
+    ['Field', 'Value'],
+    ...rows,
+    ...taskRows,
+    ...prizmRows,
+  ].map((row) => row.map(escapeCsvValue).join(','));
+
+  return `\uFEFF${csvLines.join('\r\n')}\r\n`;
+}
+
 function buildImsManifest({ assignment, resources }) {
   const title = escapeXml(assignment.title);
   const description = escapeXml(assignment.description || '');
@@ -1649,6 +1686,7 @@ function buildImsccPackage({ assignment, studentLaunchLink }) {
   const resources = [
     { identifier: 'res-assignment', href: 'assignment.html' },
     { identifier: 'res-launch', href: 'launch.html' },
+    { identifier: 'res-csv', href: 'assignment.csv' },
   ];
 
   const prizmResources = (assignment.prizmContent || []).map((content) => ({
@@ -1666,6 +1704,7 @@ function buildImsccPackage({ assignment, studentLaunchLink }) {
     { name: 'imsmanifest.xml', data: manifest },
     { name: 'assignment.html', data: buildAssignmentHtml({ assignment, studentLaunchLink }) },
     { name: 'launch.html', data: buildLaunchHtml({ assignment, studentLaunchLink }) },
+    { name: 'assignment.csv', data: buildAssignmentCsv({ assignment, studentLaunchLink }) },
     ...prizmResources.map((resource) => ({
       name: resource.href,
       data: buildPrizmContentHtml(resource.content),
