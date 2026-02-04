@@ -35,6 +35,7 @@ const MONGODB_ASSIGNMENTS_COLLECTION = process.env.MONGODB_ASSIGNMENTS_COLLECTIO
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const assignments = new Map();
+const imsccPackages = new Map();
 const schools = [
   { id: 'SCH-A', name: 'Northfield High School' },
   { id: 'SCH-B', name: 'Lakeside Academy' },
@@ -1411,6 +1412,14 @@ function resolveBaseUrl(req) {
 
 const PRIZM_TASK_PREFIX = '[PRIZM]';
 
+const escapeXml = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
 function buildPrizmTaskLines(prizmContentItems) {
   if (!Array.isArray(prizmContentItems)) return [];
   return prizmContentItems.map((content) => {
@@ -1426,6 +1435,249 @@ function mergePrizmTasks(tasks, prizmContentItems) {
   const manualTasks = (tasks || []).filter((task) => !String(task).trim().startsWith(PRIZM_TASK_PREFIX));
   const prizmTasks = buildPrizmTaskLines(prizmContentItems);
   return [...manualTasks, ...prizmTasks].filter(Boolean);
+}
+
+function buildAssignmentLinks({ assignmentId, schoolId, baseUrl }) {
+  const studentLaunchLink = `${baseUrl}/student.html?assignmentId=${assignmentId}&schoolId=${encodeURIComponent(schoolId)}`;
+  const teacherLink = `${baseUrl}/teacher.html?assignmentId=${assignmentId}&schoolId=${encodeURIComponent(schoolId)}`;
+  return { studentLaunchLink, teacherLink };
+}
+
+function formatAssignmentTasks(tasks = []) {
+  return tasks.map((task) => `<li>${escapeXml(task)}</li>`).join('\n');
+}
+
+function buildAssignmentHtml({ assignment, studentLaunchLink }) {
+  const tasksMarkup = formatAssignmentTasks(assignment.tasks || []);
+  const prizmItems = (assignment.prizmContent || [])
+    .map(
+      (item) =>
+        `<li><strong>${escapeXml(item.title)}</strong> (${escapeXml(item.category || 'Resource')}) - <a href="${escapeXml(
+          item.contentUrl || '#'
+        )}">Open</a></li>`
+    )
+    .join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeXml(assignment.title)}</title>
+</head>
+<body>
+  <h1>${escapeXml(assignment.title)}</h1>
+  <p>${escapeXml(assignment.description || '')}</p>
+  <p><strong>Student launch link:</strong> <a href="${escapeXml(studentLaunchLink)}">${escapeXml(studentLaunchLink)}</a></p>
+  <h2>Tasks</h2>
+  <ol>
+    ${tasksMarkup}
+  </ol>
+  ${prizmItems ? `<h2>PRIZM Resources</h2><ul>${prizmItems}</ul>` : ''}
+</body>
+</html>`;
+}
+
+function buildLaunchHtml({ assignment, studentLaunchLink }) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeXml(assignment.title)} - Launch</title>
+  <meta http-equiv="refresh" content="0; url=${escapeXml(studentLaunchLink)}" />
+</head>
+<body>
+  <p>Launching assignment... <a href="${escapeXml(studentLaunchLink)}">Click here if you are not redirected.</a></p>
+</body>
+</html>`;
+}
+
+function buildPrizmContentHtml(content) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeXml(content.title)}</title>
+</head>
+<body>
+  <h1>${escapeXml(content.title)}</h1>
+  <p>${escapeXml(content.description || '')}</p>
+  <p><strong>Category:</strong> ${escapeXml(content.category || '')}</p>
+  <p><strong>Duration:</strong> ${escapeXml(content.duration || '')} seconds</p>
+  <p><a href="${escapeXml(content.contentUrl || '#')}">Open Resource</a></p>
+</body>
+</html>`;
+}
+
+function buildImsManifest({ assignment, resources }) {
+  const title = escapeXml(assignment.title);
+  const description = escapeXml(assignment.description || '');
+  const resourcesXml = resources
+    .map(
+      (resource) => `
+    <resource identifier="${escapeXml(resource.identifier)}" type="webcontent" href="${escapeXml(resource.href)}">
+      <file href="${escapeXml(resource.href)}" />
+    </resource>`
+    )
+    .join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="manifest-${escapeXml(assignment.id)}"
+  xmlns="http://www.imsglobal.org/xsd/imscp_v1p1"
+  xmlns:lom="http://ltsc.ieee.org/xsd/LOM"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 http://www.imsglobal.org/xsd/imscp_v1p1.xsd">
+  <metadata>
+    <lom:lom>
+      <lom:general>
+        <lom:title><lom:string>${title}</lom:string></lom:title>
+        <lom:description><lom:string>${description}</lom:string></lom:description>
+      </lom:general>
+    </lom:lom>
+  </metadata>
+  <organizations>
+    <organization identifier="org-1">
+      <item identifier="item-1" identifierref="res-assignment">
+        <title>${title}</title>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    ${resourcesXml}
+  </resources>
+</manifest>`;
+}
+
+function buildCrc32Table() {
+  const table = new Array(256);
+  for (let i = 0; i < 256; i += 1) {
+    let c = i;
+    for (let k = 0; k < 8; k += 1) {
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    }
+    table[i] = c >>> 0;
+  }
+  return table;
+}
+
+const CRC32_TABLE = buildCrc32Table();
+
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (let i = 0; i < buffer.length; i += 1) {
+    crc = CRC32_TABLE[(crc ^ buffer[i]) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function toDosDateTime(date = new Date()) {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const seconds = Math.floor(date.getSeconds() / 2);
+  const dosDate = ((year - 1980) << 9) | (month << 5) | day;
+  const dosTime = (hours << 11) | (minutes << 5) | seconds;
+  return { dosDate, dosTime };
+}
+
+function createZip(entries) {
+  const now = new Date();
+  const { dosDate, dosTime } = toDosDateTime(now);
+  const localChunks = [];
+  const centralChunks = [];
+  let offset = 0;
+
+  entries.forEach((entry) => {
+    const dataBuffer = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(entry.data, 'utf8');
+    const nameBuffer = Buffer.from(entry.name);
+    const crc = crc32(dataBuffer);
+    const localHeader = Buffer.alloc(30);
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0, 6);
+    localHeader.writeUInt16LE(0, 8);
+    localHeader.writeUInt16LE(dosTime, 10);
+    localHeader.writeUInt16LE(dosDate, 12);
+    localHeader.writeUInt32LE(crc, 14);
+    localHeader.writeUInt32LE(dataBuffer.length, 18);
+    localHeader.writeUInt32LE(dataBuffer.length, 22);
+    localHeader.writeUInt16LE(nameBuffer.length, 26);
+    localHeader.writeUInt16LE(0, 28);
+
+    localChunks.push(localHeader, nameBuffer, dataBuffer);
+
+    const centralHeader = Buffer.alloc(46);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(0, 8);
+    centralHeader.writeUInt16LE(0, 10);
+    centralHeader.writeUInt16LE(dosTime, 12);
+    centralHeader.writeUInt16LE(dosDate, 14);
+    centralHeader.writeUInt32LE(crc, 16);
+    centralHeader.writeUInt32LE(dataBuffer.length, 20);
+    centralHeader.writeUInt32LE(dataBuffer.length, 24);
+    centralHeader.writeUInt16LE(nameBuffer.length, 28);
+    centralHeader.writeUInt16LE(0, 30);
+    centralHeader.writeUInt16LE(0, 32);
+    centralHeader.writeUInt16LE(0, 34);
+    centralHeader.writeUInt16LE(0, 36);
+    centralHeader.writeUInt32LE(0, 38);
+    centralHeader.writeUInt32LE(offset, 42);
+
+    centralChunks.push(centralHeader, nameBuffer);
+    offset += localHeader.length + nameBuffer.length + dataBuffer.length;
+  });
+
+  const centralSize = centralChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const centralOffset = offset;
+  const endRecord = Buffer.alloc(22);
+  endRecord.writeUInt32LE(0x06054b50, 0);
+  endRecord.writeUInt16LE(0, 4);
+  endRecord.writeUInt16LE(0, 6);
+  endRecord.writeUInt16LE(entries.length, 8);
+  endRecord.writeUInt16LE(entries.length, 10);
+  endRecord.writeUInt32LE(centralSize, 12);
+  endRecord.writeUInt32LE(centralOffset, 16);
+  endRecord.writeUInt16LE(0, 20);
+
+  return Buffer.concat([...localChunks, ...centralChunks, endRecord]);
+}
+
+function buildImsccPackage({ assignment, studentLaunchLink }) {
+  const resources = [
+    { identifier: 'res-assignment', href: 'assignment.html' },
+    { identifier: 'res-launch', href: 'launch.html' },
+  ];
+
+  const prizmResources = (assignment.prizmContent || []).map((content) => ({
+    identifier: `res-${content.id}`,
+    href: `prizm/${content.id}.html`,
+    content,
+  }));
+
+  const manifest = buildImsManifest({
+    assignment,
+    resources: [...resources, ...prizmResources],
+  });
+
+  const entries = [
+    { name: 'imsmanifest.xml', data: manifest },
+    { name: 'assignment.html', data: buildAssignmentHtml({ assignment, studentLaunchLink }) },
+    { name: 'launch.html', data: buildLaunchHtml({ assignment, studentLaunchLink }) },
+    ...prizmResources.map((resource) => ({
+      name: resource.href,
+      data: buildPrizmContentHtml(resource.content),
+    })),
+  ];
+
+  const buffer = createZip(entries);
+  return {
+    filename: `homework-${assignment.id}.imscc`,
+    buffer,
+    createdAt: new Date().toISOString(),
+  };
 }
 
 async function createAssignment(payload, baseUrl) {
@@ -1468,13 +1720,15 @@ async function createAssignment(payload, baseUrl) {
 
   await persistAssignment(assignment);
 
-  const studentLaunchLink = `${baseUrl}/student.html?assignmentId=${id}&schoolId=${encodeURIComponent(school.id)}`;
-  const teacherLink = `${baseUrl}/teacher.html?assignmentId=${id}&schoolId=${encodeURIComponent(school.id)}`;
+  const { studentLaunchLink, teacherLink } = buildAssignmentLinks({ assignmentId: id, schoolId: school.id, baseUrl });
   const deepLink = ltiReturnUrl
     ? `${ltiReturnUrl}${ltiReturnUrl.includes('?') ? '&' : '?'}launch_url=${encodeURIComponent(studentLaunchLink)}`
     : null;
+  const imsccPackage = buildImsccPackage({ assignment, studentLaunchLink });
+  imsccPackages.set(id, imsccPackage);
+  const imsccDownloadUrl = `${baseUrl}/api/assignments/${id}/imscc`;
 
-  return { assignment, studentLaunchLink, teacherLink, deepLink }; // deepLink acts as placeholder LTI deep link return
+  return { assignment, studentLaunchLink, teacherLink, deepLink, imsccDownloadUrl }; // deepLink acts as placeholder LTI deep link return
 }
 
 const server = http.createServer(async (req, res) => {
@@ -1952,9 +2206,9 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/api/assignments') {
     try {
       const payload = await parseBody(req);
-      const { assignment, studentLaunchLink, teacherLink, deepLink } = await createAssignment(payload, baseUrl);
+      const { assignment, studentLaunchLink, teacherLink, deepLink, imsccDownloadUrl } = await createAssignment(payload, baseUrl);
       res.writeHead(201, { 'Content-Type': 'application/json', ...baseHeaders });
-      return res.end(JSON.stringify({ assignment, studentLaunchLink, teacherLink, deepLink }));
+      return res.end(JSON.stringify({ assignment, studentLaunchLink, teacherLink, deepLink, imsccDownloadUrl }));
     } catch (err) {
       return sendJson(res, 400, { error: err.message }, baseHeaders);
     }
@@ -1969,6 +2223,31 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && url.pathname.startsWith('/api/assignments/')) {
     const id = url.pathname.split('/')[3];
+    if (url.pathname.endsWith('/imscc')) {
+      const assignmentId = url.pathname.split('/')[3];
+      const assignment = await fetchAssignmentById(assignmentId);
+      if (!assignment) return notFound(res);
+      const requestedSchoolId = url.searchParams.get('schoolId');
+      if (requestedSchoolId && assignment.schoolId !== requestedSchoolId) {
+        return sendJson(res, 403, { error: 'This assignment is not available for the requested school.' }, baseHeaders);
+      }
+      const { studentLaunchLink } = buildAssignmentLinks({
+        assignmentId: assignment.id,
+        schoolId: assignment.schoolId,
+        baseUrl,
+      });
+      let packageData = imsccPackages.get(assignment.id);
+      if (!packageData) {
+        packageData = buildImsccPackage({ assignment, studentLaunchLink });
+        imsccPackages.set(assignment.id, packageData);
+      }
+      res.writeHead(200, {
+        'Content-Type': 'application/vnd.ims.imscc',
+        'Content-Disposition': `attachment; filename="${packageData.filename}"`,
+        ...baseHeaders,
+      });
+      return res.end(packageData.buffer);
+    }
     const assignment = await fetchAssignmentById(id);
     const requestedSchoolId = url.searchParams.get('schoolId');
     if (!assignment) return notFound(res);
