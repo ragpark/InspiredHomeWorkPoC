@@ -360,7 +360,7 @@
           setIsSaving(true);
           const sessionEnd = new Date();
           const sessionStart = sessionStartRef.current || sessionEnd;
-          const durationMinutes = Math.max(0.1, Number(((sessionEnd - sessionStart) / 60000).toFixed(1)));
+          const durationSeconds = Math.max(1, Math.round((sessionEnd - sessionStart) / 1000));
           const userMessages = messages.filter((message) => message.role === 'user').length;
           const tutorMessages = messages.filter((message) => message.role === 'assistant').length;
           const visitedTasks = Array.from(visitedTasksRef.current);
@@ -368,33 +368,84 @@
           const engagementScore = Math.min(1, (userMessages + visitedTasks.length) / 6);
           const confidenceScore = Math.min(1, (userMessages + 1) / 5);
           const sessionId = window.crypto?.randomUUID ? window.crypto.randomUUID() : `session-${Date.now()}`;
+          const completionEstimate = Math.min(1, (visitedTasks.length + 1) / Math.max(1, tasks.length || 1));
+          const formatDuration = (totalSeconds) => {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `PT${hours ? `${hours}H` : ''}${minutes ? `${minutes}M` : ''}${seconds}S`;
+          };
+          const durationIso = formatDuration(durationSeconds);
+          const actor = {
+            objectType: 'Agent',
+            name: learner?.name || 'Unknown learner',
+            mbox: learner?.email ? `mailto:${learner.email}` : undefined,
+            account: learner?.id
+              ? {
+                  homePage: window.location.origin,
+                  name: learner.id,
+                }
+              : undefined,
+          };
+          const normalizedActor = Object.fromEntries(Object.entries(actor).filter(([, value]) => value !== undefined));
 
           const payload = {
-            sessionId,
-            learnerId: learner?.id || 'unknown-learner',
-            learnerName: learner?.name || null,
-            learnerEmail: learner?.email || null,
-            schoolId: assignment?.schoolId || null,
-            assignmentId: assignment?.id || null,
-            assignmentTitle,
-            snapshotDate: sessionEnd.toISOString().slice(0, 10),
-            session: {
-              startedAt: sessionStart.toISOString(),
-              endedAt: sessionEnd.toISOString(),
-              durationMinutes,
-              messagesSent: userMessages,
-              tutorReplies: tutorMessages,
-              tasksVisited: visitedTasks,
-              tasksVisitedTitles: visitedTaskTitles,
-              focusTaskIndex: activeIndex,
+            id: sessionId,
+            actor: normalizedActor,
+            verb: {
+              id: 'http://adlnet.gov/expapi/verbs/exited',
+              display: { 'en-US': 'exited' },
             },
-            performanceSummary: {
-              engagementScore,
-              confidenceScore,
-              completionEstimate: Math.min(1, (visitedTasks.length + 1) / Math.max(1, tasks.length || 1)),
+            object: {
+              id: `${window.location.origin}/homework-tutor/${assignment?.id || 'unknown'}`,
+              definition: {
+                name: { 'en-US': `Homework Tutor: ${assignmentTitle}` },
+                description: { 'en-US': 'Student Homework Tutor session' },
+                type: 'http://adlnet.gov/expapi/activities/lesson',
+              },
             },
-            source: 'student-homework-tutor',
-            createdAt: sessionEnd.toISOString(),
+            result: {
+              duration: durationIso,
+              completion: true,
+              success: engagementScore > 0.5,
+              score: {
+                scaled: engagementScore,
+                raw: Math.round(engagementScore * 100),
+                min: 0,
+                max: 100,
+              },
+              response: `Visited ${visitedTasks.length} task(s) and sent ${userMessages} message(s).`,
+            },
+            context: {
+              contextActivities: {
+                parent: [
+                  {
+                    id: assignment?.id
+                      ? `${window.location.origin}/assignments/${assignment.id}`
+                      : `${window.location.origin}/assignments`,
+                  },
+                ],
+              },
+              extensions: {
+                'https://inspiredhomework.ai/xapi/extensions/session': {
+                  startedAt: sessionStart.toISOString(),
+                  endedAt: sessionEnd.toISOString(),
+                  durationSeconds,
+                  messagesSent: userMessages,
+                  tutorReplies: tutorMessages,
+                  tasksVisited: visitedTasks,
+                  tasksVisitedTitles: visitedTaskTitles,
+                  focusTaskIndex: activeIndex,
+                  engagementScore,
+                  confidenceScore,
+                  completionEstimate,
+                  learnerId: learner?.id || null,
+                  assignmentId: assignment?.id || null,
+                  schoolId: assignment?.schoolId || null,
+                },
+              },
+            },
+            timestamp: sessionEnd.toISOString(),
           };
 
           try {
