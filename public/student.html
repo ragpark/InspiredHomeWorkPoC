@@ -80,7 +80,7 @@
   <body class="bg-gradient-to-br from-slate-25 via-slate-50 to-primary-50 min-h-screen text-slate-900 antialiased">
     <div id="root"></div>
     <script type="text/babel">
-      const { useState, useEffect, useMemo } = React;
+      const { useState, useEffect, useMemo, useRef } = React;
 
       const ModernCard = ({ children, className = '' }) => (
         <div className={`bg-white rounded-2xl border-2 border-slate-200 shadow-sm hover:shadow-lg transition-shadow duration-200 ${className}`}>{children}</div>
@@ -254,10 +254,16 @@
         </label>
       );
 
-      const HomeworkTutor = ({ open, assignment, onClose }) => {
+      const HomeworkTutor = ({ open, assignment, learner, onClose }) => {
         const [activeIndex, setActiveIndex] = useState(0);
         const [messages, setMessages] = useState([]);
         const [draft, setDraft] = useState('');
+        const [elapsedSeconds, setElapsedSeconds] = useState(0);
+        const [tasksVisitedCount, setTasksVisitedCount] = useState(0);
+        const [isSaving, setIsSaving] = useState(false);
+        const sessionStartRef = useRef(null);
+        const timerRef = useRef(null);
+        const visitedTasksRef = useRef(new Set());
 
         useEffect(() => {
           if (open) {
@@ -294,6 +300,41 @@
           setDraft('');
         }, [open, assignmentTitle, tasks.length, activeIndex]);
 
+        useEffect(() => {
+          if (!open) {
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+            }
+            timerRef.current = null;
+            return;
+          }
+
+          sessionStartRef.current = new Date();
+          visitedTasksRef.current = new Set([activeIndex]);
+          setTasksVisitedCount(visitedTasksRef.current.size);
+          setElapsedSeconds(0);
+
+          timerRef.current = setInterval(() => {
+            const start = sessionStartRef.current;
+            if (!start) return;
+            const diffSeconds = Math.floor((Date.now() - start.getTime()) / 1000);
+            setElapsedSeconds(diffSeconds);
+          }, 1000);
+
+          return () => {
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+            }
+            timerRef.current = null;
+          };
+        }, [open]);
+
+        useEffect(() => {
+          if (!open) return;
+          visitedTasksRef.current.add(activeIndex);
+          setTasksVisitedCount(visitedTasksRef.current.size);
+        }, [activeIndex, open]);
+
         const handleSend = () => {
           const trimmed = draft.trim();
           if (!trimmed) return;
@@ -314,6 +355,66 @@
           setDraft('');
         };
 
+        const handleExit = async () => {
+          if (isSaving) return;
+          setIsSaving(true);
+          const sessionEnd = new Date();
+          const sessionStart = sessionStartRef.current || sessionEnd;
+          const durationMinutes = Math.max(0.1, Number(((sessionEnd - sessionStart) / 60000).toFixed(1)));
+          const userMessages = messages.filter((message) => message.role === 'user').length;
+          const tutorMessages = messages.filter((message) => message.role === 'assistant').length;
+          const visitedTasks = Array.from(visitedTasksRef.current);
+          const visitedTaskTitles = visitedTasks.map((index) => tasks[index]).filter(Boolean);
+          const engagementScore = Math.min(1, (userMessages + visitedTasks.length) / 6);
+          const confidenceScore = Math.min(1, (userMessages + 1) / 5);
+          const sessionId = window.crypto?.randomUUID ? window.crypto.randomUUID() : `session-${Date.now()}`;
+
+          const payload = {
+            sessionId,
+            learnerId: learner?.id || 'unknown-learner',
+            learnerName: learner?.name || null,
+            learnerEmail: learner?.email || null,
+            schoolId: assignment?.schoolId || null,
+            assignmentId: assignment?.id || null,
+            assignmentTitle,
+            snapshotDate: sessionEnd.toISOString().slice(0, 10),
+            session: {
+              startedAt: sessionStart.toISOString(),
+              endedAt: sessionEnd.toISOString(),
+              durationMinutes,
+              messagesSent: userMessages,
+              tutorReplies: tutorMessages,
+              tasksVisited: visitedTasks,
+              tasksVisitedTitles: visitedTaskTitles,
+              focusTaskIndex: activeIndex,
+            },
+            performanceSummary: {
+              engagementScore,
+              confidenceScore,
+              completionEstimate: Math.min(1, (visitedTasks.length + 1) / Math.max(1, tasks.length || 1)),
+            },
+            source: 'student-homework-tutor',
+            createdAt: sessionEnd.toISOString(),
+          };
+
+          try {
+            await fetch('/api/mongodb/collections/learner_performance/documents', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+          } catch (err) {
+            console.error('Failed to save learner performance snapshot:', err);
+          } finally {
+            setIsSaving(false);
+            onClose();
+          }
+        };
+
+        const formattedElapsed = `${Math.floor(elapsedSeconds / 60)
+          .toString()
+          .padStart(2, '0')}:${(elapsedSeconds % 60).toString().padStart(2, '0')}`;
+
         return (
           <div
             className={`fixed inset-0 z-50 ${open ? 'flex' : 'hidden'} items-center justify-center bg-slate-950/70 backdrop-blur-sm`}
@@ -329,13 +430,22 @@
                     <p className="text-sm text-slate-600">Chat with your tutor, keep tasks handy, and work naturally.</p>
                   </div>
                 </div>
-                <button className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 hover:bg-slate-50" onClick={onClose}>
-                  Exit
+                <button
+                  className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-60"
+                  onClick={handleExit}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Saving...' : 'Exit'}
                 </button>
               </div>
 
               <div className="grid lg:grid-cols-[260px_1fr] divide-y lg:divide-y-0 lg:divide-x divide-slate-200 min-h-[520px]">
                 <aside className="p-5 bg-slate-50/70 space-y-5">
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-wide text-slate-600">Learner</p>
+                    <p className="text-sm font-semibold text-slate-900">{learner?.name || 'Unassigned learner'}</p>
+                    {learner?.cohort && <p className="text-xs text-slate-500">{learner.cohort}</p>}
+                  </div>
                   <div className="space-y-2">
                     <p className="text-xs uppercase tracking-wide text-slate-600">Assignment</p>
                     <p className="text-sm font-semibold text-slate-900">{assignmentTitle}</p>
@@ -367,6 +477,14 @@
                       <p>• Ask for hints, not answers, if you want to practice.</p>
                       <p>• Paste your draft and ask for feedback.</p>
                       <p>• Use “Summarize task” to get a quick plan.</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-wide text-slate-600">Session tracker</p>
+                    <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600 space-y-2">
+                      <p><span className="font-semibold text-slate-800">Elapsed:</span> {formattedElapsed}</p>
+                      <p><span className="font-semibold text-slate-800">Messages:</span> {messages.length}</p>
+                      <p><span className="font-semibold text-slate-800">Tasks visited:</span> {tasksVisitedCount}</p>
                     </div>
                   </div>
                 </aside>
@@ -459,8 +577,11 @@
         const [showTutor, setShowTutor] = useState(false);
         const [schools, setSchools] = useState([]);
         const [schoolId, setSchoolId] = useState('');
+        const [learners, setLearners] = useState([]);
+        const [learnerId, setLearnerId] = useState('');
 
         const tasks = assignment?.tasks || [];
+        const activeLearner = learners.find((entry) => entry.id === learnerId) || null;
 
         const extractAssignmentId = (value) => {
           const trimmed = value.trim();
@@ -496,6 +617,31 @@
           }
           loadSchools();
         }, []);
+
+        useEffect(() => {
+          async function loadLearners() {
+            try {
+              const res = await fetch('/api/learners');
+              const data = await res.json();
+              const list = data.learners || [];
+              setLearners(list);
+              const urlLearner = new URLSearchParams(window.location.search).get('learnerId');
+              const defaultLearner = urlLearner && list.some((entry) => entry.id === urlLearner)
+                ? urlLearner
+                : list[0]?.id || '';
+              setLearnerId(defaultLearner);
+            } catch (err) {
+              console.error('Unable to load learners', err);
+            }
+          }
+          loadLearners();
+        }, []);
+
+        useEffect(() => {
+          if (!learnerId && assignment?.students?.length) {
+            setLearnerId(assignment.students[0]);
+          }
+        }, [assignment, learnerId]);
 
         const loadAssignment = async (rawId, schoolOverride) => {
           const id = extractAssignmentId(rawId);
@@ -673,16 +819,33 @@
                       </div>
 
                       <div className="grid gap-3 sm:grid-cols-3">
-                        {summary.map((item) => (
-                          <div key={item.label} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
-                            <p className="text-xs text-slate-600">{item.label}</p>
-                            <p className="text-xl font-semibold text-slate-900">{item.value}</p>
-                          </div>
-                        ))}
+                    {summary.map((item) => (
+                      <div key={item.label} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                        <p className="text-xs text-slate-600">{item.label}</p>
+                        <p className="text-xl font-semibold text-slate-900">{item.value}</p>
                       </div>
+                    ))}
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-slate-800">Active learner for AI Tutor</p>
+                    <div className="flex flex-wrap gap-3 items-center">
+                      <select
+                        className="px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                        value={learnerId}
+                        onChange={(e) => setLearnerId(e.target.value)}
+                      >
+                        {learners.map((entry) => (
+                          <option key={entry.id} value={entry.id}>
+                            {entry.name} • {entry.cohort}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="text-xs text-slate-500">Session performance is saved to learner performance.</span>
+                    </div>
+                  </div>
 
-                      <div className="space-y-2">
-                        <p className="text-sm font-semibold text-slate-800">Tasks</p>
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-slate-800">Tasks</p>
                         {tasks.length === 0 && <p className="text-sm text-slate-600">No tasks listed.</p>}
                         <ol className="list-decimal list-inside space-y-2 text-slate-700">
                           {tasks.map((task, idx) => (
@@ -737,7 +900,12 @@
                 </div>
               </div>
 
-              <HomeworkTutor open={showTutor} assignment={assignment} onClose={() => setShowTutor(false)} />
+              <HomeworkTutor
+                open={showTutor}
+                assignment={assignment}
+                learner={activeLearner}
+                onClose={() => setShowTutor(false)}
+              />
             </div>
           </div>
         );
