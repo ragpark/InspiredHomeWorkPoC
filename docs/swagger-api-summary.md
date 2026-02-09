@@ -390,6 +390,39 @@ sequenceDiagram
 }
 ```
 
+### Typical merged flow: calendar-aware + recommendation response cycle
+**Summary:** End-to-end use case where the UI requests a calendar-aware recommendation and then
+reuses the response to drive subsequent homework review/iteration.
+
+**Sequence diagram (Mermaid.js):**
+```mermaid
+sequenceDiagram
+  autonumber
+  actor User
+  participant UI as Teacher/Student UI
+  participant API as Node.js API
+  participant DB as MongoDB/In-memory
+
+  User->>UI: Select week + request homework
+  UI->>API: POST /api/recommendations/calendar-aware
+  API->>DB: Fetch learner performance
+  API->>DB: Fetch scheme of work + content catalogue
+  API->>API: Calendar-aware rule-based selection
+  API-->>UI: 200 OK + homeworkRecommendation
+
+  Note over UI,User: User reviews and accepts tasks
+  User->>UI: Adjust tasks or constraints
+  UI->>API: POST /api/recommend-homework (re-run with adjusted inputs)
+  API->>DB: Fetch learner + content catalogue
+  alt Recommender API configured
+    API->>API: Build recommendation request
+  else Recommender API unavailable
+    API->>API: Rule-based recommendation
+  end
+  API-->>UI: 200 OK + homework payload
+  UI-->>User: Present final homework set
+```
+
 ---
 
 ## MongoDB Generic CRUD (schema-agnostic)
