@@ -1,0 +1,832 @@
+openapi: 3.0.3
+info:
+  title: InspiredHomework PoC — Outbound External APIs
+  version: 1.0.0
+  description: |
+    OpenAPI specification for the **four external services** that the
+    InspiredHomework server calls outbound. These are _not_ endpoints hosted
+    by the server — they are the contracts the server expects from upstream
+    providers.
+
+    Use this spec in Swagger UI, Postman, or code generators to build or
+    mock the services this application depends on.
+
+    Companion docs: `OUTBOUND-APIS.md`, `EXTERNAL-APIS.md`
+  contact:
+    name: InspiredHomework Integration Team
+
+servers:
+  - url: "{recommenderUrl}"
+    description: Recommender API
+    variables:
+      recommenderUrl:
+        default: https://recommender.example.com/v1
+  - url: "{isamsBaseUrl}"
+    description: iSAMS Management Information System
+    variables:
+      isamsBaseUrl:
+        default: https://isams.school.example.com
+  - url: "{s3BucketUrl}"
+    description: AWS S3 (presigned)
+    variables:
+      s3BucketUrl:
+        default: https://bucket.s3.eu-west-2.amazonaws.com
+  - url: "{pgRestUrl}"
+    description: PostgREST (PostgreSQL REST wrapper)
+    variables:
+      pgRestUrl:
+        default: https://postgrest.example.com
+
+tags:
+  - name: Recommender
+    description: AI-powered homework recommendation engine
+  - name: iSAMS
+    description: School management information system
+  - name: S3
+    description: AWS S3 snapshot storage
+  - name: PostgREST
+    description: PostgreSQL REST API for iSAMS data persistence
+
+paths:
+  # ─────────────────────────────────────────────────────────
+  #  1. RECOMMENDER API
+  # ─────────────────────────────────────────────────────────
+  /recommend:
+    post:
+      operationId: postRecommendation
+      tags: [Recommender]
+      summary: Generate personalised homework recommendation
+      description: |
+        Called by the server when a teacher requests a homework recommendation.
+        The server sends learner context and a content catalogue; the
+        recommender returns a ranked task list.
+
+        Two payload versions exist, selected by `apiVersion`:
+        - `2025-01-01` — basic (topic + difficulty profile)
+        - `2025-02-01` — calendar-aware (week number + performance snapshot)
+
+        **Fallback:** If this endpoint is unreachable or returns a non-2xx
+        status, the server silently falls back to a built-in rule-based
+        recommendation engine.
+      security:
+        - recommenderBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/RecommenderRequestBasic"
+                - $ref: "#/components/schemas/RecommenderRequestCalendarAware"
+            examples:
+              basic:
+                summary: Basic recommendation (apiVersion 2025-01-01)
+                value:
+                  requestId: "d7e2f3a1-b2c4-4e6f-8a1b-1234567890ab"
+                  apiVersion: "2025-01-01"
+                  learner:
+                    learnerId: "L001"
+                    cohort: "Algebra 2"
+                    status: "Active"
+                  context:
+                    topic: "Algebraic manipulation and surds"
+                    maxTotalTimeMinutes: 30
+                    difficultyProfile:
+                      Foundation: 0.3
+                      Core: 0.5
+                      Stretch: 0.2
+                    schemeOfWork: {}
+                    schemeMatches: []
+                  contentCatalogue:
+                    - contentId: "RES-101"
+                      topic: "Algebraic manipulation and surds"
+                      difficulty: "Foundation"
+                      lengthMinutes: 20
+                      type: "Activity"
+                      title: "Surds simplification practice set"
+                  explain: false
+              calendarAware:
+                summary: Calendar-aware recommendation (apiVersion 2025-02-01)
+                value:
+                  requestId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  apiVersion: "2025-02-01"
+                  timestampUtc: "2025-09-15T10:00:00Z"
+                  learner:
+                    id: "L001"
+                    cohort: "Algebra 2"
+                    status: "Active"
+                    email: "ada@example.com"
+                  performanceSnapshot:
+                    mastery:
+                      - outcomeId: "maths.fractions.equivalence"
+                        topic: "Fractions and mixed numbers"
+                        proficiency: 0.82
+                        confidence: 0.9
+                    recentActivity:
+                      numAssignmentsLast7d: 2
+                      averageScoreLast7d: 0.78
+                      averageTimeOnTaskMinutes: 26
+                      lastHomeworkTopic: "Linear equations"
+                  calendar:
+                    academicYear: "2024-2025"
+                    weekNumber: 1
+                    topic: "Algebraic manipulation and surds"
+                    semester: "Semester 1"
+                  schemeOfWork: {}
+                  contentCatalogue:
+                    - contentId: "RES-101"
+                      topic: "Algebraic manipulation and surds"
+                      difficulty: "Foundation"
+                      lengthMinutes: 20
+                      type: "Activity"
+                      title: "Surds simplification practice set"
+                      alignedOutcomes: ["a-level.pure.algebra.surds"]
+                  constraints:
+                    maxTotalTimeMinutes: 30
+                    targetTopic: "Algebraic manipulation and surds"
+      responses:
+        "200":
+          description: Homework recommendation returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommenderResponse"
+              example:
+                requestId: "d7e2f3a1-b2c4-4e6f-8a1b-1234567890ab"
+                modelVersion: "gpt-homework-v2"
+                homework:
+                  homeworkId: "f1e2d3c4-b5a6-7890-cdef-1234567890ab"
+                  title: "Auto-generated homework for Algebraic manipulation and surds"
+                  description: "Personalised task set for learner L001"
+                  estimatedTotalTimeMinutes: 20
+                  tasks:
+                    - sequence: 1
+                      contentId: "RES-101"
+                      taskText: "Complete \"Surds simplification practice set\" (20 minutes, Foundation)"
+                      estimatedTimeMinutes: 20
+                      difficulty: "Foundation"
+                explanations:
+                  global: "Selected tasks matching topic and difficulty profile."
+                  notes: []
+
+  # ─────────────────────────────────────────────────────────
+  #  2. iSAMS API
+  # ─────────────────────────────────────────────────────────
+  /api/batch/schoolreports/reportcycles:
+    get:
+      operationId: getIsamsReportCycles
+      tags: [iSAMS]
+      summary: Fetch report cycles from iSAMS
+      description: |
+        The server calls this endpoint to retrieve report cycle definitions
+        from the school's iSAMS instance.
+
+        The path is configurable via `ISAMS_REPORT_CYCLES_PATH`
+        (default: `/api/batch/schoolreports/reportcycles`).
+
+        **Response normalisation:** The server accepts five envelope shapes
+        (raw array, `.reportCycles`, `.data`, `.items`, `.value`) and maps
+        each cycle through flexible field resolution (see schemas below).
+      security:
+        - isamsAuth: []
+      responses:
+        "200":
+          description: Report cycles returned
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/IsamsReportCycleRaw"
+                  - $ref: "#/components/schemas/IsamsReportCyclesEnvelope"
+              examples:
+                arrayFormat:
+                  summary: Raw array format
+                  value:
+                    - reportCycleId: "123"
+                      name: "Autumn Term"
+                      startDate: "2024-09-01"
+                      endDate: "2024-12-20"
+                      academicYear: "2024-2025"
+                      status: "active"
+                envelopeFormat:
+                  summary: Envelope with reportCycles key
+                  value:
+                    reportCycles:
+                      - reportCycleId: "123"
+                        name: "Autumn Term"
+                        startDate: "2024-09-01"
+                        endDate: "2024-12-20"
+                        academicYear: "2024-2025"
+                        status: "active"
+
+  # ─────────────────────────────────────────────────────────
+  #  3. AWS S3
+  # ─────────────────────────────────────────────────────────
+  /{snapshotKey}:
+    put:
+      operationId: putS3Snapshot
+      tags: [S3]
+      summary: Upload raw iSAMS snapshot to S3
+      description: |
+        Uploads the raw JSON response from iSAMS as a snapshot file.
+
+        The URL is derived from either `S3_PRESIGNED_URL` (static) or
+        `S3_PRESIGNED_URL_TEMPLATE` (with `{key}` placeholder). Auth is
+        embedded in the presigned URL query parameters.
+
+        **Key format:** `isams/report-cycles/{ISO-timestamp-dashes}-{batchUUID}.json`
+      parameters:
+        - name: snapshotKey
+          in: path
+          required: true
+          description: |
+            S3 object key. Example:
+            `isams/report-cycles/2025-09-15T10-00-00-000Z-d7e2f3a1.json`
+          schema:
+            type: string
+            example: "isams/report-cycles/2025-09-15T10-00-00-000Z-d7e2f3a1.json"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              description: Raw iSAMS API response (pretty-printed JSON)
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Upload successful
+        "403":
+          description: Presigned URL expired or invalid
+
+  # ─────────────────────────────────────────────────────────
+  #  4. PostgREST
+  # ─────────────────────────────────────────────────────────
+  /isams_report_cycle_batches:
+    post:
+      operationId: postReportCycleBatch
+      tags: [PostgREST]
+      summary: Insert batch metadata row
+      description: |
+        Records metadata about a sync batch (which S3 key holds the raw
+        snapshot, how many records were fetched, etc.).
+      security:
+        - pgRestApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportCycleBatch"
+            example:
+              id: "d7e2f3a1-b2c4-4e6f-8a1b-1234567890ab"
+              school_id: "SCH-A"
+              fetched_at: "2025-09-15T10:00:00.000Z"
+              s3_key: "isams/report-cycles/2025-09-15T10-00-00-000Z-d7e2f3a1.json"
+              record_count: 12
+              request_url: "https://isams.school.example.com/api/batch/schoolreports/reportcycles"
+      responses:
+        "201":
+          description: Row inserted
+
+  /isams_report_cycles:
+    get:
+      operationId: getReportCycles
+      tags: [PostgREST]
+      summary: Query synced report cycles
+      description: |
+        Returns normalised report cycles, most recently synced first.
+        Uses standard PostgREST query parameter syntax.
+      security:
+        - pgRestApiKey: []
+      parameters:
+        - name: select
+          in: query
+          schema:
+            type: string
+            default: "id,name,start_date,end_date,academic_year,school_id,status,synced_at"
+        - name: order
+          in: query
+          schema:
+            type: string
+            default: "synced_at.desc"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: school_id
+          in: query
+          description: "PostgREST filter, e.g. `eq.SCH-A`"
+          schema:
+            type: string
+            example: "eq.SCH-A"
+      responses:
+        "200":
+          description: Array of report cycles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportCycleRow"
+
+    post:
+      operationId: upsertReportCycles
+      tags: [PostgREST]
+      summary: Upsert normalised report cycles
+      description: |
+        Bulk upserts report cycle rows. Uses PostgREST conflict resolution
+        on the `id` column.
+      security:
+        - pgRestApiKey: []
+      parameters:
+        - name: on_conflict
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [id]
+        - name: Prefer
+          in: header
+          required: true
+          schema:
+            type: string
+            enum: ["resolution=merge-duplicates"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReportCycleRow"
+            example:
+              - id: "123"
+                name: "Autumn Term"
+                start_date: "2024-09-01"
+                end_date: "2024-12-20"
+                academic_year: "2024-2025"
+                school_id: "SCH-A"
+                status: "active"
+                raw: {}
+                synced_at: "2025-09-15T10:00:00.000Z"
+      responses:
+        "201":
+          description: Rows upserted
+
+# ═══════════════════════════════════════════════════════════
+#  COMPONENTS
+# ═══════════════════════════════════════════════════════════
+components:
+
+  # ── Security Schemes ────────────────────────────────────
+  securitySchemes:
+    recommenderBearer:
+      type: http
+      scheme: bearer
+      description: |
+        `Authorization: Bearer {RECOMMENDER_API_KEY}`
+
+    isamsAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |
+        Configurable via `ISAMS_AUTH_HEADER` and `ISAMS_AUTH_SCHEME`.
+        Default: `Authorization: Bearer {ISAMS_API_KEY}`
+
+    pgRestApiKey:
+      type: apiKey
+      in: header
+      name: apikey
+      description: |
+        Header name configurable via `PG_REST_AUTH_HEADER` (default `apikey`).
+        Optional scheme prefix via `PG_REST_AUTH_SCHEME`.
+
+  # ── Schemas ─────────────────────────────────────────────
+  schemas:
+
+    # ── Recommender ───────────────────────────────────────
+
+    RecommenderRequestBasic:
+      type: object
+      required: [requestId, apiVersion, learner, context, contentCatalogue]
+      description: "Basic recommendation request (apiVersion: 2025-01-01)"
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        apiVersion:
+          type: string
+          enum: ["2025-01-01"]
+        learner:
+          $ref: "#/components/schemas/LearnerRefBasic"
+        context:
+          $ref: "#/components/schemas/RecommenderContextBasic"
+        contentCatalogue:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogueItemBasic"
+        explain:
+          type: boolean
+          default: false
+
+    RecommenderRequestCalendarAware:
+      type: object
+      required: [requestId, apiVersion, learner, calendar, contentCatalogue, constraints]
+      description: "Calendar-aware recommendation request (apiVersion: 2025-02-01)"
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        apiVersion:
+          type: string
+          enum: ["2025-02-01"]
+        timestampUtc:
+          type: string
+          format: date-time
+        learner:
+          $ref: "#/components/schemas/LearnerRefCalendar"
+        performanceSnapshot:
+          $ref: "#/components/schemas/PerformanceSnapshot"
+        calendar:
+          $ref: "#/components/schemas/CalendarContext"
+        schemeOfWork:
+          $ref: "#/components/schemas/SchemeOfWork"
+        contentCatalogue:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogueItemCalendar"
+        constraints:
+          type: object
+          properties:
+            maxTotalTimeMinutes:
+              type: integer
+              example: 30
+            targetTopic:
+              type: string
+
+    LearnerRefBasic:
+      type: object
+      required: [learnerId]
+      properties:
+        learnerId:
+          type: string
+          example: "L001"
+        cohort:
+          type: string
+          nullable: true
+          example: "Algebra 2"
+        status:
+          type: string
+          example: "Active"
+
+    LearnerRefCalendar:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          example: "L001"
+        cohort:
+          type: string
+          nullable: true
+        status:
+          type: string
+        email:
+          type: string
+          format: email
+
+    RecommenderContextBasic:
+      type: object
+      properties:
+        topic:
+          type: string
+          example: "Algebraic manipulation and surds"
+        maxTotalTimeMinutes:
+          type: integer
+          example: 30
+        difficultyProfile:
+          $ref: "#/components/schemas/DifficultyProfile"
+        schemeOfWork:
+          $ref: "#/components/schemas/SchemeOfWork"
+        schemeMatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemeWeekEntry"
+
+    DifficultyProfile:
+      type: object
+      description: Target proportion of each difficulty band (should sum to 1.0)
+      properties:
+        Foundation:
+          type: number
+          example: 0.3
+        Core:
+          type: number
+          example: 0.5
+        Stretch:
+          type: number
+          example: 0.2
+
+    CatalogueItemBasic:
+      type: object
+      required: [contentId, topic, difficulty, lengthMinutes, type, title]
+      properties:
+        contentId:
+          type: string
+          example: "RES-101"
+        topic:
+          type: string
+        difficulty:
+          type: string
+          enum: [Foundation, Core, Stretch]
+        lengthMinutes:
+          type: integer
+        type:
+          type: string
+          enum: [Activity, Assessment, "Book chapter"]
+        title:
+          type: string
+
+    CatalogueItemCalendar:
+      allOf:
+        - $ref: "#/components/schemas/CatalogueItemBasic"
+        - type: object
+          properties:
+            alignedOutcomes:
+              type: array
+              items:
+                type: string
+              example: ["a-level.pure.algebra.surds"]
+
+    PerformanceSnapshot:
+      type: object
+      properties:
+        mastery:
+          type: array
+          items:
+            type: object
+            properties:
+              outcomeId:
+                type: string
+                example: "maths.fractions.equivalence"
+              topic:
+                type: string
+              proficiency:
+                type: number
+                minimum: 0
+                maximum: 1
+                description: "0.0 = no mastery, 1.0 = full mastery"
+              confidence:
+                type: number
+                minimum: 0
+                maximum: 1
+        recentActivity:
+          type: object
+          properties:
+            numAssignmentsLast7d:
+              type: integer
+            averageScoreLast7d:
+              type: number
+            averageTimeOnTaskMinutes:
+              type: integer
+            lastHomeworkTopic:
+              type: string
+
+    CalendarContext:
+      type: object
+      properties:
+        academicYear:
+          type: string
+          example: "2024-2025"
+        weekNumber:
+          type: integer
+          minimum: 1
+          maximum: 52
+        topic:
+          type: string
+        semester:
+          type: string
+          example: "Semester 1"
+
+    SchemeOfWork:
+      type: object
+      description: Full academic calendar with semesters and weekly topics
+      properties:
+        academicYear:
+          type: string
+        subject:
+          type: string
+        level:
+          type: string
+        semesters:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              focus:
+                type: string
+              weeks:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SchemeWeekEntry"
+
+    SchemeWeekEntry:
+      type: object
+      properties:
+        week:
+          type: integer
+        topic:
+          type: string
+        semester:
+          type: string
+        focus:
+          type: string
+
+    RecommenderResponse:
+      type: object
+      required: [requestId, homework]
+      description: |
+        Expected response from the recommender. The server passes this
+        through to the frontend verbatim.
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        modelVersion:
+          type: string
+          description: Identifier for the model/algorithm version used
+          example: "gpt-homework-v2"
+        homework:
+          type: object
+          required: [homeworkId, tasks]
+          properties:
+            homeworkId:
+              type: string
+              format: uuid
+            title:
+              type: string
+            description:
+              type: string
+            estimatedTotalTimeMinutes:
+              type: integer
+            targetDifficultyProfile:
+              $ref: "#/components/schemas/DifficultyProfile"
+            tasks:
+              type: array
+              items:
+                $ref: "#/components/schemas/RecommendedTask"
+        explanations:
+          type: object
+          properties:
+            global:
+              type: string
+              description: Human-readable summary of the recommendation logic
+            notes:
+              type: array
+              items:
+                type: string
+            learnerId:
+              type: string
+
+    RecommendedTask:
+      type: object
+      required: [sequence, taskText, estimatedTimeMinutes]
+      properties:
+        sequence:
+          type: integer
+          minimum: 1
+        contentId:
+          type: string
+          description: References a catalogue item
+        taskText:
+          type: string
+        estimatedTimeMinutes:
+          type: integer
+        difficulty:
+          type: string
+          enum: [Foundation, Core, Stretch]
+        alignedOutcomes:
+          type: array
+          items:
+            type: string
+        topic:
+          type: string
+
+    # ── iSAMS ─────────────────────────────────────────────
+
+    IsamsReportCycleRaw:
+      type: object
+      description: |
+        A single report cycle as returned by iSAMS. Field names vary across
+        iSAMS versions — the server normalises all variants.
+      properties:
+        reportCycleId:
+          type: string
+          description: "Also accepted as: reportCycleID, cycleId, cycleID, id"
+        name:
+          type: string
+          description: "Also accepted as: title, description"
+        startDate:
+          type: string
+          description: "Also accepted as: start, start_date, openDate"
+        endDate:
+          type: string
+          description: "Also accepted as: end, end_date, closeDate"
+        academicYear:
+          type: string
+          description: "Also accepted as: year, schoolYear"
+        status:
+          type: string
+          description: "Also accepted as: state"
+      additionalProperties: true
+
+    IsamsReportCyclesEnvelope:
+      type: object
+      description: |
+        Envelope formats the server accepts. Only one key needs to be present.
+      properties:
+        reportCycles:
+          type: array
+          items:
+            $ref: "#/components/schemas/IsamsReportCycleRaw"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/IsamsReportCycleRaw"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/IsamsReportCycleRaw"
+        value:
+          type: array
+          items:
+            $ref: "#/components/schemas/IsamsReportCycleRaw"
+
+    # ── PostgREST ─────────────────────────────────────────
+
+    ReportCycleBatch:
+      type: object
+      required: [id, fetched_at, s3_key, record_count]
+      description: Metadata about a single iSAMS sync batch
+      properties:
+        id:
+          type: string
+          format: uuid
+        school_id:
+          type: string
+          nullable: true
+          example: "SCH-A"
+        fetched_at:
+          type: string
+          format: date-time
+        s3_key:
+          type: string
+          example: "isams/report-cycles/2025-09-15T10-00-00-000Z-uuid.json"
+        record_count:
+          type: integer
+        request_url:
+          type: string
+          format: uri
+
+    ReportCycleRow:
+      type: object
+      required: [id, synced_at]
+      description: Normalised report cycle persisted in PostgreSQL
+      properties:
+        id:
+          type: string
+          example: "123"
+        name:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        academic_year:
+          type: string
+          nullable: true
+        school_id:
+          type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        raw:
+          type: object
+          additionalProperties: true
+          description: Original iSAMS cycle object preserved verbatim
+        synced_at:
+          type: string
+          format: date-time
