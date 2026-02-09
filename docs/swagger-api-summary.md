@@ -425,6 +425,38 @@ sequenceDiagram
 
 ---
 
+### Learner experience: launch, modal interaction, and performance capture
+**Summary:** Sequence from learner launch to content interaction and performance data flowing back
+into MongoDB for teacher dashboards.
+
+**Sequence diagram (Mermaid.js):**
+```mermaid
+sequenceDiagram
+  autonumber
+  actor Learner
+  participant UI as Student UI
+  participant API as Node.js API
+  participant DB as MongoDB/In-memory
+
+  Learner->>UI: Open student launch link
+  UI->>API: GET /api/assignments/{id}?schoolId=...
+  API->>DB: Load assignment + PRIZM content
+  API-->>UI: Assignment payload + launchUrl
+  UI-->>Learner: Render homework list
+
+  Learner->>UI: Open content modal
+  UI-->>Learner: Display PRIZM content (video/interactive/document)
+  Learner->>UI: Complete task(s)
+
+  UI->>API: POST /api/mongodb/collections/learner_performance/documents
+  Note over UI,API: Send mastery/engagement snapshot\nfor teacher dashboards
+  API->>DB: Insert/update learner performance document
+  API-->>UI: 201 Created
+  UI-->>Learner: Show completion confirmation
+```
+
+---
+
 ## MongoDB Generic CRUD (schema-agnostic)
 
 ### `GET /api/mongodb/collections`
