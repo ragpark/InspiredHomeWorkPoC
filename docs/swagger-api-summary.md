@@ -254,6 +254,29 @@ summary of the internal REST API and outbound integrations, including example pa
 ### `POST /api/recommend-homework`
 **Summary:** Basic recommendation; tries external recommender, falls back to rule-based.
 
+**Sequence diagram (Mermaid.js):**
+```mermaid
+sequenceDiagram
+  autonumber
+  actor User
+  participant UI as Teacher/Student UI
+  participant API as Node.js API
+  participant Rec as Recommender API
+  participant DB as MongoDB/In-memory
+
+  User->>UI: Request homework recommendation
+  UI->>API: POST /api/recommend-homework
+  API->>DB: Fetch learner + content catalogue
+  alt Recommender API configured
+    API->>Rec: POST recommendation request
+    Rec-->>API: Recommendation response
+  else Recommender API unavailable
+    API->>API: Rule-based recommendation
+  end
+  API-->>UI: 200 OK + homework payload
+  UI-->>User: Show recommended homework
+```
+
 **Request Body (example):**
 ```json
 {
@@ -297,6 +320,24 @@ summary of the internal REST API and outbound integrations, including example pa
 
 ### `POST /api/recommendations/calendar-aware`
 **Summary:** Calendar-aware recommendation (uses scheme-of-work week + learner performance).
+
+**Sequence diagram (Mermaid.js):**
+```mermaid
+sequenceDiagram
+  autonumber
+  actor User
+  participant UI as Teacher/Student UI
+  participant API as Node.js API
+  participant DB as MongoDB/In-memory
+
+  User->>UI: Request calendar-aware homework
+  UI->>API: POST /api/recommendations/calendar-aware
+  API->>DB: Fetch learner performance
+  API->>DB: Fetch scheme of work + content catalogue
+  API->>API: Calendar-aware rule-based selection
+  API-->>UI: 200 OK + homeworkRecommendation payload
+  UI-->>User: Show recommended homework
+```
 
 **Request Body (example):**
 ```json
