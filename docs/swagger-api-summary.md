@@ -344,9 +344,9 @@ summary of the internal REST API and outbound integrations, including example pa
 }
 ```
 
-### Typical merged flow: calendar-aware + recommendation response cycle
-**Summary:** End-to-end use case where the UI requests a calendar-aware recommendation and then
-reuses the response to drive subsequent homework review/iteration.
+### Typical merged flow: Schem of Work aware + FAculty AI recommendation response cycle
+**Summary:** End-to-end use case where the UI requests a SoW-aware recommendation and then
+reuses the response to drive  homework review/iteration prior to assignment.
 
 **Sequence diagram (Mermaid.js):**
 ```mermaid
@@ -394,23 +394,26 @@ into MongoDB for teacher dashboards.
 **Sequence diagram (Mermaid.js):**
 ```mermaid
 sequenceDiagram
-  autonumber
   actor Learner
   participant UI as Student UI
-  participant API as Node.js API
-  participant DB as MongoDB/In-memory
+  participant API as Berlin Experience
+  participant PZ as Prizm
+  participant DB as MongoDB or Spectrum LRS
+  autonumber
 
   Learner->>UI: Open student launch link
   UI->>API: GET /api/assignments/{id}?schoolId=...
-  API->>DB: Load assignment + PRIZM content
+  API->>PZ: Load assignment + PRIZM content
   API-->>UI: Assignment payload + launchUrl
   UI-->>Learner: Render homework list
 
   Learner->>UI: Open content modal
   UI-->>Learner: Display PRIZM content (video/interactive/document)
+  loop lAI Tutor
+    API ->> API: Tutor AI Chatbot experience
+  end
   Learner->>UI: Complete task(s)
 
-  UI->>API: POST /api/mongodb/collections/learner_performance/documents
   Note over UI,API: Send mastery/engagement snapshot\nfor teacher dashboards
   API->>DB: Insert/update learner performance document
   API-->>UI: 201 Created
