@@ -401,25 +401,33 @@ sequenceDiagram
   actor User
   participant UI as Teacher/Student UI
   participant API as Node.js API
+  participant PZ as PRIZM
   participant DB as MongoDB/In-memory
+  participant IN as School Group Platform
+  
 
   User->>UI: Select week + request homework
   UI->>API: POST /api/recommendations/calendar-aware
-  API->>DB: Fetch learner performance
-  API->>DB: Fetch scheme of work + content catalogue
+  API->>DB: Fetch learner performance and Term Data
+  DB->>IN: Request reports & SoW
+  IN ->> DB: Rosters, Performance, SOW 
+  API->>PZ: Fetch scheme of work + content catalogue
   API->>API: Calendar-aware rule-based selection
-  API-->>UI: 200 OK + homeworkRecommendation
 
-  Note over UI,User: User reviews and accepts tasks
-  User->>UI: Adjust tasks or constraints
   UI->>API: POST /api/recommend-homework (re-run with adjusted inputs)
   API->>DB: Fetch learner + content catalogue
-  alt Recommender API configured
+  alt Faculty Recommender API configured
     API->>API: Build recommendation request
   else Recommender API unavailable
     API->>API: Rule-based recommendation
   end
-  API-->>UI: 200 OK + homework payload
+  API-->>UI: 200 OK + Homework details
+  Note over UI,User: User reviews and accepts tasks
+  User->>UI: Adjust tasks or constraints
+  
+  API-->>DB: Assignment details
+  API-->>IN: LTI Deeplink
+  API-->>PZ: 200 OK + homework payload as IMSCC Cartridge
   UI-->>User: Present final homework set
 ```
 
